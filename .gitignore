@@ -1,0 +1,34 @@
+# Node / React
+app/node_modules/
+app/dist/
+app/dist-ssr/
+app/*.local
+app/.pnpm-debug.log*
+app/npm-debug.log*
+app/yarn-debug.log*
+app/yarn-error.log*
+
+# Python / Local Agent
+agent/.venv/
+agent/venv/
+agent/__pycache__/
+agent/*.pyc
+agent/*.pyo
+agent/*.pyd
+agent/.pytest_cache/
+agent/build/
+agent/dist/
+agent/*.egg-info/
+
+# Local data & storage
+.dashboard-agent/
+*.dashboardpack
+*.dashboardtemplate
+
+# IDE & OS
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
