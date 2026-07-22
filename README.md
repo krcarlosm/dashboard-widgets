@@ -1,5 +1,7 @@
 # Dashboard Modular de Widgets Locais
 
+Criação de um dashboard interativo com ferramentas de produtividade. O dashboard enxerga widgets disponíveis no repositório, e oferece para o usuário que escolherá instalá-los ou não. Cada widget possui atualização e ciclo de vida independentes.
+
 Um canvas pessoal em branco com widgets arrastáveis, redimensionáveis e totalmente locais. Projetado para rodar no navegador e integrar-se com um agente local em Python para recursos nativos (clipboard, capturas de tela sob demanda e monitoramento).
 
 ## Estrutura do Projeto
