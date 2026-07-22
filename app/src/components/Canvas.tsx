@@ -1,6 +1,8 @@
 import React from 'react';
 import RGL, { WidthProvider } from 'react-grid-layout';
+// @ts-ignore - allow importing CSS side-effect in this project without type declarations
 import 'react-grid-layout/css/styles.css';
+// @ts-ignore - allow importing CSS side-effect in this project without type declarations
 import 'react-resizable/css/styles.css';
 import { useDashboardStore } from '../store/dashboardStore';
 import { WidgetContainer } from './WidgetContainer';
@@ -52,6 +54,7 @@ export const Canvas: React.FC = () => {
           onLayoutChange={updateLayout}
           isDraggable={true}
           isResizable={true}
+          useCSSTransforms={false}
           isBounded={false}
           compactType="vertical"
           margin={[16, 16]}
