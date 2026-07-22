@@ -3,7 +3,7 @@ import { WidgetDefinition, WidgetContext } from '../sdk/types';
 import { ScopedWidgetStorage } from '../sdk/storage';
 import { defaultAgentClient } from '../sdk/agentClient';
 import { useDashboardStore } from '../store/dashboardStore';
-import { X, GripHorizontal, Activity, Layers } from 'lucide-react';
+import { X, GripHorizontal } from 'lucide-react';
 
 interface WidgetContainerProps {
   instanceId: string;
@@ -24,14 +24,18 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
 
   const storage = useRef(new ScopedWidgetStorage(instanceId)).current;
 
-  // Medir dimensões reais do contêiner para repassar via Context ao widget
   useEffect(() => {
     if (!containerRef.current) return;
 
     const observer = new ResizeObserver((entries) => {
       for (const entry of entries) {
         const { width, height } = entry.contentRect;
-        setDimensions({ width: Math.round(width), height: Math.round(height) });
+        const roundedW = Math.round(width);
+        const roundedH = Math.round(height);
+        setDimensions((prev) => {
+          if (prev.width === roundedW && prev.height === roundedH) return prev;
+          return { width: roundedW, height: roundedH };
+        });
       }
     });
 
@@ -70,7 +74,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
         boxSizing: 'border-box',
       }}
     >
-      {/* Header / Titlebar */}
+      {/* Titlebar / Drag Handle */}
       <div
         className="widget-drag-handle"
         style={{
@@ -84,7 +88,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
           userSelect: 'none',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', pointerEvents: 'none' }}>
           <GripHorizontal size={14} color="#64748b" />
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9' }}>
             {widgetDef.manifest.name}
@@ -119,7 +123,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
         </button>
       </div>
 
-      {/* Body */}
+      {/* Widget Body */}
       <div
         ref={containerRef}
         style={{

@@ -1,5 +1,5 @@
 import React from 'react';
-import RGL, { WidthProvider, Layout } from 'react-grid-layout';
+import RGL, { WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
 import { useDashboardStore } from '../store/dashboardStore';
@@ -12,28 +12,6 @@ export const Canvas: React.FC = () => {
   const registeredWidgets = useDashboardStore((state) => state.registeredWidgets);
   const updateLayout = useDashboardStore((state) => state.updateLayout);
   const removeWidgetFromCanvas = useDashboardStore((state) => state.removeWidgetFromCanvas);
-
-  const layout: Layout[] = activeInstances.map((item) => {
-    const widgetDef = registeredWidgets.get(item.widgetId);
-    const minSize = widgetDef?.manifest.minSize || { w: 2, h: 2 };
-    const maxSize = widgetDef?.manifest.maxSize || { w: 12, h: 12 };
-
-    return {
-      i: item.instanceId,
-      x: item.layout.x,
-      y: item.layout.y,
-      w: item.layout.w,
-      h: item.layout.h,
-      minW: minSize.w,
-      minH: minSize.h,
-      maxW: maxSize.w,
-      maxH: maxSize.h,
-    };
-  });
-
-  const handleLayoutChange = (newLayout: Layout[]) => {
-    updateLayout(newLayout);
-  };
 
   return (
     <main
@@ -68,12 +46,10 @@ export const Canvas: React.FC = () => {
       ) : (
         <ReactGridLayout
           className="layout"
-          layout={layout}
           cols={12}
           rowHeight={80}
           draggableHandle=".widget-drag-handle"
-          onDragStop={handleLayoutChange}
-          onResizeStop={handleLayoutChange}
+          onLayoutChange={updateLayout}
           isDraggable={true}
           isResizable={true}
           isBounded={false}
@@ -84,8 +60,23 @@ export const Canvas: React.FC = () => {
             const widgetDef = registeredWidgets.get(instance.widgetId);
             if (!widgetDef) return <div key={instance.instanceId} />;
 
+            const minSize = widgetDef.manifest.minSize || { w: 2, h: 2 };
+            const maxSize = widgetDef.manifest.maxSize || { w: 12, h: 12 };
+
             return (
-              <div key={instance.instanceId} style={{ height: '100%' }}>
+              <div
+                key={instance.instanceId}
+                data-grid={{
+                  x: instance.layout.x,
+                  y: instance.layout.y,
+                  w: instance.layout.w,
+                  h: instance.layout.h,
+                  minW: minSize.w,
+                  minH: minSize.h,
+                  maxW: maxSize.w,
+                  maxH: maxSize.h,
+                }}
+              >
                 <WidgetContainer
                   instanceId={instance.instanceId}
                   widgetDef={widgetDef}

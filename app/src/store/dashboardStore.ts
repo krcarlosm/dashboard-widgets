@@ -4,14 +4,10 @@ import { WidgetDefinition } from '../sdk/types';
 import { ProfileWidgetInstance, ProfileManifest } from '../types/profile';
 
 interface DashboardState {
-  // Catálogo de widgets registrados
   registeredWidgets: Map<string, WidgetDefinition>;
-  // Instâncias ativas no canvas
   activeInstances: ProfileWidgetInstance[];
-  // Layout salvo
   isLoaded: boolean;
 
-  // Ações
   registerWidget: (widget: WidgetDefinition) => void;
   loadProfile: () => void;
   saveProfile: () => void;
@@ -47,7 +43,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     } catch (e) {
       console.error('[DashboardStore] Erro ao carregar perfil:', e);
     }
-    // Perfil inicial padrão (vazio ou com Hello World padrão)
     set({ activeInstances: [], isLoaded: true });
   },
 
@@ -75,7 +70,6 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const instanceId = `${widgetId}-${Date.now()}`;
     const defaultSize = widgetDef.manifest.defaultSize;
 
-    // Calcular posição livre simples no topo/fim
     const maxY = activeInstances.reduce((max, item) => Math.max(max, item.layout.y + item.layout.h), 0);
 
     const newInstance: ProfileWidgetInstance = {
@@ -105,22 +99,34 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   updateLayout: (layouts: Layout[]) => {
     set((state) => {
       const layoutMap = new Map(layouts.map((l) => [l.i, l]));
+      let hasChanges = false;
+
       const updatedInstances = state.activeInstances.map((instance) => {
         const newLayout = layoutMap.get(instance.instanceId);
         if (newLayout) {
-          return {
-            ...instance,
-            layout: {
-              i: instance.instanceId,
-              x: newLayout.x,
-              y: newLayout.y,
-              w: newLayout.w,
-              h: newLayout.h,
-            },
-          };
+          if (
+            instance.layout.x !== newLayout.x ||
+            instance.layout.y !== newLayout.y ||
+            instance.layout.w !== newLayout.w ||
+            instance.layout.h !== newLayout.h
+          ) {
+            hasChanges = true;
+            return {
+              ...instance,
+              layout: {
+                i: instance.instanceId,
+                x: newLayout.x,
+                y: newLayout.y,
+                w: newLayout.w,
+                h: newLayout.h,
+              },
+            };
+          }
         }
         return instance;
       });
+
+      if (!hasChanges) return state;
       return { activeInstances: updatedInstances };
     });
     get().saveProfile();
