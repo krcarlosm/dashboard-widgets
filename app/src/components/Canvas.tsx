@@ -72,7 +72,10 @@ export const Canvas: React.FC = () => {
           cols={12}
           rowHeight={80}
           draggableHandle=".widget-drag-handle"
-          onLayoutChange={handleLayoutChange}
+          onDragStop={handleLayoutChange}
+          onResizeStop={handleLayoutChange}
+          isDraggable={true}
+          isResizable={true}
           isBounded={false}
           compactType="vertical"
           margin={[16, 16]}
@@ -82,7 +85,7 @@ export const Canvas: React.FC = () => {
             if (!widgetDef) return <div key={instance.instanceId} />;
 
             return (
-              <div key={instance.instanceId}>
+              <div key={instance.instanceId} style={{ height: '100%' }}>
                 <WidgetContainer
                   instanceId={instance.instanceId}
                   widgetDef={widgetDef}
