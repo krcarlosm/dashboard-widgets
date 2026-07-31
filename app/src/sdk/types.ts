@@ -12,6 +12,7 @@ export interface WidgetManifest {
   description: string;
   icon: string; // Nome do ícone Lucide
   author?: string;
+  status?: 'stable' | 'in_development' | 'needs_improvement' | 'deprecated';
   defaultSize: WidgetDimensions;
   minSize: WidgetDimensions;
   maxSize: WidgetDimensions;

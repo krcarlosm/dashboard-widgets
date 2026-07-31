@@ -3,7 +3,7 @@ import { WidgetDefinition, WidgetContext } from '../sdk/types';
 import { ScopedWidgetStorage } from '../sdk/storage';
 import { defaultAgentClient } from '../sdk/agentClient';
 import { useDashboardStore } from '../store/dashboardStore';
-import { X, GripHorizontal } from 'lucide-react';
+import { X, GripHorizontal, Wrench, AlertTriangle } from 'lucide-react';
 
 interface WidgetContainerProps {
   instanceId: string;
@@ -24,6 +24,33 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
 
   const storage = useRef(new ScopedWidgetStorage(instanceId)).current;
 
+  const handleUpdateConfig = (newConfig: Partial<Record<string, any>>) => {
+    updateWidgetConfig(instanceId, newConfig);
+  };
+
+  const context: WidgetContext = {
+    instanceId,
+    config,
+    updateConfig: handleUpdateConfig,
+    storage,
+    agentClient: defaultAgentClient,
+    dimensions,
+  };
+
+  // Lifecycle execution
+  useEffect(() => {
+    const lifecycle = widgetDef.lifecycle;
+    if (lifecycle?.init) {
+      lifecycle.init(context);
+    }
+    return () => {
+      if (lifecycle?.destroy) {
+        lifecycle.destroy();
+      }
+    };
+  }, [widgetDef]);
+
+  // Dimension tracking
   useEffect(() => {
     if (!containerRef.current) return;
 
@@ -43,20 +70,9 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
     return () => observer.disconnect();
   }, []);
 
-  const handleUpdateConfig = (newConfig: Partial<Record<string, any>>) => {
-    updateWidgetConfig(instanceId, newConfig);
-  };
-
-  const context: WidgetContext = {
-    instanceId,
-    config,
-    updateConfig: handleUpdateConfig,
-    storage,
-    agentClient: defaultAgentClient,
-    dimensions,
-  };
-
   const WidgetComponent = widgetDef.component;
+  const status = widgetDef.manifest.status || 'stable';
+  const isInactive = status === 'in_development' || status === 'needs_improvement';
 
   return (
     <div
@@ -72,6 +88,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
         boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
         overflow: 'hidden',
         boxSizing: 'border-box',
+        position: 'relative',
       }}
     >
       {/* Titlebar / Drag Handle */}
@@ -93,6 +110,44 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9' }}>
             {widgetDef.manifest.name}
           </span>
+
+          {status === 'in_development' && (
+            <span
+              title="Este widget está em desenvolvimento e desativado para interação."
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                fontSize: '10px',
+                background: 'rgba(56, 189, 248, 0.2)',
+                color: '#38bdf8',
+                border: '1px solid rgba(56, 189, 248, 0.4)',
+                padding: '1px 6px',
+                borderRadius: '4px',
+              }}
+            >
+              <Wrench size={10} /> Em Dev
+            </span>
+          )}
+
+          {status === 'needs_improvement' && (
+            <span
+              title="Este widget necessita de melhorias."
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '3px',
+                fontSize: '10px',
+                background: 'rgba(245, 158, 11, 0.2)',
+                color: '#f59e0b',
+                border: '1px solid rgba(245, 158, 11, 0.4)',
+                padding: '1px 6px',
+                borderRadius: '4px',
+              }}
+            >
+              <AlertTriangle size={10} /> Ajustes
+            </span>
+          )}
         </div>
 
         <button
@@ -131,6 +186,9 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
           padding: '12px',
           overflow: 'auto',
           boxSizing: 'border-box',
+          position: 'relative',
+          opacity: isInactive ? 0.6 : 1,
+          pointerEvents: isInactive ? 'none' : 'auto',
         }}
       >
         <WidgetComponent context={context} />
