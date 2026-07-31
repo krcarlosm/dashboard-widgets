@@ -9,6 +9,7 @@ export interface ProfileWidgetLayout {
 export interface ProfileWidgetInstance {
   instanceId: string;
   widgetId: string;
+  isLocked?: boolean;
   layout: ProfileWidgetLayout;
   config: Record<string, any>;
 }

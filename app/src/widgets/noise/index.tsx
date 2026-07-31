@@ -1,6 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { Volume2, VolumeX, Play, Pause, Radio } from 'lucide-react';
+import { Volume2, VolumeX, Play, Pause } from 'lucide-react';
 
 type NoiseType = 'white' | 'brown' | 'pink';
 
@@ -12,6 +12,8 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const audioCtxRef = useRef<AudioContext | null>(null);
   const sourceNodeRef = useRef<AudioBufferSourceNode | null>(null);
   const gainNodeRef = useRef<GainNode | null>(null);
+  // Track whether audio is truly started to avoid race conditions
+  const isStartingRef = useRef<boolean>(false);
 
   // Load saved state
   useEffect(() => {
@@ -24,15 +26,16 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     loadData();
   }, [context.storage]);
 
-  // Handle cleanup on unmount/destroy
+  // Clean up on unmount
   useEffect(() => {
     return () => {
-      stopAudio();
+      cleanupAudio();
     };
   }, []);
 
   const createNoiseBuffer = (ctx: AudioContext, type: NoiseType): AudioBuffer => {
-    const bufferSize = 5 * ctx.sampleRate; // 5 seconds buffer
+    // Use a longer buffer (30 seconds) for smoother looping
+    const bufferSize = 30 * ctx.sampleRate;
     const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
     const data = buffer.getChannelData(0);
 
@@ -46,7 +49,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         const white = Math.random() * 2 - 1;
         data[i] = (lastOut + 0.02 * white) / 1.02;
         lastOut = data[i];
-        data[i] *= 3.5; // Boost amplitude for brown noise
+        data[i] *= 3.5;
       }
     } else if (type === 'pink') {
       let b0 = 0, b1 = 0, b2 = 0, b3 = 0, b4 = 0, b5 = 0, b6 = 0;
@@ -67,58 +70,88 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     return buffer;
   };
 
-  const startAudio = () => {
-    stopAudio();
+  const cleanupAudio = () => {
+    try {
+      sourceNodeRef.current?.stop();
+      sourceNodeRef.current?.disconnect();
+    } catch { /* already stopped */ }
+    try {
+      gainNodeRef.current?.disconnect();
+      audioCtxRef.current?.close();
+    } catch { /* already closed */ }
+    sourceNodeRef.current = null;
+    gainNodeRef.current = null;
+    audioCtxRef.current = null;
+  };
 
-    const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
-    const ctx = new AudioCtxClass();
-    audioCtxRef.current = ctx;
+  const startAudio = async (type: NoiseType, vol: number) => {
+    if (isStartingRef.current) return;
+    isStartingRef.current = true;
 
-    const gainNode = ctx.createGain();
-    const targetGain = (volume / 100) * 0.5;
-    gainNode.gain.setValueAtTime(0.001, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(Math.max(0.001, targetGain), ctx.currentTime + 0.2); // 200ms fade in
-    gainNodeRef.current = gainNode;
+    // Clean up any previous context first
+    cleanupAudio();
 
-    const buffer = createNoiseBuffer(ctx, noiseType);
-    const source = ctx.createBufferSource();
-    source.buffer = buffer;
-    source.loop = true;
-    source.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    source.start(0);
+    try {
+      const AudioCtxClass = window.AudioContext || (window as any).webkitAudioContext;
+      const ctx = new AudioCtxClass();
+      audioCtxRef.current = ctx;
 
-    sourceNodeRef.current = source;
-    setIsPlaying(true);
+      // CRITICAL: Resume context — browsers may start it in suspended state
+      if (ctx.state === 'suspended') {
+        await ctx.resume();
+      }
+
+      const gainNode = ctx.createGain();
+      const targetGain = Math.max(0.0001, (vol / 100) * 0.6);
+      gainNode.gain.setValueAtTime(0.0001, ctx.currentTime);
+      // Use linearRampToValueAtTime for more reliable ramp (exponential can fail at 0)
+      gainNode.gain.linearRampToValueAtTime(targetGain, ctx.currentTime + 0.3);
+      gainNodeRef.current = gainNode;
+
+      const buffer = createNoiseBuffer(ctx, type);
+      const source = ctx.createBufferSource();
+      source.buffer = buffer;
+      source.loop = true;
+      source.connect(gainNode);
+      gainNode.connect(ctx.destination);
+      source.start(0);
+      sourceNodeRef.current = source;
+
+      setIsPlaying(true);
+    } catch (err) {
+      console.error('[NoiseWidget] Error starting audio:', err);
+      cleanupAudio();
+      setIsPlaying(false);
+    } finally {
+      isStartingRef.current = false;
+    }
   };
 
   const stopAudio = () => {
-    if (gainNodeRef.current && audioCtxRef.current) {
-      try {
-        const ctx = audioCtxRef.current;
-        gainNodeRef.current.gain.setValueAtTime(gainNodeRef.current.gain.value, ctx.currentTime);
-        gainNodeRef.current.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15); // 150ms fade out
-      } catch {}
+    if (!gainNodeRef.current || !audioCtxRef.current) {
+      setIsPlaying(false);
+      return;
     }
 
+    try {
+      const ctx = audioCtxRef.current;
+      const gain = gainNodeRef.current;
+      const currentVal = Math.max(0.0001, gain.gain.value);
+      gain.gain.setValueAtTime(currentVal, ctx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
+    } catch { /* ignore */ }
+
     setTimeout(() => {
-      try {
-        sourceNodeRef.current?.stop();
-        sourceNodeRef.current?.disconnect();
-        audioCtxRef.current?.close();
-      } catch {}
-      sourceNodeRef.current = null;
-      gainNodeRef.current = null;
-      audioCtxRef.current = null;
+      cleanupAudio();
       setIsPlaying(false);
-    }, 160);
+    }, 220);
   };
 
-  const togglePlay = () => {
+  const togglePlay = async () => {
     if (isPlaying) {
       stopAudio();
     } else {
-      startAudio();
+      await startAudio(noiseType, volume);
     }
   };
 
@@ -126,7 +159,10 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     setNoiseType(type);
     await context.storage.set('noiseType', type);
     if (isPlaying) {
-      startAudio(); // Restart with new noise buffer
+      // Stop current and restart with new type
+      stopAudio();
+      // Small delay for clean teardown before restart
+      setTimeout(() => startAudio(type, volume), 300);
     }
   };
 
@@ -136,9 +172,15 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     await context.storage.set('volume', val);
 
     if (gainNodeRef.current && audioCtxRef.current) {
-      const targetGain = (val / 100) * 0.5;
-      gainNodeRef.current.gain.setValueAtTime(Math.max(0.001, targetGain), audioCtxRef.current.currentTime);
+      const targetGain = Math.max(0.0001, (val / 100) * 0.6);
+      gainNodeRef.current.gain.setValueAtTime(targetGain, audioCtxRef.current.currentTime);
     }
+  };
+
+  const noiseLabels: Record<NoiseType, string> = {
+    white: '⬜ White',
+    brown: '🟫 Brown',
+    pink: '🌸 Pink',
   };
 
   return (
@@ -176,15 +218,14 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               color: noiseType === type ? '#ffffff' : '#94a3b8',
               border: 'none',
               borderRadius: '6px',
-              padding: '6px',
+              padding: '6px 2px',
               fontSize: '11px',
               fontWeight: 600,
               cursor: 'pointer',
-              textTransform: 'capitalize',
               transition: 'all 0.2s',
             }}
           >
-            {type === 'white' ? 'White' : type === 'brown' ? 'Brown' : 'Pink'}
+            {noiseLabels[type]}
           </button>
         ))}
       </div>
@@ -211,6 +252,30 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       >
         {isPlaying ? <Pause size={32} /> : <Play size={32} style={{ marginLeft: '4px' }} />}
       </button>
+
+      {/* Playing indicator */}
+      {isPlaying && (
+        <div style={{ display: 'flex', gap: '3px', alignItems: 'flex-end', height: '20px' }}>
+          {[0, 1, 2, 3, 4].map((i) => (
+            <div
+              key={i}
+              style={{
+                width: '4px',
+                borderRadius: '2px',
+                background: '#38bdf8',
+                animation: `soundbar 0.8s ease-in-out ${i * 0.1}s infinite alternate`,
+                height: `${8 + Math.random() * 12}px`,
+              }}
+            />
+          ))}
+          <style>{`
+            @keyframes soundbar {
+              from { transform: scaleY(0.4); opacity: 0.6; }
+              to { transform: scaleY(1); opacity: 1; }
+            }
+          `}</style>
+        </div>
+      )}
 
       {/* Volume Slider */}
       <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px' }}>
@@ -239,7 +304,7 @@ export const noiseWidget: WidgetDefinition = {
   manifest: {
     id: 'noise',
     name: 'Gerador de Ruído',
-    version: '1.0.0',
+    version: '1.1.0',
     description: 'Sintetizador procedural de ruído branco, marrom e rosa via Web Audio API.',
     icon: 'Radio',
     author: 'Dashboard Core',

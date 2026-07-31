@@ -1,11 +1,12 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { FileText, Save, Clock } from 'lucide-react';
+import { FileText, Save, Clock, Copy, Check } from 'lucide-react';
 
 const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [content, setContent] = useState<string>('');
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [copied, setCopied] = useState<boolean>(false);
   const saveTimeoutRef = useRef<any>(null);
 
   // Load saved notes on mount
@@ -39,6 +40,17 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       setLastSaved(new Date(now).toLocaleTimeString());
       setIsSaving(false);
     }, 500);
+  };
+
+  const handleCopy = async () => {
+    if (!content) return;
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch (err) {
+      console.error('[NotesWidget] Clipboard copy failed:', err);
+    }
   };
 
   return (
@@ -82,17 +94,20 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           fontSize: '11px',
           color: '#64748b',
           padding: '0 2px',
+          gap: '8px',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        {/* Left: char count */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
           <FileText size={12} color="#38bdf8" />
           <span>{content.length} caracteres</span>
         </div>
 
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        {/* Center: save status */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, justifyContent: 'center' }}>
           {isSaving ? (
             <>
-              <Save size={12} color="#38bdf8" className="animate-spin" />
+              <Save size={12} color="#38bdf8" />
               <span style={{ color: '#38bdf8' }}>Salvando...</span>
             </>
           ) : (
@@ -104,6 +119,31 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             )
           )}
         </div>
+
+        {/* Right: copy button */}
+        <button
+          onClick={handleCopy}
+          title="Copiar texto para a área de transferência"
+          disabled={!content}
+          style={{
+            background: copied ? 'rgba(74, 222, 128, 0.15)' : 'rgba(51, 65, 85, 0.5)',
+            border: `1px solid ${copied ? 'rgba(74, 222, 128, 0.4)' : 'rgba(51, 65, 85, 0.5)'}`,
+            borderRadius: '4px',
+            color: copied ? '#4ade80' : content ? '#94a3b8' : '#334155',
+            cursor: content ? 'pointer' : 'default',
+            padding: '2px 7px',
+            display: 'flex',
+            alignItems: 'center',
+            gap: '4px',
+            fontSize: '10px',
+            fontWeight: 500,
+            flexShrink: 0,
+            transition: 'all 0.2s',
+          }}
+        >
+          {copied ? <Check size={11} /> : <Copy size={11} />}
+          {copied ? 'Copiado!' : 'Copiar'}
+        </button>
       </div>
     </div>
   );
@@ -113,7 +153,7 @@ export const notesWidget: WidgetDefinition = {
   manifest: {
     id: 'notes',
     name: 'Anotações Rápidas',
-    version: '1.0.0',
+    version: '1.1.0',
     description: 'Quadro de bloco de notas simples com salvamento automático local.',
     icon: 'FileText',
     author: 'Dashboard Core',

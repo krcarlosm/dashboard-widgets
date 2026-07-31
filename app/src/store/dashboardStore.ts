@@ -13,11 +13,61 @@ interface DashboardState {
   saveProfile: () => void;
   addWidgetToCanvas: (widgetId: string) => void;
   removeWidgetFromCanvas: (instanceId: string) => void;
+  toggleLockWidget: (instanceId: string) => void;
   updateLayout: (layouts: Layout[]) => void;
   updateWidgetConfig: (instanceId: string, newConfig: Record<string, any>) => void;
 }
 
 const STORAGE_KEY = 'dashboard_profile_v1';
+
+// Grid columns constant (must match Canvas.tsx)
+const GRID_COLS = 12;
+
+/**
+ * Finds the first available (x, y) position for a new widget of size (w, h)
+ * using a top-left scanning algorithm over the existing grid occupancy.
+ */
+function findFirstAvailablePosition(
+  instances: ProfileWidgetInstance[],
+  w: number,
+  h: number
+): { x: number; y: number } {
+  if (instances.length === 0) return { x: 0, y: 0 };
+
+  // Build a simple occupancy map: Set of "x,y" strings that are occupied
+  const occupied = new Set<string>();
+  for (const inst of instances) {
+    const { x, y, w: iw, h: ih } = inst.layout;
+    for (let row = y; row < y + ih; row++) {
+      for (let col = x; col < x + iw; col++) {
+        occupied.add(`${col},${row}`);
+      }
+    }
+  }
+
+  // Max row to search (below all current widgets)
+  const maxRow = instances.reduce((max, i) => Math.max(max, i.layout.y + i.layout.h), 0);
+  const searchRows = maxRow + h + 1;
+
+  for (let row = 0; row < searchRows; row++) {
+    for (let col = 0; col <= GRID_COLS - w; col++) {
+      // Check if the w×h block starting at (col, row) is free
+      let fits = true;
+      outer: for (let dr = 0; dr < h; dr++) {
+        for (let dc = 0; dc < w; dc++) {
+          if (occupied.has(`${col + dc},${row + dr}`)) {
+            fits = false;
+            break outer;
+          }
+        }
+      }
+      if (fits) return { x: col, y: row };
+    }
+  }
+
+  // Fallback: place below all existing widgets
+  return { x: 0, y: maxRow };
+}
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
   registeredWidgets: new Map(),
@@ -70,15 +120,17 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     const instanceId = `${widgetId}-${Date.now()}`;
     const defaultSize = widgetDef.manifest.defaultSize;
 
-    const maxY = activeInstances.reduce((max, item) => Math.max(max, item.layout.y + item.layout.h), 0);
+    // Intelligent tiling: find first free position top-left scanning
+    const { x, y } = findFirstAvailablePosition(activeInstances, defaultSize.w, defaultSize.h);
 
     const newInstance: ProfileWidgetInstance = {
       instanceId,
       widgetId,
+      isLocked: false,
       layout: {
         i: instanceId,
-        x: 0,
-        y: maxY,
+        x,
+        y,
         w: defaultSize.w,
         h: defaultSize.h,
       },
@@ -96,12 +148,26 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
     get().saveProfile();
   },
 
+  toggleLockWidget: (instanceId: string) => {
+    set((state) => ({
+      activeInstances: state.activeInstances.map((item) =>
+        item.instanceId === instanceId
+          ? { ...item, isLocked: !item.isLocked }
+          : item
+      ),
+    }));
+    get().saveProfile();
+  },
+
   updateLayout: (layouts: Layout[]) => {
     set((state) => {
       const layoutMap = new Map(layouts.map((l) => [l.i, l]));
       let hasChanges = false;
 
       const updatedInstances = state.activeInstances.map((instance) => {
+        // Skip layout updates for locked widgets
+        if (instance.isLocked) return instance;
+
         const newLayout = layoutMap.get(instance.instanceId);
         if (newLayout) {
           if (

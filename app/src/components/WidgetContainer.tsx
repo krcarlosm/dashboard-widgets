@@ -3,20 +3,24 @@ import { WidgetDefinition, WidgetContext } from '../sdk/types';
 import { ScopedWidgetStorage } from '../sdk/storage';
 import { defaultAgentClient } from '../sdk/agentClient';
 import { useDashboardStore } from '../store/dashboardStore';
-import { X, GripHorizontal, Wrench, AlertTriangle } from 'lucide-react';
+import { X, GripHorizontal, Wrench, AlertTriangle, Lock, Unlock } from 'lucide-react';
 
 interface WidgetContainerProps {
   instanceId: string;
   widgetDef: WidgetDefinition;
   config: Record<string, any>;
+  isLocked?: boolean;
   onRemove: () => void;
+  onToggleLock: () => void;
 }
 
 export const WidgetContainer: React.FC<WidgetContainerProps> = ({
   instanceId,
   widgetDef,
   config,
+  isLocked = false,
   onRemove,
+  onToggleLock,
 }) => {
   const updateWidgetConfig = useDashboardStore((state) => state.updateWidgetConfig);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -74,6 +78,11 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
   const status = widgetDef.manifest.status || 'stable';
   const isInactive = status === 'in_development' || status === 'needs_improvement';
 
+  // Shared button style helper
+  const stopPropagation = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+  };
+
   return (
     <div
       style={{
@@ -83,7 +92,9 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
         flexDirection: 'column',
         background: 'rgba(15, 23, 42, 0.85)',
         backdropFilter: 'blur(12px)',
-        border: '1px solid rgba(51, 65, 85, 0.7)',
+        border: isLocked
+          ? '1px solid rgba(99, 102, 241, 0.5)'
+          : '1px solid rgba(51, 65, 85, 0.7)',
         borderRadius: '12px',
         boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
         overflow: 'hidden',
@@ -99,14 +110,16 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '8px 12px',
-          background: 'rgba(30, 41, 59, 0.6)',
+          background: isLocked
+            ? 'rgba(49, 46, 129, 0.4)'
+            : 'rgba(30, 41, 59, 0.6)',
           borderBottom: '1px solid rgba(51, 65, 85, 0.5)',
-          cursor: 'grab',
+          cursor: isLocked ? 'default' : 'grab',
           userSelect: 'none',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', pointerEvents: 'none' }}>
-          <GripHorizontal size={14} color="#64748b" />
+          <GripHorizontal size={14} color={isLocked ? '#6366f1' : '#64748b'} />
           <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9' }}>
             {widgetDef.manifest.name}
           </span>
@@ -150,32 +163,70 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
           )}
         </div>
 
-        <button
-          onClick={onRemove}
-          title="Remover widget"
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#64748b',
-            cursor: 'pointer',
-            padding: '2px',
-            borderRadius: '4px',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            transition: 'color 0.2s, background 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#ef4444';
-            e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#64748b';
-            e.currentTarget.style.background = 'transparent';
-          }}
-        >
-          <X size={14} />
-        </button>
+        {/* Titlebar Action Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+          {/* Lock / Unlock button */}
+          <button
+            onClick={onToggleLock}
+            onMouseDown={stopPropagation}
+            onTouchStart={stopPropagation}
+            title={isLocked ? 'Desbloquear widget' : 'Bloquear widget na posição'}
+            style={{
+              background: 'transparent',
+              border: 'none',
+              color: isLocked ? '#6366f1' : '#64748b',
+              cursor: 'pointer',
+              padding: '2px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'color 0.2s, background 0.2s',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#818cf8';
+              e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = isLocked ? '#6366f1' : '#64748b';
+              e.currentTarget.style.background = 'transparent';
+            }}
+          >
+            {isLocked ? <Lock size={13} /> : <Unlock size={13} />}
+          </button>
+
+          {/* Close button — hidden when locked */}
+          {!isLocked && (
+            <button
+              onClick={onRemove}
+              onMouseDown={stopPropagation}
+              onTouchStart={stopPropagation}
+              title="Remover widget"
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: '#64748b',
+                cursor: 'pointer',
+                padding: '2px',
+                borderRadius: '4px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'color 0.2s, background 0.2s',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#ef4444';
+                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = '#64748b';
+                e.currentTarget.style.background = 'transparent';
+              }}
+            >
+              <X size={14} />
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Widget Body */}

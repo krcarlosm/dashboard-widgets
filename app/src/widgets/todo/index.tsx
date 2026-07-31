@@ -255,6 +255,9 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                   style={{
                     width: '16px',
                     height: '16px',
+                    minWidth: '16px',
+                    minHeight: '16px',
+                    flexShrink: 0,
                     borderRadius: '4px',
                     border: item.done ? 'none' : '1px solid #64748b',
                     background: item.done ? '#10b981' : 'transparent',
@@ -272,6 +275,7 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                     color: item.done ? '#64748b' : '#f8fafc',
                     fontSize: '12px',
                     lineHeight: '1.4',
+                    wordBreak: 'break-word',
                   }}
                 >
                   {item.text}

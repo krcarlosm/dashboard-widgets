@@ -14,6 +14,7 @@ export const Canvas: React.FC = () => {
   const registeredWidgets = useDashboardStore((state) => state.registeredWidgets);
   const updateLayout = useDashboardStore((state) => state.updateLayout);
   const removeWidgetFromCanvas = useDashboardStore((state) => state.removeWidgetFromCanvas);
+  const toggleLockWidget = useDashboardStore((state) => state.toggleLockWidget);
 
   return (
     <main
@@ -56,7 +57,7 @@ export const Canvas: React.FC = () => {
           isResizable={true}
           useCSSTransforms={false}
           isBounded={false}
-          compactType="vertical"
+          compactType={null}
           margin={[16, 16]}
         >
           {activeInstances.map((instance) => {
@@ -65,6 +66,7 @@ export const Canvas: React.FC = () => {
 
             const minSize = widgetDef.manifest.minSize || { w: 2, h: 2 };
             const maxSize = widgetDef.manifest.maxSize || { w: 12, h: 12 };
+            const isLocked = instance.isLocked ?? false;
 
             return (
               <div
@@ -78,13 +80,19 @@ export const Canvas: React.FC = () => {
                   minH: minSize.h,
                   maxW: maxSize.w,
                   maxH: maxSize.h,
+                  // Disable drag & resize for locked widgets
+                  isDraggable: !isLocked,
+                  isResizable: !isLocked,
+                  static: isLocked,
                 }}
               >
                 <WidgetContainer
                   instanceId={instance.instanceId}
                   widgetDef={widgetDef}
                   config={instance.config}
+                  isLocked={isLocked}
                   onRemove={() => removeWidgetFromCanvas(instance.instanceId)}
+                  onToggleLock={() => toggleLockWidget(instance.instanceId)}
                 />
               </div>
             );

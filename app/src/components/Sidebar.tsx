@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
-import { Plus, LayoutGrid, Sparkles, Search, User, Check, Wrench } from 'lucide-react';
+import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
+
+type SidebarState = 'expanded' | 'compact' | 'collapsed';
 
 export const Sidebar: React.FC = () => {
   const registeredWidgets = useDashboardStore((state) => state.registeredWidgets);
@@ -10,6 +12,7 @@ export const Sidebar: React.FC = () => {
 
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
+  const [sidebarState, setSidebarState] = useState<SidebarState>('expanded');
 
   const widgetsList = Array.from(registeredWidgets.values()).filter(
     (item) => item.manifest.status !== 'deprecated'
@@ -23,213 +26,520 @@ export const Sidebar: React.FC = () => {
     );
   });
 
-  const activeWidgetIds = new Set(activeInstances.map((i) => i.widgetId));
+  // Map: widgetId -> count of active instances
+  const instanceCountMap: Record<string, number> = {};
+  for (const inst of activeInstances) {
+    instanceCountMap[inst.widgetId] = (instanceCountMap[inst.widgetId] || 0) + 1;
+  }
+
+  const totalActiveWidgets = activeInstances.length;
+
+  const cycleSidebar = () => {
+    setSidebarState((prev) => {
+      if (prev === 'expanded') return 'compact';
+      if (prev === 'compact') return 'collapsed';
+      return 'expanded';
+    });
+  };
+
+  const sidebarWidth =
+    sidebarState === 'expanded' ? '260px' : sidebarState === 'compact' ? '62px' : '0px';
 
   return (
     <>
+      {/* Floating open button when collapsed */}
+      {sidebarState === 'collapsed' && (
+        <button
+          onClick={() => setSidebarState('expanded')}
+          title="Abrir menu lateral"
+          style={{
+            position: 'fixed',
+            top: '16px',
+            left: '16px',
+            zIndex: 100,
+            width: '40px',
+            height: '40px',
+            background: 'rgba(15, 23, 42, 0.95)',
+            border: '1px solid rgba(56, 189, 248, 0.4)',
+            borderRadius: '10px',
+            color: '#38bdf8',
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 4px 16px rgba(0,0,0,0.4)',
+            backdropFilter: 'blur(10px)',
+            transition: 'all 0.2s',
+          }}
+        >
+          <Menu size={18} />
+        </button>
+      )}
+
       <aside
         style={{
-          width: '260px',
+          width: sidebarWidth,
+          minWidth: sidebarWidth,
           background: 'rgba(15, 23, 42, 0.95)',
-          borderRight: '1px solid rgba(51, 65, 85, 0.6)',
+          borderRight: sidebarState === 'collapsed' ? 'none' : '1px solid rgba(51, 65, 85, 0.6)',
           display: 'flex',
           flexDirection: 'column',
           height: '100vh',
           boxSizing: 'border-box',
           backdropFilter: 'blur(16px)',
           zIndex: 10,
+          overflow: 'hidden',
+          transition: 'width 0.25s ease, min-width 0.25s ease',
         }}
       >
         {/* Sidebar Header */}
         <div
           style={{
-            padding: '16px',
+            padding: sidebarState === 'compact' ? '12px 8px' : '14px 14px',
             borderBottom: '1px solid rgba(51, 65, 85, 0.5)',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'space-between',
+            justifyContent: sidebarState === 'compact' ? 'center' : 'space-between',
+            flexShrink: 0,
           }}
         >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+          {sidebarState === 'expanded' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+              <div
+                style={{
+                  background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
+                  width: '30px',
+                  height: '30px',
+                  borderRadius: '8px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 4px 12px rgba(56, 189, 248, 0.3)',
+                  flexShrink: 0,
+                }}
+              >
+                <LayoutGrid size={16} color="#ffffff" />
+              </div>
+              <div style={{ minWidth: 0 }}>
+                <h1 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap' }}>
+                  Dashboard
+                </h1>
+                <span style={{ fontSize: '10px', color: '#94a3b8' }}>Widgets Locais v0.3</span>
+              </div>
+            </div>
+          )}
+
+          {sidebarState === 'compact' && (
             <div
               style={{
                 background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
-                width: '32px',
-                height: '32px',
+                width: '30px',
+                height: '30px',
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: '0 4px 12px rgba(56, 189, 248, 0.3)',
               }}
             >
-              <LayoutGrid size={18} color="#ffffff" />
+              <LayoutGrid size={16} color="#ffffff" />
             </div>
-            <div>
-              <h1 style={{ margin: 0, fontSize: '14px', fontWeight: 700, color: '#f8fafc' }}>Dashboard</h1>
-              <span style={{ fontSize: '11px', color: '#94a3b8' }}>Widgets Locais v0.2</span>
-            </div>
-          </div>
+          )}
 
+          {/* Collapse toggle (shown in expanded and compact) */}
           <button
-            onClick={() => setIsProfileOpen(true)}
-            title="Meu Perfil"
+            onClick={cycleSidebar}
+            title={
+              sidebarState === 'expanded'
+                ? 'Modo compacto'
+                : sidebarState === 'compact'
+                ? 'Recolher sidebar'
+                : 'Expandir sidebar'
+            }
             style={{
-              background: 'rgba(51, 65, 85, 0.5)',
+              background: 'rgba(51, 65, 85, 0.4)',
               border: 'none',
               borderRadius: '6px',
-              color: '#94a3b8',
-              width: '30px',
-              height: '30px',
+              color: '#64748b',
+              width: '26px',
+              height: '26px',
               cursor: 'pointer',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'all 0.2s',
+              flexShrink: 0,
             }}
             onMouseEnter={(e) => {
               e.currentTarget.style.color = '#38bdf8';
               e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#94a3b8';
-              e.currentTarget.style.background = 'rgba(51, 65, 85, 0.5)';
+              e.currentTarget.style.color = '#64748b';
+              e.currentTarget.style.background = 'rgba(51, 65, 85, 0.4)';
             }}
           >
-            <User size={16} />
+            {sidebarState === 'expanded' ? (
+              <ChevronLeft size={14} />
+            ) : (
+              <PanelLeft size={14} />
+            )}
           </button>
         </div>
 
-        {/* Search Bar */}
-        <div style={{ padding: '12px 16px 4px 16px' }}>
+        {/* Compact mode: icon-only widget buttons */}
+        {sidebarState === 'compact' && (
           <div
             style={{
+              flex: 1,
               display: 'flex',
+              flexDirection: 'column',
               alignItems: 'center',
+              padding: '10px 0',
               gap: '6px',
-              background: '#0f172a',
-              border: '1px solid #334155',
-              borderRadius: '6px',
-              padding: '6px 10px',
+              overflowY: 'auto',
             }}
           >
-            <Search size={13} color="#64748b" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Buscar widgets..."
+            {/* Active counter */}
+            <div
+              title={`${totalActiveWidgets} widget(s) ativo(s)`}
               style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#f8fafc',
-                fontSize: '11px',
-                outline: 'none',
-                width: '100%',
+                width: '36px',
+                height: '24px',
+                background: totalActiveWidgets > 0 ? 'rgba(56, 189, 248, 0.15)' : 'rgba(51, 65, 85, 0.3)',
+                border: `1px solid ${totalActiveWidgets > 0 ? 'rgba(56, 189, 248, 0.3)' : 'rgba(51, 65, 85, 0.3)'}`,
+                borderRadius: '12px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '10px',
+                fontWeight: 700,
+                color: totalActiveWidgets > 0 ? '#38bdf8' : '#64748b',
+                marginBottom: '4px',
               }}
-            />
-          </div>
-        </div>
-
-        {/* Widget List Section */}
-        <div style={{ flex: 1, padding: '12px 16px', overflowY: 'auto' }}>
-          <div
-            style={{
-              fontSize: '11px',
-              fontWeight: 700,
-              color: '#64748b',
-              textTransform: 'uppercase',
-              letterSpacing: '0.05em',
-              marginBottom: '10px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px',
-            }}
-          >
-            <Sparkles size={12} color="#38bdf8" />
-            <span>Widgets Disponíveis ({filteredWidgets.length})</span>
-          </div>
-
-          {filteredWidgets.length === 0 ? (
-            <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', marginTop: '20px' }}>
-              Nenhum widget encontrado.
+            >
+              {totalActiveWidgets}
             </div>
-          ) : (
-            filteredWidgets.map((item) => {
-              const isAdded = activeWidgetIds.has(item.manifest.id);
+
+            {widgetsList.map((item) => {
+              const count = instanceCountMap[item.manifest.id] || 0;
               const status = item.manifest.status || 'stable';
-
               return (
-                <div
-                  key={item.manifest.id}
-                  style={{
-                    background: 'rgba(30, 41, 59, 0.5)',
-                    border: '1px solid rgba(51, 65, 85, 0.5)',
-                    borderRadius: '8px',
-                    padding: '10px 12px',
-                    marginBottom: '10px',
-                    transition: 'all 0.2s ease',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                      <span style={{ fontSize: '13px', fontWeight: 600, color: '#f1f5f9' }}>
-                        {item.manifest.name}
-                      </span>
-                      {status === 'in_development' && (
-                        <span
-                          title="Em Desenvolvimento"
-                          style={{ fontSize: '9px', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.4)', padding: '0 4px', borderRadius: '3px' }}
-                        >
-                          Dev
-                        </span>
-                      )}
-                    </div>
-
-                    <button
-                      onClick={() => addWidgetToCanvas(item.manifest.id)}
-                      title="Adicionar ao canvas"
+                <div key={item.manifest.id} style={{ position: 'relative' }}>
+                  <button
+                    onClick={() => addWidgetToCanvas(item.manifest.id)}
+                    title={`${item.manifest.name} — + Adicionar`}
+                    style={{
+                      width: '40px',
+                      height: '40px',
+                      background: count > 0 ? 'rgba(2, 132, 199, 0.15)' : 'rgba(30, 41, 59, 0.6)',
+                      border: `1px solid ${count > 0 ? 'rgba(2, 132, 199, 0.4)' : 'rgba(51, 65, 85, 0.5)'}`,
+                      borderRadius: '8px',
+                      color: status === 'in_development' ? '#38bdf8' : count > 0 ? '#0ea5e9' : '#94a3b8',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      transition: 'all 0.2s',
+                      fontSize: '16px',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.borderColor = 'rgba(56, 189, 248, 0.6)';
+                      e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.borderColor = count > 0 ? 'rgba(2, 132, 199, 0.4)' : 'rgba(51, 65, 85, 0.5)';
+                      e.currentTarget.style.background = count > 0 ? 'rgba(2, 132, 199, 0.15)' : 'rgba(30, 41, 59, 0.6)';
+                    }}
+                  >
+                    {/* Simple letter icon from widget name */}
+                    <span style={{ fontSize: '13px', fontWeight: 700 }}>
+                      {item.manifest.name.charAt(0).toUpperCase()}
+                    </span>
+                  </button>
+                  {count > 0 && (
+                    <span
                       style={{
-                        background: isAdded ? 'rgba(51, 65, 85, 0.6)' : '#0284c7',
-                        border: 'none',
-                        borderRadius: '4px',
-                        color: isAdded ? '#38bdf8' : '#ffffff',
-                        padding: '4px 8px',
-                        cursor: 'pointer',
+                        position: 'absolute',
+                        top: '-5px',
+                        right: '-5px',
+                        background: '#0284c7',
+                        color: '#fff',
+                        fontSize: '9px',
+                        fontWeight: 700,
+                        width: '16px',
+                        height: '16px',
+                        borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
-                        gap: '4px',
-                        fontSize: '10px',
-                        fontWeight: 500,
+                        justifyContent: 'center',
                       }}
                     >
-                      {isAdded ? (
-                        <>
-                          <Check size={12} />
-                          <span>Adicionado</span>
-                        </>
-                      ) : (
-                        <>
-                          <Plus size={12} />
-                          <span>Adicionar</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
-
-                  <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', lineHeight: '1.4' }}>
-                    {item.manifest.description}
-                  </p>
+                      {count}
+                    </span>
+                  )}
                 </div>
               );
-            })
-          )}
-        </div>
+            })}
 
-        {/* Footer Info */}
-        <div style={{ padding: '12px 16px', borderTop: '1px solid rgba(51, 65, 85, 0.5)', fontSize: '11px', color: '#64748b' }}>
-          Fase 2 — Widgets MVP (Local-First)
-        </div>
+            {/* Profile button at bottom in compact mode */}
+            <div style={{ marginTop: 'auto' }}>
+              <button
+                onClick={() => setIsProfileOpen(true)}
+                title="Meu Perfil"
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  background: 'rgba(51, 65, 85, 0.4)',
+                  border: '1px solid rgba(51, 65, 85, 0.5)',
+                  borderRadius: '8px',
+                  color: '#64748b',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#38bdf8';
+                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#64748b';
+                  e.currentTarget.style.background = 'rgba(51, 65, 85, 0.4)';
+                }}
+              >
+                <User size={16} />
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Expanded mode: full sidebar */}
+        {sidebarState === 'expanded' && (
+          <>
+            {/* Active widgets counter */}
+            <div
+              style={{
+                margin: '10px 14px 0 14px',
+                padding: '7px 10px',
+                background: totalActiveWidgets > 0
+                  ? 'rgba(56, 189, 248, 0.08)'
+                  : 'rgba(30, 41, 59, 0.3)',
+                border: `1px solid ${totalActiveWidgets > 0 ? 'rgba(56, 189, 248, 0.2)' : 'rgba(51, 65, 85, 0.3)'}`,
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '11px',
+              }}
+            >
+              <span style={{ color: '#94a3b8' }}>Widgets no canvas</span>
+              <span
+                style={{
+                  fontWeight: 700,
+                  color: totalActiveWidgets > 0 ? '#38bdf8' : '#64748b',
+                  background: totalActiveWidgets > 0 ? 'rgba(56, 189, 248, 0.15)' : 'transparent',
+                  padding: '1px 8px',
+                  borderRadius: '10px',
+                  minWidth: '24px',
+                  textAlign: 'center',
+                }}
+              >
+                {totalActiveWidgets}
+              </span>
+            </div>
+
+            {/* Search Bar */}
+            <div style={{ padding: '10px 14px 4px 14px' }}>
+              <div
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  background: '#0f172a',
+                  border: '1px solid #334155',
+                  borderRadius: '6px',
+                  padding: '6px 10px',
+                }}
+              >
+                <Search size={13} color="#64748b" />
+                <input
+                  type="text"
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  placeholder="Buscar widgets..."
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#f8fafc',
+                    fontSize: '11px',
+                    outline: 'none',
+                    width: '100%',
+                  }}
+                />
+              </div>
+            </div>
+
+            {/* Widget List Section */}
+            <div style={{ flex: 1, padding: '10px 14px', overflowY: 'auto' }}>
+              <div
+                style={{
+                  fontSize: '10px',
+                  fontWeight: 700,
+                  color: '#64748b',
+                  textTransform: 'uppercase',
+                  letterSpacing: '0.06em',
+                  marginBottom: '10px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                }}
+              >
+                <Sparkles size={11} color="#38bdf8" />
+                <span>Disponíveis ({filteredWidgets.length})</span>
+              </div>
+
+              {filteredWidgets.length === 0 ? (
+                <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', marginTop: '20px' }}>
+                  Nenhum widget encontrado.
+                </div>
+              ) : (
+                filteredWidgets.map((item) => {
+                  const count = instanceCountMap[item.manifest.id] || 0;
+                  const status = item.manifest.status || 'stable';
+
+                  return (
+                    <div
+                      key={item.manifest.id}
+                      style={{
+                        background: 'rgba(30, 41, 59, 0.5)',
+                        border: `1px solid ${count > 0 ? 'rgba(2, 132, 199, 0.3)' : 'rgba(51, 65, 85, 0.5)'}`,
+                        borderRadius: '8px',
+                        padding: '9px 11px',
+                        marginBottom: '8px',
+                        transition: 'all 0.2s ease',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
+                          <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                            {item.manifest.name}
+                          </span>
+                          {status === 'in_development' && (
+                            <span
+                              title="Em Desenvolvimento"
+                              style={{ fontSize: '9px', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.4)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
+                            >
+                              Dev
+                            </span>
+                          )}
+                          {status === 'needs_improvement' && (
+                            <span
+                              title="Necessita Ajustes"
+                              style={{ fontSize: '9px', background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
+                            >
+                              <Wrench size={8} style={{ verticalAlign: 'middle' }} /> Fix
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Add button — always shows "+ Adicionar" with instance badge */}
+                        <button
+                          onClick={() => addWidgetToCanvas(item.manifest.id)}
+                          title="Adicionar nova instância ao canvas"
+                          style={{
+                            background: '#0284c7',
+                            border: 'none',
+                            borderRadius: '5px',
+                            color: '#ffffff',
+                            padding: '4px 8px',
+                            cursor: 'pointer',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '4px',
+                            fontSize: '10px',
+                            fontWeight: 600,
+                            flexShrink: 0,
+                            transition: 'background 0.2s',
+                          }}
+                          onMouseEnter={(e) => {
+                            e.currentTarget.style.background = '#0369a1';
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.background = '#0284c7';
+                          }}
+                        >
+                          <Plus size={11} />
+                          <span>Adicionar</span>
+                          {count > 0 && (
+                            <span
+                              style={{
+                                background: 'rgba(255,255,255,0.25)',
+                                borderRadius: '8px',
+                                padding: '0px 5px',
+                                fontSize: '9px',
+                                fontWeight: 700,
+                                marginLeft: '2px',
+                              }}
+                            >
+                              {count}
+                            </span>
+                          )}
+                        </button>
+                      </div>
+
+                      <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', lineHeight: '1.4' }}>
+                        {item.manifest.description}
+                      </p>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+
+            {/* Footer Info */}
+            <div
+              style={{
+                padding: '10px 14px',
+                borderTop: '1px solid rgba(51, 65, 85, 0.5)',
+                fontSize: '11px',
+                color: '#64748b',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+              }}
+            >
+              <span>Fase 2 — MVP</span>
+              <button
+                onClick={() => setIsProfileOpen(true)}
+                title="Meu Perfil"
+                style={{
+                  background: 'rgba(51, 65, 85, 0.5)',
+                  border: 'none',
+                  borderRadius: '6px',
+                  color: '#94a3b8',
+                  width: '28px',
+                  height: '28px',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#38bdf8';
+                  e.currentTarget.style.background = 'rgba(56, 189, 248, 0.1)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = '#94a3b8';
+                  e.currentTarget.style.background = 'rgba(51, 65, 85, 0.5)';
+                }}
+              >
+                <User size={15} />
+              </button>
+            </div>
+          </>
+        )}
       </aside>
 
       <ProfileModal isOpen={isProfileOpen} onClose={() => setIsProfileOpen(false)} />
