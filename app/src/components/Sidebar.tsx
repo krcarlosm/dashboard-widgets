@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
-import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu } from 'lucide-react';
+import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu, FileText, CheckSquare, Clock3, Radio, Calculator, Code2, ArrowRightLeft, Divide, CalendarRange, Sparkles as SparklesIcon } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
 
 type SidebarState = 'expanded' | 'compact' | 'collapsed';
@@ -18,6 +18,19 @@ export const Sidebar: React.FC = () => {
   const widgetsList = Array.from(registeredWidgets.values()).filter(
     (item) => item.manifest.status !== 'deprecated'
   );
+
+  const iconMap: Record<string, React.ReactNode> = {
+    Activity: <SparklesIcon size={16} />,
+    FileText: <FileText size={16} />,
+    CheckSquare: <CheckSquare size={16} />,
+    Clock3: <Clock3 size={16} />,
+    Radio: <Radio size={16} />,
+    Calculator: <Calculator size={16} />,
+    Code2: <Code2 size={16} />,
+    ArrowRightLeft: <ArrowRightLeft size={16} />,
+    Divide: <Divide size={16} />,
+    Calendar: <CalendarRange size={16} />,
+  };
 
   const filteredWidgets = widgetsList.filter((item) => {
     const term = searchTerm.toLowerCase();
@@ -297,9 +310,8 @@ export const Sidebar: React.FC = () => {
                       e.currentTarget.style.background = count > 0 ? 'rgba(2, 132, 199, 0.15)' : 'rgba(30, 41, 59, 0.6)';
                     }}
                   >
-                    {/* Simple letter icon from widget name */}
-                    <span style={{ fontSize: '13px', fontWeight: 700 }}>
-                      {item.manifest.name.charAt(0).toUpperCase()}
+                    <span style={{ fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                      {iconMap[item.manifest.icon as string] || item.manifest.name.charAt(0).toUpperCase()}
                     </span>
                   </button>
                   {count > 0 && (

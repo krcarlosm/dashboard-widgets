@@ -1,12 +1,15 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { FileText, Save, Clock, Copy, Check } from 'lucide-react';
+import { FileText, Save, Clock, Copy, Check, Type, PenTool, BookOpen } from 'lucide-react';
+
+type NotesMode = 'plain' | 'rich' | 'markdown';
 
 const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [content, setContent] = useState<string>('');
   const [lastSaved, setLastSaved] = useState<string | null>(null);
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [copied, setCopied] = useState<boolean>(false);
+  const [mode, setMode] = useState<NotesMode>('plain');
   const saveTimeoutRef = useRef<any>(null);
 
   // Load saved notes on mount
@@ -14,8 +17,12 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     async function loadNotes() {
       const savedContent = await context.storage.get<string>('content', '');
       const savedUpdatedAt = await context.storage.get<number>('updatedAt', 0);
+      const savedMode = await context.storage.get<NotesMode>('mode', 'plain');
       if (savedContent !== undefined) {
         setContent(savedContent);
+      }
+      if (savedMode) {
+        setMode(savedMode);
       }
       if (savedUpdatedAt) {
         setLastSaved(new Date(savedUpdatedAt).toLocaleTimeString());
@@ -42,6 +49,11 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     }, 500);
   };
 
+  const handleModeChange = async (nextMode: NotesMode) => {
+    setMode(nextMode);
+    await context.storage.set('mode', nextMode);
+  };
+
   const handleCopy = async () => {
     if (!content) return;
     try {
@@ -63,27 +75,97 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         color: '#f8fafc',
       }}
     >
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+        {([
+          { id: 'plain', label: 'Texto', icon: <Type size={11} /> },
+          { id: 'rich', label: 'Rich', icon: <PenTool size={11} /> },
+          { id: 'markdown', label: 'Markdown', icon: <BookOpen size={11} /> },
+        ] as { id: NotesMode; label: string; icon: React.ReactNode }[]).map((option) => (
+          <button
+            key={option.id}
+            onClick={() => handleModeChange(option.id)}
+            style={{
+              background: mode === option.id ? '#0284c7' : 'rgba(15, 23, 42, 0.6)',
+              border: mode === option.id ? '1px solid #0284c7' : '1px solid rgba(51, 65, 85, 0.6)',
+              color: mode === option.id ? '#ffffff' : '#94a3b8',
+              borderRadius: '6px',
+              padding: '4px 8px',
+              cursor: 'pointer',
+              fontSize: '10px',
+              fontWeight: 600,
+              display: 'flex',
+              alignItems: 'center',
+              gap: '4px',
+            }}
+          >
+            {option.icon} {option.label}
+          </button>
+        ))}
+      </div>
+
       <div style={{ flex: 1, position: 'relative' }}>
-        <textarea
-          value={content}
-          onChange={handleChange}
-          placeholder="Escreva suas anotações aqui..."
-          style={{
-            width: '100%',
-            height: '100%',
-            background: 'rgba(15, 23, 42, 0.6)',
-            border: '1px solid rgba(51, 65, 85, 0.6)',
-            borderRadius: '8px',
-            padding: '10px 12px',
-            color: '#f8fafc',
-            fontSize: '13px',
-            lineHeight: '1.6',
-            resize: 'none',
-            outline: 'none',
-            boxSizing: 'border-box',
-            fontFamily: 'inherit',
-          }}
-        />
+        {mode === 'markdown' ? (
+          <div
+            style={{
+              width: '100%',
+              height: '100%',
+              background: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(51, 65, 85, 0.6)',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              color: '#e2e8f0',
+              fontSize: '12px',
+              lineHeight: '1.6',
+              overflow: 'auto',
+              boxSizing: 'border-box',
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            {content || 'Pré-visualização Markdown aparecerá aqui.'}
+          </div>
+        ) : mode === 'rich' ? (
+          <textarea
+            value={content}
+            onChange={handleChange}
+            placeholder="Use texto com marcação simples..."
+            style={{
+              width: '100%',
+              height: '100%',
+              background: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(51, 65, 85, 0.6)',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              color: '#f8fafc',
+              fontSize: '13px',
+              lineHeight: '1.6',
+              resize: 'none',
+              outline: 'none',
+              boxSizing: 'border-box',
+              fontFamily: 'inherit',
+            }}
+          />
+        ) : (
+          <textarea
+            value={content}
+            onChange={handleChange}
+            placeholder="Escreva suas anotações aqui..."
+            style={{
+              width: '100%',
+              height: '100%',
+              background: 'rgba(15, 23, 42, 0.6)',
+              border: '1px solid rgba(51, 65, 85, 0.6)',
+              borderRadius: '8px',
+              padding: '10px 12px',
+              color: '#f8fafc',
+              fontSize: '13px',
+              lineHeight: '1.6',
+              resize: 'none',
+              outline: 'none',
+              boxSizing: 'border-box',
+              fontFamily: 'inherit',
+            }}
+          />
+        )}
       </div>
 
       <div

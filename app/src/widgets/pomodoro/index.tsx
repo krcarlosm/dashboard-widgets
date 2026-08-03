@@ -316,7 +316,13 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         ] as { id: TimerMode; label: string; icon: React.ReactNode }[]).map((tab) => (
           <button
             key={tab.id}
-            onClick={() => { setMode(tab.id); setIsRunning(false); setShowSettings(false); }}
+            onClick={() => {
+              if (isRunning) return;
+              setMode(tab.id);
+              setIsRunning(false);
+              setShowSettings(false);
+            }}
+            disabled={isRunning}
             style={{
               flex: 1,
               background: mode === tab.id ? getPhaseColor() + '30' : 'transparent',
@@ -324,7 +330,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               color: mode === tab.id ? '#f8fafc' : '#64748b',
               borderRadius: '5px',
               padding: '5px 2px',
-              cursor: 'pointer',
+              cursor: isRunning ? 'not-allowed' : 'pointer',
               fontSize: '10px',
               fontWeight: 600,
               display: 'flex',
@@ -332,6 +338,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               justifyContent: 'center',
               gap: '3px',
               transition: 'all 0.2s',
+              opacity: isRunning ? 0.6 : 1,
             }}
           >
             {tab.icon} {tab.label}

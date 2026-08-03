@@ -7,17 +7,34 @@ interface Snippet {
   title: string;
   content: string;
   language: string;
+  category: string;
+  favorite: boolean;
   createdAt: number;
 }
 
 const LANGUAGES = ['text', 'bash', 'python', 'javascript', 'typescript', 'sql', 'json', 'yaml', 'css', 'html', 'docker', 'other'];
+const CATEGORY_BY_LANGUAGE: Record<string, string> = {
+  text: 'Text',
+  bash: 'Bash',
+  python: 'Python',
+  javascript: 'JavaScript',
+  typescript: 'TypeScript',
+  sql: 'SQL',
+  json: 'JSON',
+  yaml: 'YAML',
+  css: 'CSS',
+  html: 'HTML',
+  docker: 'Docker',
+  other: 'Other',
+};
 
 const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
   const [search, setSearch] = useState<string>('');
   const [isAdding, setIsAdding] = useState<boolean>(false);
-  const [editingId, setEditingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [filterMode, setFilterMode] = useState<'all' | 'favorites' | 'categories'>('all');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
   const [newTitle, setNewTitle] = useState<string>('');
   const [newContent, setNewContent] = useState<string>('');
@@ -43,6 +60,8 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       title: newTitle.trim() || 'Sem título',
       content: newContent.trim(),
       language: newLanguage,
+      category: CATEGORY_BY_LANGUAGE[newLanguage] || 'Other',
+      favorite: false,
       createdAt: Date.now(),
     };
     await saveSnippets([snippet, ...snippets]);
@@ -64,14 +83,21 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     } catch { /* ignore */ }
   };
 
+  const toggleFavorite = async (id: string) => {
+    const updated = snippets.map((s) => (s.id === id ? { ...s, favorite: !s.favorite } : s));
+    await saveSnippets(updated);
+  };
+
   const filteredSnippets = snippets.filter((s) => {
     const term = search.toLowerCase();
-    return (
-      s.title.toLowerCase().includes(term) ||
-      s.content.toLowerCase().includes(term) ||
-      s.language.toLowerCase().includes(term)
-    );
+    const normalizedCategory = s.category || CATEGORY_BY_LANGUAGE[s.language] || 'Other';
+    const matchesText = s.title.toLowerCase().includes(term) || s.content.toLowerCase().includes(term) || s.language.toLowerCase().includes(term) || normalizedCategory.toLowerCase().includes(term);
+    const matchesFilter = filterMode === 'favorites' ? s.favorite : true;
+    const matchesCategory = selectedCategory === 'all' || normalizedCategory === selectedCategory;
+    return matchesText && matchesFilter && matchesCategory;
   });
+
+  const categories = Array.from(new Set(snippets.map((s) => s.category || CATEGORY_BY_LANGUAGE[s.language] || 'Other').filter(Boolean)));
 
   const langColor: Record<string, string> = {
     bash: '#10b981', python: '#f59e0b', javascript: '#facc15', typescript: '#38bdf8',
@@ -121,7 +147,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           />
         </div>
         <button
-          onClick={() => { setIsAdding(!isAdding); setEditingId(null); }}
+          onClick={() => { setIsAdding(!isAdding); }}
           title="Novo snippet"
           style={{
             background: isAdding ? 'rgba(2, 132, 199, 0.2)' : '#0284c7',
@@ -194,6 +220,10 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               ))}
             </select>
           </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: '#94a3b8' }}>
+            <span>Categoria atribuída:</span>
+            <span style={{ color: '#38bdf8', fontWeight: 600 }}>{CATEGORY_BY_LANGUAGE[newLanguage] || 'Other'}</span>
+          </div>
           <textarea
             value={newContent}
             onChange={(e) => setNewContent(e.target.value)}
@@ -230,6 +260,22 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           </div>
         </div>
       )}
+
+      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: '4px', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
+          <button onClick={() => setFilterMode('all')} style={{ background: filterMode === 'all' ? '#0284c7' : 'transparent', color: filterMode === 'all' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Todos</button>
+          <button onClick={() => setFilterMode('favorites')} style={{ background: filterMode === 'favorites' ? '#0284c7' : 'transparent', color: filterMode === 'favorites' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Favoritos</button>
+          <button onClick={() => setFilterMode('categories')} style={{ background: filterMode === 'categories' ? '#0284c7' : 'transparent', color: filterMode === 'categories' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Categorias</button>
+        </div>
+        {filterMode === 'categories' && (
+          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', borderRadius: '4px', padding: '3px 6px', fontSize: '10px', outline: 'none' }}>
+            <option value="all">Todas</option>
+            {categories.map((category) => (
+              <option key={category} value={category}>{category}</option>
+            ))}
+          </select>
+        )}
+      </div>
 
       {/* Snippets list */}
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
@@ -298,6 +344,21 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 </div>
 
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <button
+                    onClick={() => toggleFavorite(snippet.id)}
+                    title={snippet.favorite ? 'Remover favorito' : 'Marcar como favorito'}
+                    style={{
+                      background: 'transparent',
+                      border: 'none',
+                      color: snippet.favorite ? '#f59e0b' : '#64748b',
+                      cursor: 'pointer',
+                      padding: '2px',
+                      borderRadius: '3px',
+                      display: 'flex',
+                    }}
+                  >
+                    {snippet.favorite ? '★' : '☆'}
+                  </button>
                   <button
                     onClick={() => copySnippet(snippet.id, snippet.content)}
                     title="Copiar código"

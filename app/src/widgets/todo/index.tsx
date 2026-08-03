@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { Plus, Check, Trash2, Calendar, CheckSquare, ListFilter, AlertCircle } from 'lucide-react';
+import { Plus, Check, Trash2, Calendar, CheckSquare, ListFilter, AlertCircle, Pencil } from 'lucide-react';
 
 interface TodoItem {
   id: string;
@@ -8,6 +8,11 @@ interface TodoItem {
   done: boolean;
   date: string; // YYYY-MM-DD
   createdAt: number;
+}
+
+interface EditingState {
+  id: string;
+  text: string;
 }
 
 const getTodayString = (): string => {
@@ -20,6 +25,7 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [viewMode, setViewMode] = useState<'today' | 'week'>('today');
   const [newText, setNewText] = useState<string>('');
   const [pendingRollover, setPendingRollover] = useState<TodoItem[]>([]);
+  const [editingState, setEditingState] = useState<EditingState | null>(null);
 
   // Load tasks on mount
   useEffect(() => {
@@ -70,6 +76,26 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       item.id === id ? { ...item, done: !item.done } : item
     );
     saveItems(updated);
+  };
+
+  const startEditing = (item: TodoItem) => {
+    setEditingState({ id: item.id, text: item.text });
+  };
+
+  const saveEdit = () => {
+    if (!editingState) return;
+
+    const trimmed = editingState.text.trim();
+    if (!trimmed) {
+      setEditingState(null);
+      return;
+    }
+
+    const updated = items.map((item) =>
+      item.id === editingState.id ? { ...item, text: trimmed } : item
+    );
+    saveItems(updated);
+    setEditingState(null);
   };
 
   const handleDelete = (id: string) => {
@@ -269,32 +295,77 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                   {item.done && <Check size={12} color="#ffffff" />}
                 </div>
 
-                <span
-                  style={{
-                    textDecoration: item.done ? 'line-through' : 'none',
-                    color: item.done ? '#64748b' : '#f8fafc',
-                    fontSize: '12px',
-                    lineHeight: '1.4',
-                    wordBreak: 'break-word',
-                  }}
-                >
-                  {item.text}
-                </span>
+                {editingState?.id === item.id ? (
+                  <input
+                    autoFocus
+                    value={editingState.text}
+                    onChange={(e) => setEditingState({ id: item.id, text: e.target.value })}
+                    onBlur={saveEdit}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') saveEdit();
+                      if (e.key === 'Escape') setEditingState(null);
+                    }}
+                    style={{
+                      flex: 1,
+                      background: 'rgba(15, 23, 42, 0.6)',
+                      border: '1px solid #334155',
+                      borderRadius: '4px',
+                      padding: '4px 6px',
+                      color: '#f8fafc',
+                      fontSize: '12px',
+                      outline: 'none',
+                    }}
+                  />
+                ) : (
+                  <span
+                    onDoubleClick={() => startEditing(item)}
+                    style={{
+                      textDecoration: item.done ? 'line-through' : 'none',
+                      color: item.done ? '#64748b' : '#f8fafc',
+                      fontSize: '12px',
+                      lineHeight: '1.4',
+                      wordBreak: 'break-word',
+                    }}
+                  >
+                    {item.text}
+                  </span>
+                )}
               </div>
 
-              <button
-                onClick={() => handleDelete(item.id)}
-                style={{
-                  background: 'transparent',
-                  border: 'none',
-                  color: '#64748b',
-                  cursor: 'pointer',
-                  padding: '2px',
-                }}
-                title="Excluir tarefa"
-              >
-                <Trash2 size={13} />
-              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    startEditing(item);
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#38bdf8',
+                    cursor: 'pointer',
+                    padding: '2px',
+                  }}
+                  title="Editar tarefa"
+                >
+                  <Pencil size={13} />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDelete(item.id);
+                  }}
+                  style={{
+                    background: 'transparent',
+                    border: 'none',
+                    color: '#64748b',
+                    cursor: 'pointer',
+                    padding: '2px',
+                  }}
+                  title="Excluir tarefa"
+                >
+                  <Trash2 size={13} />
+                </button>
+              </div>
             </div>
           ))
         )}
