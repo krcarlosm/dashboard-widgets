@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
-import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu, FileText, CheckSquare, Clock3, Radio, Calculator, Code2, ArrowRightLeft, Divide, CalendarRange, Sparkles as SparklesIcon, RotateCcw } from 'lucide-react';
+import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu, FileText, CheckSquare, Clock3, Radio, Calculator, Code2, ArrowRightLeft, Divide, CalendarRange, Sparkles as SparklesIcon, RotateCcw, Bot } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
 
 type SidebarState = 'expanded' | 'compact' | 'collapsed';
@@ -31,6 +31,8 @@ export const Sidebar: React.FC = () => {
     ArrowRightLeft: <ArrowRightLeft size={16} />,
     Divide: <Divide size={16} />,
     Calendar: <CalendarRange size={16} />,
+    Camera: <Bot size={16} />,
+    FolderOpen: <Bot size={16} />,
   };
 
   const filteredWidgets = widgetsList.filter((item) => {
@@ -530,6 +532,14 @@ export const Sidebar: React.FC = () => {
                               style={{ fontSize: '9px', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.4)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
                             >
                               Dev
+                            </span>
+                          )}
+                          {item.manifest.requiresAgent && (
+                            <span
+                              title="Requer Agent"
+                              style={{ fontSize: '9px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
+                            >
+                              Agent
                             </span>
                           )}
                           {status === 'needs_improvement' && (

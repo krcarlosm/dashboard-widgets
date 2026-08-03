@@ -9,6 +9,8 @@ import { snippetsWidget } from './widgets/snippets';
 import { unitConverterWidget } from './widgets/unit-converter';
 import { dateCalculatorWidget } from './widgets/date-calculator';
 import { ruleOfThreeWidget } from './widgets/rule-of-three';
+import { memoryBauWidget } from './widgets/memory-bau';
+import { editedFilesWidget } from './widgets/edited-files';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 
@@ -49,6 +51,10 @@ export const App: React.FC = () => {
     registerWidget(unitConverterWidget);  // Item 9a
     registerWidget(dateCalculatorWidget); // Item 9b
     registerWidget(ruleOfThreeWidget);    // Item 9c
+
+    // ── Phase 4 agent-dependent widgets ─────────────────────────────────────
+    registerWidget(memoryBauWidget);
+    registerWidget(editedFilesWidget);
 
     // ── Load saved profile ───────────────────────────────────────────────────
     loadProfile();
