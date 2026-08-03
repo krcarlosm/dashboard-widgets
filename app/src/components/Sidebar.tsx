@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
-import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu, FileText, CheckSquare, Clock3, Radio, Calculator, Code2, ArrowRightLeft, Divide, CalendarRange, Sparkles as SparklesIcon, RotateCcw, Bot } from 'lucide-react';
+import { defaultAgentClient } from '../sdk/agentClient';
+import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu, FileText, CheckSquare, Clock3, Radio, Calculator, Code2, ArrowRightLeft, Divide, CalendarRange, Sparkles as SparklesIcon, RotateCcw, Bot, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
 
 type SidebarState = 'expanded' | 'compact' | 'collapsed';
@@ -15,6 +16,8 @@ export const Sidebar: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
   const [sidebarState, setSidebarState] = useState<SidebarState>('expanded');
+  const [agentStatus, setAgentStatus] = useState<'checking' | 'online' | 'offline'>('offline');
+  const [agentMessage, setAgentMessage] = useState<string>('Agent ainda não verificado');
 
   const widgetsList = Array.from(registeredWidgets.values()).filter(
     (item) => item.manifest.status !== 'deprecated'
@@ -51,12 +54,28 @@ export const Sidebar: React.FC = () => {
 
   const totalActiveWidgets = activeInstances.length;
 
+  useEffect(() => {
+    const unsubscribe = defaultAgentClient.onStatusChange((connected) => {
+      setAgentStatus(connected ? 'online' : 'offline');
+      setAgentMessage(connected ? 'Agent respondendo corretamente' : 'Agent indisponível');
+    });
+    return unsubscribe;
+  }, []);
+
   const handleReorganize = () => {
     reorganizeLayouts();
   };
 
   const handleViewAll = () => {
     window.dispatchEvent(new CustomEvent('dashboard:view-all'));
+  };
+
+  const handleVerifyAgent = async () => {
+    setAgentStatus('checking');
+    setAgentMessage('Verificando Agent...');
+    const ok = await defaultAgentClient.checkHealth();
+    setAgentStatus(ok ? 'online' : 'offline');
+    setAgentMessage(ok ? 'Agent respondeu corretamente' : 'Agent não respondeu ao handshake');
   };
 
   const cycleSidebar = () => {
@@ -129,7 +148,7 @@ export const Sidebar: React.FC = () => {
           }}
         >
           {sidebarState === 'expanded' && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '10px', minWidth: 0 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '50px', minWidth: 0 }}>
               <div
                 style={{
                   background: 'linear-gradient(135deg, #38bdf8, #818cf8)',
@@ -206,7 +225,7 @@ export const Sidebar: React.FC = () => {
             {sidebarState === 'expanded' ? (
               <ChevronLeft size={14} />
             ) : (
-              <PanelLeft size={20} />
+              <PanelLeft size={50} />
             )}
           </button>
         </div>
@@ -397,6 +416,28 @@ export const Sidebar: React.FC = () => {
         {/* Expanded mode: full sidebar */}
         {sidebarState === 'expanded' && (
           <>
+            {/* Agent health status */}
+            <div
+              style={{
+                margin: '10px 14px 0 14px',
+                padding: '8px 10px',
+                background: agentStatus === 'online'
+                  ? 'rgba(34, 197, 94, 0.1)'
+                  : agentStatus === 'checking'
+                    ? 'rgba(56, 189, 248, 0.12)'
+                    : 'rgba(248, 113, 113, 0.12)',
+                border: `1px solid ${agentStatus === 'online' ? 'rgba(34, 197, 94, 0.3)' : agentStatus === 'checking' ? 'rgba(56, 189, 248, 0.3)' : 'rgba(248, 113, 113, 0.3)'}`,
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
+                fontSize: '11px',
+              }}
+            >
+              {agentStatus === 'online' ? <CheckCircle2 size={13} color="#4ade80" /> : agentStatus === 'checking' ? <Bot size={13} color="#38bdf8" /> : <AlertCircle size={13} color="#fda4af" />}
+              <span style={{ color: '#f8fafc' }}>{agentMessage}</span>
+            </div>
+
             {/* Active widgets counter */}
             <div
               style={{

@@ -35,6 +35,7 @@ export interface AgentClientProtocol {
   isConnected: boolean;
   send(message: AgentMessage): void;
   subscribe(eventType: string, callback: (payload: any) => void): () => void;
+  checkHealth(): Promise<boolean>;
 }
 
 export interface WidgetContext<TConfig = Record<string, any>> {

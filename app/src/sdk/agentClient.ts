@@ -2,6 +2,9 @@ import { AgentClientProtocol, AgentMessage } from './types';
 
 type EventCallback = (payload: any) => void;
 
+const AGENT_TOKEN_KEY = 'dashboard-agent-token';
+const DEFAULT_AGENT_URL = 'ws://127.0.0.1:8765/ws';
+
 export class LocalAgentClient implements AgentClientProtocol {
   private ws: WebSocket | null = null;
   private url: string;
@@ -9,8 +12,9 @@ export class LocalAgentClient implements AgentClientProtocol {
   private reconnectTimer: any = null;
   public isConnected: boolean = false;
   private statusListeners: Set<(connected: boolean) => void> = new Set();
+  private token: string | null = null;
 
-  constructor(url: string = 'ws://127.0.0.1:8765/ws') {
+  constructor(url: string = DEFAULT_AGENT_URL) {
     this.url = url;
     this.connect();
   }
@@ -24,11 +28,7 @@ export class LocalAgentClient implements AgentClientProtocol {
       this.ws = new WebSocket(this.url);
 
       this.ws.onopen = () => {
-        console.log('[LocalAgentClient] Conectado ao Agent local');
-        this.isConnected = true;
-        this.notifyStatus(true);
-        // Send initial handshake
-        this.send({ type: 'handshake', payload: { client: 'dashboard-ui' } });
+        void this.performHandshake();
       };
 
       this.ws.onmessage = (event) => {
@@ -50,11 +50,55 @@ export class LocalAgentClient implements AgentClientProtocol {
       };
 
       this.ws.onerror = () => {
-        // Silencioso em caso de agent desligado para não poluir console continuamente
         this.ws?.close();
       };
     } catch {
       this.scheduleReconnect();
+    }
+  }
+
+  private async performHandshake(): Promise<void> {
+    const token = await this.loadToken();
+    if (!token) {
+      console.warn('[LocalAgentClient] Token do Agent não encontrado.');
+      this.setConnected(false);
+      return;
+    }
+
+    this.send({
+      type: 'handshake',
+      payload: {
+        client: 'dashboard-ui',
+        version: '0.1.0',
+        token,
+      },
+    });
+  }
+
+  private async loadToken(): Promise<string | null> {
+    if (this.token) return this.token;
+
+    const cached = window.localStorage.getItem(AGENT_TOKEN_KEY);
+    if (cached) {
+      this.token = cached;
+      return cached;
+    }
+
+    try {
+      const response = await fetch('http://127.0.0.1:8765/', { headers: { Accept: 'application/json' } });
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}`);
+      }
+      const payload = await response.json();
+      const nextToken = typeof payload?.token === 'string' ? payload.token : null;
+      if (nextToken) {
+        this.token = nextToken;
+        window.localStorage.setItem(AGENT_TOKEN_KEY, nextToken);
+      }
+      return nextToken;
+    } catch (err) {
+      console.warn('[LocalAgentClient] Não foi possível obter o token do Agent:', err);
+      return null;
     }
   }
 
@@ -67,6 +111,12 @@ export class LocalAgentClient implements AgentClientProtocol {
   }
 
   private handleMessage(message: AgentMessage): void {
+    if (message.type === 'handshake:ack') {
+      this.setConnected(true);
+    } else if (message.type === 'handshake:rejected') {
+      this.setConnected(false);
+    }
+
     const callbacks = this.subscribers.get(message.type);
     if (callbacks) {
       callbacks.forEach((cb) => cb(message.payload));
@@ -79,6 +129,49 @@ export class LocalAgentClient implements AgentClientProtocol {
     } else {
       console.warn('[LocalAgentClient] Agent não está conectado. Mensagem não enviada:', message);
     }
+  }
+
+  public async checkHealth(): Promise<boolean> {
+    const token = await this.loadToken();
+    if (!token) {
+      this.setConnected(false);
+      return false;
+    }
+
+    if (!this.ws || this.ws.readyState !== WebSocket.OPEN) {
+      this.connect();
+    }
+
+    return await new Promise<boolean>((resolve) => {
+      const ackUnsubscribe = this.subscribe('handshake:ack', () => {
+        ackUnsubscribe();
+        rejectUnsubscribe();
+        resolve(true);
+      });
+
+      const rejectUnsubscribe = this.subscribe('handshake:rejected', () => {
+        ackUnsubscribe();
+        rejectUnsubscribe();
+        resolve(false);
+      });
+
+      const timeout = window.setTimeout(() => {
+        ackUnsubscribe();
+        rejectUnsubscribe();
+        resolve(false);
+      }, 2000);
+
+      this.send({
+        type: 'handshake',
+        payload: {
+          client: 'dashboard-ui',
+          version: '0.1.0',
+          token,
+        },
+      });
+
+      window.setTimeout(() => window.clearTimeout(timeout), 0);
+    });
   }
 
   public subscribe(eventType: string, callback: EventCallback): () => void {
@@ -106,6 +199,12 @@ export class LocalAgentClient implements AgentClientProtocol {
 
   private notifyStatus(connected: boolean): void {
     this.statusListeners.forEach((fn) => fn(connected));
+  }
+
+  private setConnected(connected: boolean): void {
+    if (this.isConnected === connected) return;
+    this.isConnected = connected;
+    this.notifyStatus(connected);
   }
 }
 
