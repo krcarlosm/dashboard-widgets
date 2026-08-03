@@ -2,7 +2,7 @@
 
 Projeto experimental de produtividade com uma interface web local, baseado no Dashboard oferecido pelo KIMI.
 
-A proposta aqui é compor um dashboard com widgets/aplicativos arrastáveis, redimensionáveis e personalizáveis. A proposta é criar um ambiente simples e útil para organização diária, com foco em execução local, privacidade e integração com um agente de apoio em Python.
+O projeto consiste em um dashboard customizável, onde o usuário pode adicionar widgets/aplicativos arrastáveis, redimensionáveis e personalizáveis. A proposta é criar um ambiente simples e útil para organização diária, com foco em execução local, privacidade e integração com um agente de apoio em Python.
 
 ## Avanços importantes até o momento
 
