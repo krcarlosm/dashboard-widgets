@@ -10,3 +10,23 @@ class AgentMessage(BaseModel):
 class HandshakePayload(BaseModel):
     client: str = "dashboard-ui"
     version: str = "0.1.0"
+    token: str
+
+
+class ClipboardEventPayload(BaseModel):
+    kind: str
+    path: str
+    timestamp: int
+
+
+class ScreenshotResultPayload(BaseModel):
+    path: str
+    timestamp: int
+
+
+class ScreenshotErrorPayload(BaseModel):
+    error: str
+
+
+class WatcherConfigPayload(BaseModel):
+    folders: list[str]

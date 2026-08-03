@@ -15,6 +15,24 @@ import { Canvas } from './components/Canvas';
 export const App: React.FC = () => {
   const registerWidget = useDashboardStore((state) => state.registerWidget);
   const loadProfile = useDashboardStore((state) => state.loadProfile);
+  const theme = useDashboardStore((state) => state.theme);
+  const density = useDashboardStore((state) => state.density);
+  const accentColor = useDashboardStore((state) => state.accentColor);
+
+  const accentMap = {
+    sky: '#38bdf8',
+    violet: '#8b5cf6',
+    emerald: '#34d399',
+  } as const;
+
+  const appearanceStyle = {
+    ['--app-accent' as string]: accentMap[accentColor],
+    ['--app-surface' as string]: theme === 'light' ? '#ffffff' : '#0f172a',
+    ['--app-surface-muted' as string]: theme === 'light' ? '#f1f5f9' : '#111827',
+    ['--app-border' as string]: theme === 'light' ? '#cbd5e1' : '#334155',
+    ['--app-text' as string]: theme === 'light' ? '#0f172a' : '#f8fafc',
+    ['--app-muted' as string]: theme === 'light' ? '#475569' : '#94a3b8',
+  } as React.CSSProperties;
 
   useEffect(() => {
     // ── Phase 1 widgets ──────────────────────────────────────────────────────
@@ -37,7 +55,17 @@ export const App: React.FC = () => {
   }, [registerWidget, loadProfile]);
 
   return (
-    <div style={{ display: 'flex', width: '100vw', height: '100vh', overflow: 'hidden' }}>
+    <div
+      style={{
+        display: 'flex',
+        width: '100vw',
+        height: '100vh',
+        overflow: 'hidden',
+        background: theme === 'light' ? '#f8fafc' : 'radial-gradient(circle at top, #1e293b 0%, #0f172a 100%)',
+        color: 'var(--app-text)',
+        ...appearanceStyle,
+      }}
+    >
       <Sidebar />
       <Canvas />
     </div>

@@ -1,12 +1,16 @@
 import { create } from 'zustand';
 import { Layout } from 'react-grid-layout';
 import { WidgetDefinition } from '../sdk/types';
-import { ProfileWidgetInstance, ProfileManifest } from '../types/profile';
+import { db } from '../sdk/storage';
+import { ProfileAppearance, ProfileWidgetInstance, ProfileManifest } from '../types/profile';
 
 interface DashboardState {
   registeredWidgets: Map<string, WidgetDefinition>;
   activeInstances: ProfileWidgetInstance[];
   isLoaded: boolean;
+  theme: ProfileAppearance['theme'];
+  density: ProfileAppearance['density'];
+  accentColor: ProfileAppearance['accentColor'];
 
   registerWidget: (widget: WidgetDefinition) => void;
   loadProfile: () => void;
@@ -17,9 +21,16 @@ interface DashboardState {
   reorganizeLayouts: () => void;
   updateLayout: (layouts: Layout[]) => void;
   updateWidgetConfig: (instanceId: string, newConfig: Record<string, any>) => void;
+  setAppearance: (appearance: Partial<ProfileAppearance>) => void;
+  resetDashboard: () => void;
 }
 
 const STORAGE_KEY = 'dashboard_profile_v1';
+const DEFAULT_APPEARANCE: ProfileAppearance = {
+  theme: 'dark',
+  density: 'comfortable',
+  accentColor: 'sky',
+};
 
 // Grid columns constant (must match Canvas.tsx)
 const GRID_COLS = 12;
@@ -99,10 +110,25 @@ function reorganizeInstancesLayout(instances: ProfileWidgetInstance[]): ProfileW
   return updated;
 }
 
+function normalizeAppearance(value: unknown): ProfileAppearance {
+  if (typeof value === 'object' && value !== null) {
+    const candidate = value as Partial<ProfileAppearance>;
+    return {
+      theme: candidate.theme === 'light' ? 'light' : 'dark',
+      density: candidate.density === 'compact' ? 'compact' : 'comfortable',
+      accentColor: candidate.accentColor === 'violet' || candidate.accentColor === 'emerald' ? candidate.accentColor : 'sky',
+    };
+  }
+  return DEFAULT_APPEARANCE;
+}
+
 export const useDashboardStore = create<DashboardState>((set, get) => ({
   registeredWidgets: new Map(),
   activeInstances: [],
   isLoaded: false,
+  theme: DEFAULT_APPEARANCE.theme,
+  density: DEFAULT_APPEARANCE.density,
+  accentColor: DEFAULT_APPEARANCE.accentColor,
 
   registerWidget: (widget) => {
     set((state) => {
@@ -117,22 +143,30 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       const raw = localStorage.getItem(STORAGE_KEY);
       if (raw) {
         const manifest: ProfileManifest = JSON.parse(raw);
-        set({ activeInstances: manifest.widgets || [], isLoaded: true });
+        const appearance = normalizeAppearance(manifest.appearance);
+        set({
+          activeInstances: manifest.widgets || [],
+          isLoaded: true,
+          theme: appearance.theme,
+          density: appearance.density,
+          accentColor: appearance.accentColor,
+        });
         return;
       }
     } catch (e) {
       console.error('[DashboardStore] Erro ao carregar perfil:', e);
     }
-    set({ activeInstances: [], isLoaded: true });
+    set({ activeInstances: [], isLoaded: true, theme: DEFAULT_APPEARANCE.theme, density: DEFAULT_APPEARANCE.density, accentColor: DEFAULT_APPEARANCE.accentColor });
   },
 
   saveProfile: () => {
-    const { activeInstances } = get();
+    const { activeInstances, theme, density, accentColor } = get();
     const manifest: ProfileManifest = {
       schemaVersion: 1,
       name: 'Meu Dashboard',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
+      appearance: { theme, density, accentColor },
       widgets: activeInstances,
     };
     try {
@@ -251,5 +285,35 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       ),
     }));
     get().saveProfile();
+  },
+
+  setAppearance: (appearance) => {
+    set((state) => ({
+      ...state,
+      ...appearance,
+    }));
+    get().saveProfile();
+  },
+
+  resetDashboard: () => {
+    set({
+      activeInstances: [],
+      isLoaded: true,
+      theme: DEFAULT_APPEARANCE.theme,
+      density: DEFAULT_APPEARANCE.density,
+      accentColor: DEFAULT_APPEARANCE.accentColor,
+    });
+    get().saveProfile();
+
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+      void db.kvStore.clear();
+    } catch (e) {
+      console.error('[DashboardStore] Erro ao resetar dashboard:', e);
+    }
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('dashboard:reset'));
+    }
   },
 }));

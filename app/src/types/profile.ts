@@ -14,10 +14,17 @@ export interface ProfileWidgetInstance {
   config: Record<string, any>;
 }
 
+export interface ProfileAppearance {
+  theme: 'dark' | 'light';
+  density: 'comfortable' | 'compact';
+  accentColor: 'sky' | 'violet' | 'emerald';
+}
+
 export interface ProfileManifest {
   schemaVersion: number; // Atual: 1
   name?: string;
   createdAt: string;
   updatedAt: string;
+  appearance?: ProfileAppearance;
   widgets: ProfileWidgetInstance[];
 }

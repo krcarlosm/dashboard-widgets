@@ -65,7 +65,7 @@ const DateCalcWidget: React.FC<WidgetComponentProps> = () => {
   return (
     <div
       style={{
-        height: '100%',
+        height: '80%',
         display: 'flex',
         flexDirection: 'column',
         color: '#f8fafc',

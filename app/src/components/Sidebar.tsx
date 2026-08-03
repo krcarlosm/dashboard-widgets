@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
-import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu, FileText, CheckSquare, Clock3, Radio, Calculator, Code2, ArrowRightLeft, Divide, CalendarRange, Sparkles as SparklesIcon } from 'lucide-react';
+import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu, FileText, CheckSquare, Clock3, Radio, Calculator, Code2, ArrowRightLeft, Divide, CalendarRange, Sparkles as SparklesIcon, RotateCcw } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
 
 type SidebarState = 'expanded' | 'compact' | 'collapsed';
@@ -10,6 +10,7 @@ export const Sidebar: React.FC = () => {
   const activeInstances = useDashboardStore((state) => state.activeInstances);
   const addWidgetToCanvas = useDashboardStore((state) => state.addWidgetToCanvas);
   const reorganizeLayouts = useDashboardStore((state) => state.reorganizeLayouts);
+  const resetDashboard = useDashboardStore((state) => state.resetDashboard);
 
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
@@ -102,8 +103,8 @@ export const Sidebar: React.FC = () => {
         style={{
           width: sidebarWidth,
           minWidth: sidebarWidth,
-          background: 'rgba(15, 23, 42, 0.95)',
-          borderRight: sidebarState === 'collapsed' ? 'none' : '1px solid rgba(51, 65, 85, 0.6)',
+          background: 'var(--app-surface)',
+          borderRight: sidebarState === 'collapsed' ? 'none' : '1px solid var(--app-border)',
           display: 'flex',
           flexDirection: 'column',
           height: '100vh',
@@ -118,7 +119,7 @@ export const Sidebar: React.FC = () => {
         <div
           style={{
             padding: sidebarState === 'compact' ? '12px 8px' : '14px 14px',
-            borderBottom: '1px solid rgba(51, 65, 85, 0.5)',
+            borderBottom: '1px solid var(--app-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: sidebarState === 'compact' ? 'center' : 'space-between',
@@ -203,7 +204,7 @@ export const Sidebar: React.FC = () => {
             {sidebarState === 'expanded' ? (
               <ChevronLeft size={14} />
             ) : (
-              <PanelLeft size={14} />
+              <PanelLeft size={20} />
             )}
           </button>
         </div>
@@ -340,7 +341,26 @@ export const Sidebar: React.FC = () => {
             })}
 
             {/* Profile button at bottom in compact mode */}
-            <div style={{ marginTop: 'auto' }}>
+            <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              <button
+                onClick={() => resetDashboard()}
+                title="Reset global"
+                style={{
+                  width: '40px',
+                  height: '40px',
+                  background: 'rgba(248, 113, 113, 0.12)',
+                  border: '1px solid rgba(248, 113, 113, 0.28)',
+                  borderRadius: '8px',
+                  color: '#f87171',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  transition: 'all 0.2s',
+                }}
+              >
+                <RotateCcw size={16} />
+              </button>
               <button
                 onClick={() => setIsProfileOpen(true)}
                 title="Meu Perfil"
@@ -440,6 +460,27 @@ export const Sidebar: React.FC = () => {
 
             {/* Widget List Section */}
             <div style={{ flex: 1, padding: '10px 14px', overflowY: 'auto' }}>
+              <button
+                onClick={() => resetDashboard()}
+                style={{
+                  width: '100%',
+                  background: 'rgba(248, 113, 113, 0.12)',
+                  color: '#f87171',
+                  border: '1px solid rgba(248, 113, 113, 0.28)',
+                  borderRadius: '8px',
+                  padding: '7px 10px',
+                  cursor: 'pointer',
+                  fontSize: '11px',
+                  fontWeight: 600,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  marginBottom: '10px',
+                }}
+              >
+                <RotateCcw size={13} /> Reset Global
+              </button>
               <div
                 style={{
                   fontSize: '10px',

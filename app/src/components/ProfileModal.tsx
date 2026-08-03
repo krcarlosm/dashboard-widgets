@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
-import { X, User, HardDrive, Cpu, Download, Upload, ShieldCheck } from 'lucide-react';
+import { X, User, HardDrive, Cpu, Download, Upload, ShieldCheck, MoonStar, SunMedium, Sparkles, RotateCcw } from 'lucide-react';
 import { db } from '../sdk/storage';
 
 interface ProfileModalProps {
@@ -11,6 +11,11 @@ interface ProfileModalProps {
 export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) => {
   const activeInstances = useDashboardStore((state) => state.activeInstances);
   const registeredWidgets = useDashboardStore((state) => state.registeredWidgets);
+  const theme = useDashboardStore((state) => state.theme);
+  const density = useDashboardStore((state) => state.density);
+  const accentColor = useDashboardStore((state) => state.accentColor);
+  const setAppearance = useDashboardStore((state) => state.setAppearance);
+  const resetDashboard = useDashboardStore((state) => state.resetDashboard);
 
   const [storageCount, setStorageCount] = useState<number>(0);
   const [estimatedSizeKb, setEstimatedSizeKb] = useState<number>(0);
@@ -113,8 +118,103 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
 
         {/* Content */}
         <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', gap: '16px' }}>
+          {/* Card: Aparência */}
+          <div style={{ background: 'var(--app-surface-muted)', borderRadius: '10px', padding: '14px', border: '1px solid var(--app-border)' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+              <Sparkles size={14} color="var(--app-accent)" />
+              <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--app-text)' }}>Tema & Aparência</span>
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setAppearance({ theme: 'dark' })}
+                  style={{
+                    background: theme === 'dark' ? 'rgba(56, 189, 248, 0.16)' : 'rgba(15, 23, 42, 0.7)',
+                    color: '#f8fafc',
+                    border: '1px solid rgba(56, 189, 248, 0.24)',
+                    borderRadius: '8px',
+                    padding: '6px 10px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <MoonStar size={13} /> Escuro
+                </button>
+                <button
+                  onClick={() => setAppearance({ theme: 'light' })}
+                  style={{
+                    background: theme === 'light' ? 'rgba(56, 189, 248, 0.16)' : 'rgba(15, 23, 42, 0.7)',
+                    color: '#f8fafc',
+                    border: '1px solid rgba(56, 189, 248, 0.24)',
+                    borderRadius: '8px',
+                    padding: '6px 10px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px',
+                  }}
+                >
+                  <SunMedium size={13} /> Claro
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                <button
+                  onClick={() => setAppearance({ density: 'comfortable' })}
+                  style={{
+                    background: density === 'comfortable' ? 'rgba(56, 189, 248, 0.16)' : 'rgba(15, 23, 42, 0.7)',
+                    color: '#f8fafc',
+                    border: '1px solid rgba(56, 189, 248, 0.24)',
+                    borderRadius: '8px',
+                    padding: '6px 10px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  Confortável
+                </button>
+                <button
+                  onClick={() => setAppearance({ density: 'compact' })}
+                  style={{
+                    background: density === 'compact' ? 'rgba(56, 189, 248, 0.16)' : 'rgba(15, 23, 42, 0.7)',
+                    color: '#f8fafc',
+                    border: '1px solid rgba(56, 189, 248, 0.24)',
+                    borderRadius: '8px',
+                    padding: '6px 10px',
+                    cursor: 'pointer',
+                    fontSize: '12px',
+                  }}
+                >
+                  Compacto
+                </button>
+              </div>
+              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                {(['sky','violet','emerald'] as const).map((value) => (
+                  <button
+                    key={value}
+                    onClick={() => setAppearance({ accentColor: value })}
+                    style={{
+                      background: accentColor === value ? 'rgba(56, 189, 248, 0.16)' : 'rgba(15, 23, 42, 0.7)',
+                      color: '#f8fafc',
+                      border: '1px solid rgba(56, 189, 248, 0.24)',
+                      borderRadius: '8px',
+                      padding: '6px 10px',
+                      cursor: 'pointer',
+                      fontSize: '12px',
+                    }}
+                  >
+                    {value === 'sky' ? 'Azul' : value === 'violet' ? 'Violeta' : 'Verde'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
           {/* Card: Perfil Info */}
-          <div style={{ background: '#0f172a', borderRadius: '10px', padding: '14px', border: '1px solid #334155' }}>
+          <div style={{ background: 'var(--app-surface-muted)', borderRadius: '10px', padding: '14px', border: '1px solid var(--app-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9' }}>Schema v1.0</span>
               <span style={{ fontSize: '10px', background: '#0284c7', color: '#fff', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
@@ -128,7 +228,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
 
           {/* Grid de Métricas */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
-            <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
+            <div style={{ background: 'var(--app-surface-muted)', padding: '12px', borderRadius: '8px', border: '1px solid var(--app-border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', marginBottom: '4px' }}>
                 <Cpu size={14} />
                 <span style={{ fontSize: '11px', fontWeight: 600 }}>Widgets Ativos</span>
@@ -149,8 +249,34 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
             </div>
           </div>
 
+          <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
+            <button
+              onClick={() => {
+                resetDashboard();
+                onClose();
+              }}
+              style={{
+                flex: 1,
+                background: 'rgba(248, 113, 113, 0.14)',
+                color: '#f87171',
+                border: '1px solid rgba(248, 113, 113, 0.32)',
+                borderRadius: '8px',
+                padding: '8px 10px',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '6px',
+                fontSize: '12px',
+                fontWeight: 600,
+              }}
+            >
+              <RotateCcw size={14} /> Reset Global
+            </button>
+          </div>
+
           {/* Seção Import / Export (Placeholder Fase 5) */}
-          <div style={{ borderTop: '1px solid #334155', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+          <div style={{ borderTop: '1px solid var(--app-border)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>
               Portabilidade do Perfil (Fase 5)
             </span>
@@ -205,7 +331,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
         </div>
 
         {/* Footer */}
-        <div style={{ padding: '12px 20px', background: '#0f172a', borderTop: '1px solid #334155', display: 'flex', justifyContent: 'flex-end' }}>
+        <div style={{ padding: '12px 20px', background: 'var(--app-surface-muted)', borderTop: '1px solid var(--app-border)', display: 'flex', justifyContent: 'flex-end' }}>
           <button
             onClick={onClose}
             style={{

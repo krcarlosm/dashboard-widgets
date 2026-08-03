@@ -117,6 +117,7 @@ export const helloWorldWidget: WidgetDefinition = {
     description: 'Widget de validação do contrato do SDK, storage isolado e redimensionamento.',
     icon: 'Activity',
     author: 'Dashboard Core',
+	status: 'stable',
     defaultSize: { w: 4, h: 3 },
     minSize: { w: 3, h: 2 },
     maxSize: { w: 6, h: 5 },
