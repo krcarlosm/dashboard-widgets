@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import RGL, { WidthProvider } from 'react-grid-layout';
 // @ts-ignore - allow importing CSS side-effect in this project without type declarations
 import 'react-grid-layout/css/styles.css';
@@ -15,9 +15,39 @@ export const Canvas: React.FC = () => {
   const updateLayout = useDashboardStore((state) => state.updateLayout);
   const removeWidgetFromCanvas = useDashboardStore((state) => state.removeWidgetFromCanvas);
   const toggleLockWidget = useDashboardStore((state) => state.toggleLockWidget);
+  const reorganizeLayouts = useDashboardStore((state) => state.reorganizeLayouts);
+  const mainRef = useRef<HTMLElement>(null);
+
+  useEffect(() => {
+    const handleFocusWidget = (event: Event) => {
+      const customEvent = event as CustomEvent<{ instanceId?: string }>;
+      const instanceId = customEvent.detail?.instanceId;
+      if (!instanceId) return;
+
+      requestAnimationFrame(() => {
+        const target = document.querySelector(`[data-widget-instance-id="${instanceId}"]`) as HTMLElement | null;
+        if (target) {
+          target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
+        }
+      });
+    };
+
+    const handleViewAll = () => {
+      mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
+    };
+
+    window.addEventListener('dashboard:focus-widget', handleFocusWidget as EventListener);
+    window.addEventListener('dashboard:view-all', handleViewAll as EventListener);
+
+    return () => {
+      window.removeEventListener('dashboard:focus-widget', handleFocusWidget as EventListener);
+      window.removeEventListener('dashboard:view-all', handleViewAll as EventListener);
+    };
+  }, []);
 
   return (
     <main
+      ref={mainRef}
       style={{
         flex: 1,
         height: '100vh',
@@ -25,8 +55,43 @@ export const Canvas: React.FC = () => {
         padding: '20px',
         boxSizing: 'border-box',
         background: 'radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%)',
+        scrollBehavior: 'smooth',
       }}
     >
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button
+            onClick={() => reorganizeLayouts()}
+            style={{
+              background: 'rgba(15, 23, 42, 0.9)',
+              color: '#f8fafc',
+              border: '1px solid rgba(56, 189, 248, 0.4)',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 600,
+            }}
+          >
+            Reorganizar
+          </button>
+          <button
+            onClick={() => mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'smooth' })}
+            style={{
+              background: 'rgba(15, 23, 42, 0.9)',
+              color: '#38bdf8',
+              border: '1px solid rgba(56, 189, 248, 0.3)',
+              borderRadius: '8px',
+              padding: '8px 12px',
+              cursor: 'pointer',
+              fontSize: '12px',
+              fontWeight: 600,
+            }}
+          >
+            Ver tudo
+          </button>
+        </div>
+      </div>
       {activeInstances.length === 0 ? (
         <div
           style={{
@@ -71,6 +136,7 @@ export const Canvas: React.FC = () => {
             return (
               <div
                 key={instance.instanceId}
+                data-widget-instance-id={instance.instanceId}
                 data-grid={{
                   x: instance.layout.x,
                   y: instance.layout.y,

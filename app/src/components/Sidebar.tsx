@@ -9,6 +9,7 @@ export const Sidebar: React.FC = () => {
   const registeredWidgets = useDashboardStore((state) => state.registeredWidgets);
   const activeInstances = useDashboardStore((state) => state.activeInstances);
   const addWidgetToCanvas = useDashboardStore((state) => state.addWidgetToCanvas);
+  const reorganizeLayouts = useDashboardStore((state) => state.reorganizeLayouts);
 
   const [searchTerm, setSearchTerm] = useState<string>('');
   const [isProfileOpen, setIsProfileOpen] = useState<boolean>(false);
@@ -33,6 +34,14 @@ export const Sidebar: React.FC = () => {
   }
 
   const totalActiveWidgets = activeInstances.length;
+
+  const handleReorganize = () => {
+    reorganizeLayouts();
+  };
+
+  const handleViewAll = () => {
+    window.dispatchEvent(new CustomEvent('dashboard:view-all'));
+  };
 
   const cycleSidebar = () => {
     setSidebarState((prev) => {
@@ -185,6 +194,43 @@ export const Sidebar: React.FC = () => {
             )}
           </button>
         </div>
+
+        {sidebarState === 'expanded' && (
+          <div style={{ display: 'flex', gap: '8px', padding: '10px 14px', borderBottom: '1px solid rgba(51, 65, 85, 0.4)' }}>
+            <button
+              onClick={handleReorganize}
+              style={{
+                flex: 1,
+                background: 'rgba(56, 189, 248, 0.12)',
+                color: '#38bdf8',
+                border: '1px solid rgba(56, 189, 248, 0.3)',
+                borderRadius: '8px',
+                padding: '7px 10px',
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontWeight: 600,
+              }}
+            >
+              Reorganizar
+            </button>
+            <button
+              onClick={handleViewAll}
+              style={{
+                flex: 1,
+                background: 'rgba(15, 23, 42, 0.8)',
+                color: '#f8fafc',
+                border: '1px solid rgba(51, 65, 85, 0.5)',
+                borderRadius: '8px',
+                padding: '7px 10px',
+                cursor: 'pointer',
+                fontSize: '11px',
+                fontWeight: 600,
+              }}
+            >
+              Ver tudo
+            </button>
+          </div>
+        )}
 
         {/* Compact mode: icon-only widget buttons */}
         {sidebarState === 'compact' && (

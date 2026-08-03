@@ -14,6 +14,7 @@ interface DashboardState {
   addWidgetToCanvas: (widgetId: string) => void;
   removeWidgetFromCanvas: (instanceId: string) => void;
   toggleLockWidget: (instanceId: string) => void;
+  reorganizeLayouts: () => void;
   updateLayout: (layouts: Layout[]) => void;
   updateWidgetConfig: (instanceId: string, newConfig: Record<string, any>) => void;
 }
@@ -67,6 +68,35 @@ function findFirstAvailablePosition(
 
   // Fallback: place below all existing widgets
   return { x: 0, y: maxRow };
+}
+
+function reorganizeInstancesLayout(instances: ProfileWidgetInstance[]): ProfileWidgetInstance[] {
+  const fixedInstances = instances.filter((item) => item.isLocked);
+  const placed: ProfileWidgetInstance[] = fixedInstances.map((item) => ({ ...item }));
+  const updated: ProfileWidgetInstance[] = [];
+
+  for (const instance of instances) {
+    if (instance.isLocked) {
+      updated.push(instance);
+      continue;
+    }
+
+    const { x, y } = findFirstAvailablePosition(placed, instance.layout.w, instance.layout.h);
+    const nextInstance: ProfileWidgetInstance = {
+      ...instance,
+      layout: {
+        ...instance.layout,
+        x,
+        y,
+        i: instance.instanceId,
+      },
+    };
+
+    placed.push(nextInstance);
+    updated.push(nextInstance);
+  }
+
+  return updated;
 }
 
 export const useDashboardStore = create<DashboardState>((set, get) => ({
@@ -137,8 +167,15 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       config: {},
     };
 
-    set({ activeInstances: [...activeInstances, newInstance] });
+    const nextInstances = [...activeInstances, newInstance];
+    set({ activeInstances: nextInstances });
     saveProfile();
+
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('dashboard:focus-widget', { detail: { instanceId } })
+      );
+    }
   },
 
   removeWidgetFromCanvas: (instanceId: string) => {
@@ -157,6 +194,13 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       ),
     }));
     get().saveProfile();
+  },
+
+  reorganizeLayouts: () => {
+    const { activeInstances, saveProfile } = get();
+    const updated = reorganizeInstancesLayout(activeInstances);
+    set({ activeInstances: updated });
+    saveProfile();
   },
 
   updateLayout: (layouts: Layout[]) => {

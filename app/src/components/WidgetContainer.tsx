@@ -164,7 +164,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
         </div>
 
         {/* Titlebar Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '8px' }}>
           {/* Lock / Unlock button */}
           <button
             onClick={onToggleLock}
