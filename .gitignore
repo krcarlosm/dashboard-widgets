@@ -32,3 +32,10 @@ agent/*.egg-info/
 *.swo
 .DS_Store
 Thumbs.db
+
+# Documentation, discussions, plans & bug reports
+docs/discussions/
+bugs_melhorias_novos/
+*_report.md
+*plano*.md
+

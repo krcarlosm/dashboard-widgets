@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { Plus, Copy, Check, Trash2, Code2, Tag, Search } from 'lucide-react';
+import { Plus, Copy, Check, Trash2, Code2, Tag, Search, ChevronDown, ChevronRight } from 'lucide-react';
 
 interface Snippet {
   id: string;
@@ -33,6 +33,8 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [search, setSearch] = useState<string>('');
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [showAllContents, setShowAllContents] = useState<boolean>(false);
+  const [expandedSnippetIds, setExpandedSnippetIds] = useState<Record<string, boolean>>({});
   const [filterMode, setFilterMode] = useState<'all' | 'favorites' | 'categories'>('all');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
@@ -86,6 +88,10 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const toggleFavorite = async (id: string) => {
     const updated = snippets.map((s) => (s.id === id ? { ...s, favorite: !s.favorite } : s));
     await saveSnippets(updated);
+  };
+
+  const toggleSnippetExpansion = (id: string) => {
+    setExpandedSnippetIds((prev) => ({ ...prev, [id]: !prev[id] }));
   };
 
   const filteredSnippets = snippets.filter((s) => {
@@ -142,7 +148,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               color: '#f8fafc',
               fontSize: '11px',
               outline: 'none',
-              width: '100%',
+              width: '80%',
             }}
           />
         </div>
@@ -262,10 +268,13 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       )}
 
       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: '4px', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155' }}>
+        <div style={{ display: 'flex', gap: '4px', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155', flexWrap: 'wrap' }}>
           <button onClick={() => setFilterMode('all')} style={{ background: filterMode === 'all' ? '#0284c7' : 'transparent', color: filterMode === 'all' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Todos</button>
           <button onClick={() => setFilterMode('favorites')} style={{ background: filterMode === 'favorites' ? '#0284c7' : 'transparent', color: filterMode === 'favorites' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Favoritos</button>
           <button onClick={() => setFilterMode('categories')} style={{ background: filterMode === 'categories' ? '#0284c7' : 'transparent', color: filterMode === 'categories' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Categorias</button>
+          <button onClick={() => setShowAllContents((prev) => !prev)} style={{ background: showAllContents ? '#0ea5e9' : 'transparent', border: `1px solid ${showAllContents ? '#0ea5e9' : '#334155'}`, color: showAllContents ? '#fff' : '#94a3b8', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>
+            {showAllContents ? 'Mostrar títulos' : 'Mostrar conteúdos'}
+          </button>
         </div>
         {filterMode === 'categories' && (
           <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', borderRadius: '4px', padding: '3px 6px', fontSize: '10px', outline: 'none' }}>
@@ -292,58 +301,78 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             )}
           </div>
         ) : (
-          filteredSnippets.map((snippet) => (
-            <div
-              key={snippet.id}
-              style={{
-                background: 'rgba(30, 41, 59, 0.6)',
-                border: '1px solid rgba(51, 65, 85, 0.5)',
-                borderRadius: '8px',
-                overflow: 'hidden',
-              }}
-            >
-              {/* Snippet header */}
+          filteredSnippets.map((snippet) => {
+            const isExpanded = showAllContents || expandedSnippetIds[snippet.id];
+            return (
               <div
+                key={snippet.id}
                 style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  padding: '6px 10px',
-                  borderBottom: '1px solid rgba(51, 65, 85, 0.3)',
-                  background: 'rgba(15, 23, 42, 0.4)',
-                  gap: '6px',
+                  background: 'rgba(30, 41, 59, 0.6)',
+                  border: '1px solid rgba(51, 65, 85, 0.5)',
+                  borderRadius: '8px',
+                  overflow: 'hidden',
+                  flexShrink: 0,
                 }}
               >
-                <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
-                  <Tag size={11} color={langColor[snippet.language] || '#64748b'} style={{ flexShrink: 0 }} />
-                  <span
-                    style={{
-                      fontSize: '11px',
-                      fontWeight: 600,
-                      color: '#f1f5f9',
-                      overflow: 'hidden',
-                      textOverflow: 'ellipsis',
-                      whiteSpace: 'nowrap',
-                    }}
-                  >
-                    {snippet.title}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: '9px',
-                      color: langColor[snippet.language] || '#64748b',
-                      background: `${langColor[snippet.language] || '#64748b'}20`,
-                      border: `1px solid ${langColor[snippet.language] || '#64748b'}40`,
-                      padding: '0 5px',
-                      borderRadius: '4px',
-                      flexShrink: 0,
-                    }}
-                  >
-                    {snippet.language}
-                  </span>
-                </div>
+                {/* Snippet header */}
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    padding: '6px 10px',
+                    borderBottom: '1px solid rgba(51, 65, 85, 0.3)',
+                    background: 'rgba(15, 23, 42, 0.4)',
+                    gap: '6px',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
+                    <button
+                      onClick={() => toggleSnippetExpansion(snippet.id)}
+                      title={isExpanded ? 'Ocultar conteúdo' : 'Mostrar conteúdo'}
+                      style={{
+                        background: 'transparent',
+                        border: 'none',
+                        color: '#94a3b8',
+                        cursor: 'pointer',
+                        padding: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        minWidth: '24px',
+                      }}
+                    >
+                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </button>
+                    <Tag size={11} color={langColor[snippet.language] || '#64748b'} style={{ flexShrink: 0 }} />
+                    <span
+                      style={{
+                        fontSize: '11px',
+                        fontWeight: 600,
+                        color: '#f1f5f9',
+                        overflow: 'hidden',
+                        textOverflow: 'ellipsis',
+                        whiteSpace: 'nowrap',
+                      }}
+                    >
+                      {snippet.title}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: '9px',
+                        color: langColor[snippet.language] || '#64748b',
+                        background: `${langColor[snippet.language] || '#64748b'}20`,
+                        border: `1px solid ${langColor[snippet.language] || '#64748b'}40`,
+                        padding: '0 5px',
+                        borderRadius: '4px',
+                        flexShrink: 0,
+                      }}
+                    >
+                      {snippet.language}
+                    </span>
+                  </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
                   <button
                     onClick={() => toggleFavorite(snippet.id)}
                     title={snippet.favorite ? 'Remover favorito' : 'Marcar como favorito'}
@@ -397,31 +426,33 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               </div>
 
               {/* Snippet code body */}
-              <pre
-                style={{
-                  margin: 0,
-                  padding: '8px 10px',
-                  fontSize: '11px',
-                  fontFamily: 'monospace',
-                  color: '#e2e8f0',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-all',
-                  lineHeight: '1.5',
-                  maxHeight: '80px',
-                  overflow: 'hidden',
-                  textOverflow: 'ellipsis',
-                  cursor: 'pointer',
-                  background: 'transparent',
-                }}
-                onClick={() => copySnippet(snippet.id, snippet.content)}
-                title="Clique para copiar"
-              >
-                {snippet.content}
-              </pre>
+              {isExpanded && (
+                <pre
+                  style={{
+                    margin: 0,
+                    padding: '8px 10px',
+                    fontSize: '11px',
+                    fontFamily: 'monospace',
+                    color: '#e2e8f0',
+                    whiteSpace: 'pre-wrap',
+                    wordBreak: 'break-all',
+                    lineHeight: '1.5',
+                    maxHeight: '120px',
+                    overflow: 'auto',
+                    background: 'transparent',
+                  }}
+                  onClick={() => copySnippet(snippet.id, snippet.content)}
+                  title="Clique para copiar"
+                >
+                  {snippet.content}
+                </pre>
+              )}
             </div>
-          ))
+          );
+        })
         )}
       </div>
+ 
 
       {/* Footer count */}
       <div style={{ flexShrink: 0, fontSize: '10px', color: '#475569', textAlign: 'right' }}>
@@ -440,8 +471,8 @@ export const snippetsWidget: WidgetDefinition = {
     icon: 'Code2',
     author: 'Dashboard Core',
     status: 'stable',
-    defaultSize: { w: 5, h: 5 },
-    minSize: { w: 4, h: 4 },
+    defaultSize: { w: 4, h: 4 },
+    minSize: { w: 3, h: 4 },
     maxSize: { w: 8, h: 10 },
     requiresAgent: false,
   },

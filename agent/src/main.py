@@ -153,4 +153,4 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 if __name__ == "__main__":
-    uvicorn.run("src.main:app", host="127.0.0.1", port=8765, reload=True, reload_dirs=["src"])
+    uvicorn.run("src.main:app", host="127.0.0.1", port=5137, reload=True, reload_dirs=["src"])

@@ -18,6 +18,12 @@ export const Canvas: React.FC = () => {
   const reorganizeLayouts = useDashboardStore((state) => state.reorganizeLayouts);
   const mainRef = useRef<HTMLElement>(null);
 
+  const theme = useDashboardStore((state) => state.theme);
+  const density = useDashboardStore((state) => state.density);
+
+  const rowHeight = density === 'compact' ? 60 : 80;
+  const gridMargin: [number, number] = density === 'compact' ? [10, 10] : [16, 16];
+
   useEffect(() => {
     const handleFocusWidget = (event: Event) => {
       const customEvent = event as CustomEvent<{ instanceId?: string }>;
@@ -52,9 +58,11 @@ export const Canvas: React.FC = () => {
         flex: 1,
         height: '100vh',
         overflowY: 'auto',
-        padding: '20px',
+        padding: density === 'compact' ? '12px' : '20px',
         boxSizing: 'border-box',
-        background: 'radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%)',
+        background: theme === 'light'
+          ? 'radial-gradient(circle at 50% 0%, #f1f5f9 0%, #cbd5e1 100%)'
+          : 'radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%)',
         scrollBehavior: 'smooth',
       }}
     >
@@ -63,8 +71,8 @@ export const Canvas: React.FC = () => {
           <button
             onClick={() => reorganizeLayouts()}
             style={{
-              background: 'rgba(15, 23, 42, 0.9)',
-              color: '#f8fafc',
+              background: theme === 'light' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.9)',
+              color: theme === 'light' ? '#0f172a' : '#f8fafc',
               border: '1px solid rgba(56, 189, 248, 0.4)',
               borderRadius: '8px',
               padding: '8px 12px',
@@ -78,8 +86,8 @@ export const Canvas: React.FC = () => {
           <button
             onClick={() => mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'smooth' })}
             style={{
-              background: 'rgba(15, 23, 42, 0.9)',
-              color: '#38bdf8',
+              background: theme === 'light' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.9)',
+              color: '#0284c7',
               border: '1px solid rgba(56, 189, 248, 0.3)',
               borderRadius: '8px',
               padding: '8px 12px',
@@ -100,14 +108,14 @@ export const Canvas: React.FC = () => {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            border: '2px dashed rgba(51, 65, 85, 0.4)',
+            border: `2px dashed ${theme === 'light' ? '#cbd5e1' : 'rgba(51, 65, 85, 0.4)'}`,
             borderRadius: '16px',
-            color: '#64748b',
+            color: theme === 'light' ? '#64748b' : '#64748b',
             gap: '8px',
           }}
         >
           <span style={{ fontSize: '15px', fontWeight: 500 }}>Canvas Limpo</span>
-          <span style={{ fontSize: '12px', color: '#475569' }}>
+          <span style={{ fontSize: '12px', color: theme === 'light' ? '#64748b' : '#475569' }}>
             Selecione um widget na barra lateral à esquerda para adicionar ao seu dashboard.
           </span>
         </div>
@@ -115,7 +123,7 @@ export const Canvas: React.FC = () => {
         <ReactGridLayout
           className="layout"
           cols={12}
-          rowHeight={80}
+          rowHeight={rowHeight}
           draggableHandle=".widget-drag-handle"
           onLayoutChange={updateLayout}
           isDraggable={true}
@@ -123,7 +131,7 @@ export const Canvas: React.FC = () => {
           useCSSTransforms={false}
           isBounded={false}
           compactType={null}
-          margin={[16, 16]}
+          margin={gridMargin}
         >
           {activeInstances.map((instance) => {
             const widgetDef = registeredWidgets.get(instance.widgetId);
@@ -157,6 +165,7 @@ export const Canvas: React.FC = () => {
                   widgetDef={widgetDef}
                   config={instance.config}
                   isLocked={isLocked}
+                  colorPreset={instance.colorPreset}
                   onRemove={() => removeWidgetFromCanvas(instance.instanceId)}
                   onToggleLock={() => toggleLockWidget(instance.instanceId)}
                 />

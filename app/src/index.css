@@ -1,3 +1,4 @@
+/* Theme base: tipografia e cores globais. Ajuste aqui valores de fundo e texto para todo o app. */
 :root {
   font-family: 'Inter', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
   line-height: 1.5;
@@ -7,11 +8,31 @@
   color: #f8fafc;
 }
 
+/* Corpo da página: sem scroll nativo e seleção desabilitada para o dashboard. */
 body {
   margin: 0;
   padding: 0;
   overflow: hidden;
   user-select: none;
+}
+
+/* Barras de rolagem customizadas. Ajuste cores e largura aqui. */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(15, 23, 42, 0.5);
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(51, 65, 85, 0.6);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(71, 85, 105, 0.8);
 }
 
 /* Custom Scrollbars */

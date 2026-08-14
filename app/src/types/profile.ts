@@ -10,6 +10,7 @@ export interface ProfileWidgetInstance {
   instanceId: string;
   widgetId: string;
   isLocked?: boolean;
+  colorPreset?: string; // Cor individual da instância do widget (10 opções)
   layout: ProfileWidgetLayout;
   config: Record<string, any>;
 }

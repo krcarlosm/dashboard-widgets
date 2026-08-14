@@ -114,7 +114,7 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
         flexDirection: 'column',
         color: '#f8fafc',
         fontSize: '12px',
-        gap: '10px',
+        gap: '12px',
       }}
     >
       {/* Category selector */}
@@ -287,8 +287,8 @@ export const unitConverterWidget: WidgetDefinition = {
     icon: 'ArrowRightLeft',
     author: 'Dashboard Core',
     status: 'stable',
-    defaultSize: { w: 4, h: 5 },
-    minSize: { w: 3, h: 5 },
+    defaultSize: { w: 4, h: 4 },
+    minSize: { w: 3, h: 4 },
     maxSize: { w: 6, h: 8 },
     requiresAgent: false,
   },

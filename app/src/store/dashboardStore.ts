@@ -21,6 +21,7 @@ interface DashboardState {
   reorganizeLayouts: () => void;
   updateLayout: (layouts: Layout[]) => void;
   updateWidgetConfig: (instanceId: string, newConfig: Record<string, any>) => void;
+  setWidgetColorPreset: (instanceId: string, colorPreset: string) => void;
   setAppearance: (appearance: Partial<ProfileAppearance>) => void;
   resetDashboard: () => void;
 }
@@ -281,6 +282,17 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       activeInstances: state.activeInstances.map((item) =>
         item.instanceId === instanceId
           ? { ...item, config: { ...item.config, ...newConfig } }
+          : item
+      ),
+    }));
+    get().saveProfile();
+  },
+
+  setWidgetColorPreset: (instanceId: string, colorPreset: string) => {
+    set((state) => ({
+      activeInstances: state.activeInstances.map((item) =>
+        item.instanceId === instanceId
+          ? { ...item, colorPreset }
           : item
       ),
     }));

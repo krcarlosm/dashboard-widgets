@@ -3,13 +3,27 @@ import { WidgetDefinition, WidgetContext } from '../sdk/types';
 import { ScopedWidgetStorage } from '../sdk/storage';
 import { defaultAgentClient } from '../sdk/agentClient';
 import { useDashboardStore } from '../store/dashboardStore';
-import { X, GripHorizontal, Wrench, AlertTriangle, Lock, Unlock } from 'lucide-react';
+import { X, GripHorizontal, Wrench, AlertTriangle, Lock, Unlock, Palette } from 'lucide-react';
+
+export const COLOR_PRESETS: Record<string, { label: string; bg: string; border: string; accent: string }> = {
+  default: { label: 'Padrão Slate', bg: 'rgba(30, 41, 59, 0.6)', border: 'rgba(51, 65, 85, 0.7)', accent: '#64748b' },
+  sky: { label: 'Azul Sky', bg: 'rgba(2, 132, 199, 0.18)', border: 'rgba(56, 189, 248, 0.5)', accent: '#38bdf8' },
+  emerald: { label: 'Verde Esmeralda', bg: 'rgba(5, 150, 105, 0.18)', border: 'rgba(52, 211, 153, 0.5)', accent: '#34d399' },
+  violet: { label: 'Roxo Violeta', bg: 'rgba(124, 58, 237, 0.18)', border: 'rgba(167, 139, 250, 0.5)', accent: '#a78bfa' },
+  amber: { label: 'Âmbar Dourado', bg: 'rgba(217, 119, 6, 0.18)', border: 'rgba(251, 191, 36, 0.5)', accent: '#fbbf24' },
+  rose: { label: 'Rosa Rose', bg: 'rgba(225, 29, 72, 0.18)', border: 'rgba(251, 113, 133, 0.5)', accent: '#fb7185' },
+  indigo: { label: 'Índigo Azul', bg: 'rgba(79, 70, 229, 0.18)', border: 'rgba(129, 140, 248, 0.5)', accent: '#818cf8' },
+  teal: { label: 'Verde Teal', bg: 'rgba(13, 148, 136, 0.18)', border: 'rgba(45, 212, 191, 0.5)', accent: '#2dd4bf' },
+  fuchsia: { label: 'Magenta Fuchsia', bg: 'rgba(192, 38, 211, 0.18)', border: 'rgba(232, 121, 249, 0.5)', accent: '#e879f9' },
+  orange: { label: 'Laranja Sunset', bg: 'rgba(234, 88, 12, 0.18)', border: 'rgba(251, 146, 60, 0.5)', accent: '#fb923c' },
+};
 
 interface WidgetContainerProps {
   instanceId: string;
   widgetDef: WidgetDefinition;
   config: Record<string, any>;
   isLocked?: boolean;
+  colorPreset?: string;
   onRemove: () => void;
   onToggleLock: () => void;
 }
@@ -19,14 +33,30 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
   widgetDef,
   config,
   isLocked = false,
+  colorPreset = 'default',
   onRemove,
   onToggleLock,
 }) => {
   const updateWidgetConfig = useDashboardStore((state) => state.updateWidgetConfig);
+  const setWidgetColorPreset = useDashboardStore((state) => state.setWidgetColorPreset);
+  const theme = useDashboardStore((state) => state.theme);
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
+  const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
 
   const storage = useRef(new ScopedWidgetStorage(instanceId)).current;
+  const colorTheme = COLOR_PRESETS[colorPreset] || COLOR_PRESETS.default;
+
+  const isLight = theme === 'light';
+  const containerBg = colorPreset !== 'default'
+    ? (isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.85)')
+    : (isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(15, 23, 42, 0.85)');
+
+  const titlebarBg = isLocked
+    ? (isLight ? 'rgba(224, 231, 255, 0.8)' : 'rgba(49, 46, 129, 0.4)')
+    : (colorPreset !== 'default' ? colorTheme.bg : (isLight ? 'rgba(241, 245, 249, 0.95)' : 'rgba(30, 41, 59, 0.6)'));
+
+  const titleTextColor = isLight ? '#0f172a' : '#f1f5f9';
 
   const handleUpdateConfig = (newConfig: Partial<Record<string, any>>) => {
     updateWidgetConfig(instanceId, newConfig);
@@ -78,7 +108,6 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
   const status = widgetDef.manifest.status || 'stable';
   const isInactive = status === 'in_development' || status === 'needs_improvement';
 
-  // Shared button style helper
   const stopPropagation = (e: React.MouseEvent | React.TouchEvent) => {
     e.stopPropagation();
   };
@@ -90,16 +119,19 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        background: 'rgba(15, 23, 42, 0.85)',
+        background: containerBg,
         backdropFilter: 'blur(12px)',
         border: isLocked
           ? '1px solid rgba(99, 102, 241, 0.5)'
-          : '1px solid rgba(51, 65, 85, 0.7)',
+          : `1px solid ${colorTheme.border}`,
         borderRadius: '12px',
-        boxShadow: '0 8px 32px 0 rgba(0, 0, 0, 0.37)',
+        boxShadow: colorPreset !== 'default'
+          ? `0 8px 32px 0 rgba(0, 0, 0, 0.4), 0 0 12px ${colorTheme.accent}20`
+          : (isLight ? '0 8px 24px rgba(148, 163, 184, 0.25)' : '0 8px 32px 0 rgba(0, 0, 0, 0.37)'),
         overflow: 'hidden',
         boxSizing: 'border-box',
         position: 'relative',
+        color: isLight ? '#0f172a' : '#f8fafc',
       }}
     >
       {/* Titlebar / Drag Handle */}
@@ -110,17 +142,15 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
           alignItems: 'center',
           justifyContent: 'space-between',
           padding: '8px 12px',
-          background: isLocked
-            ? 'rgba(49, 46, 129, 0.4)'
-            : 'rgba(30, 41, 59, 0.6)',
-          borderBottom: '1px solid rgba(51, 65, 85, 0.5)',
+          background: titlebarBg,
+          borderBottom: `1px solid ${colorTheme.border}`,
           cursor: isLocked ? 'default' : 'grab',
           userSelect: 'none',
         }}
       >
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px', pointerEvents: 'none' }}>
-          <GripHorizontal size={14} color={isLocked ? '#6366f1' : '#64748b'} />
-          <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9' }}>
+          <GripHorizontal size={14} color={isLocked ? '#6366f1' : colorTheme.accent} />
+          <span style={{ fontSize: '12px', fontWeight: 600, color: titleTextColor }}>
             {widgetDef.manifest.name}
           </span>
 
@@ -164,7 +194,78 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
         </div>
 
         {/* Titlebar Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginLeft: '8px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginLeft: '8px', position: 'relative' }}>
+          {/* Color palette picker button */}
+          <button
+            onClick={(e) => {
+              stopPropagation(e);
+              setShowColorPicker(!showColorPicker);
+            }}
+            onMouseDown={stopPropagation}
+            onTouchStart={stopPropagation}
+            title="Escolher cor da instância"
+            style={{
+              background: showColorPicker ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+              border: 'none',
+              color: colorTheme.accent,
+              cursor: 'pointer',
+              padding: '3px',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+            }}
+          >
+            <Palette size={13} />
+          </button>
+
+          {/* Color Swatches Popover */}
+          {showColorPicker && (
+            <div
+              onMouseDown={stopPropagation}
+              onTouchStart={stopPropagation}
+              style={{
+                position: 'absolute',
+                top: '26px',
+                right: '0',
+                zIndex: 999,
+                background: '#0f172a',
+                border: '1px solid #334155',
+                borderRadius: '8px',
+                padding: '8px',
+                boxShadow: '0 10px 25px rgba(0,0,0,0.6)',
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, 1fr)',
+                gap: '6px',
+                width: '150px',
+              }}
+            >
+              {Object.entries(COLOR_PRESETS).map(([key, item]) => (
+                <button
+                  key={key}
+                  onClick={() => {
+                    setWidgetColorPreset(instanceId, key);
+                    setShowColorPicker(false);
+                  }}
+                  title={item.label}
+                  style={{
+                    width: '24px',
+                    height: '24px',
+                    borderRadius: '50%',
+                    background: item.accent,
+                    border: colorPreset === key ? '2px solid #ffffff' : '1px solid transparent',
+                    cursor: 'pointer',
+                    boxShadow: colorPreset === key ? '0 0 8px ' + item.accent : 'none',
+                    transition: 'transform 0.15s',
+                  }}
+                  onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.15)'; }}
+                  onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                />
+              ))}
+            </div>
+          )}
+
           {/* Lock / Unlock button */}
           <button
             onClick={onToggleLock}
@@ -176,20 +277,12 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
               border: 'none',
               color: isLocked ? '#6366f1' : '#64748b',
               cursor: 'pointer',
-              padding: '2px',
+              padding: '3px',
               borderRadius: '4px',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
               transition: 'color 0.2s, background 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.color = '#818cf8';
-              e.currentTarget.style.background = 'rgba(99, 102, 241, 0.1)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.color = isLocked ? '#6366f1' : '#64748b';
-              e.currentTarget.style.background = 'transparent';
             }}
           >
             {isLocked ? <Lock size={13} /> : <Unlock size={13} />}
@@ -207,7 +300,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
                 border: 'none',
                 color: '#64748b',
                 cursor: 'pointer',
-                padding: '2px',
+                padding: '3px',
                 borderRadius: '4px',
                 display: 'flex',
                 alignItems: 'center',
@@ -247,3 +340,4 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
     </div>
   );
 };
+

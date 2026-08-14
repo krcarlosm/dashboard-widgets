@@ -34,6 +34,7 @@ export const Sidebar: React.FC = () => {
     ArrowRightLeft: <ArrowRightLeft size={16} />,
     Divide: <Divide size={16} />,
     Calendar: <CalendarRange size={16} />,
+    Kanban: <CheckSquare size={16} />,
     Camera: <Bot size={16} />,
     FolderOpen: <Bot size={16} />,
   };
@@ -308,7 +309,7 @@ export const Sidebar: React.FC = () => {
                 <div key={item.manifest.id} style={{ position: 'relative' }}>
                   <button
                     onClick={() => addWidgetToCanvas(item.manifest.id)}
-                    title={`${item.manifest.name} — + Adicionar`}
+                      title="Adicionar"
                     style={{
                       width: '40px',
                       height: '40px',
@@ -331,7 +332,7 @@ export const Sidebar: React.FC = () => {
                       e.currentTarget.style.borderColor = count > 0 ? 'rgba(2, 132, 199, 0.4)' : 'rgba(51, 65, 85, 0.5)';
                       e.currentTarget.style.background = count > 0 ? 'rgba(2, 132, 199, 0.15)' : 'rgba(30, 41, 59, 0.6)';
                     }}
-                  >
+                      >
                     <span style={{ fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                       {iconMap[item.manifest.icon as string] || item.manifest.name.charAt(0).toUpperCase()}
                     </span>
@@ -557,59 +558,69 @@ export const Sidebar: React.FC = () => {
                         background: 'rgba(30, 41, 59, 0.5)',
                         border: `1px solid ${count > 0 ? 'rgba(2, 132, 199, 0.3)' : 'rgba(51, 65, 85, 0.5)'}`,
                         borderRadius: '8px',
-                        padding: '9px 11px',
-                        marginBottom: '8px',
+                        padding: '10px 12px',
+                        marginBottom: '10px',
+                        display: 'flex',
+                        flexDirection: 'column',
+                        gap: '6px',
                         transition: 'all 0.2s ease',
                       }}
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '4px' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', minWidth: 0 }}>
-                          <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {item.manifest.name}
+                      {/* Linha 1: Título do app e badges */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9' }}>
+                          {item.manifest.name}
+                        </span>
+                        {status === 'in_development' && (
+                          <span
+                            title="Em Desenvolvimento"
+                            style={{ fontSize: '9px', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.4)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
+                          >
+                            Dev
                           </span>
-                          {status === 'in_development' && (
-                            <span
-                              title="Em Desenvolvimento"
-                              style={{ fontSize: '9px', background: 'rgba(56, 189, 248, 0.2)', color: '#38bdf8', border: '1px solid rgba(56, 189, 248, 0.4)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
-                            >
-                              Dev
-                            </span>
-                          )}
-                          {item.manifest.requiresAgent && (
-                            <span
-                              title="Requer Agent"
-                              style={{ fontSize: '9px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
-                            >
-                              Agent
-                            </span>
-                          )}
-                          {status === 'needs_improvement' && (
-                            <span
-                              title="Necessita Ajustes"
-                              style={{ fontSize: '9px', background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
-                            >
-                              <Wrench size={8} style={{ verticalAlign: 'middle' }} /> Fix
-                            </span>
-                          )}
-                        </div>
+                        )}
+                        {item.manifest.requiresAgent && (
+                          <span
+                            title="Requer Agent"
+                            style={{ fontSize: '9px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
+                          >
+                            Agent
+                          </span>
+                        )}
+                        {status === 'needs_improvement' && (
+                          <span
+                            title="Necessita Ajustes"
+                            style={{ fontSize: '9px', background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
+                          >
+                            <Wrench size={8} style={{ verticalAlign: 'middle' }} /> Fix
+                          </span>
+                        )}
+                      </div>
 
-                        {/* Add button — always shows "+ Adicionar" with instance badge */}
+                      {/* Linha 2: Descrição do app */}
+                      <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', lineHeight: '1.4' }}>
+                        {item.manifest.description}
+                      </p>
+
+                      {/* Linha 3: Botão de Adicionar */}
+                      <div style={{ marginTop: '2px' }}>
                         <button
                           onClick={() => addWidgetToCanvas(item.manifest.id)}
                           title="Adicionar nova instância ao canvas"
                           style={{
+                            width: '100%',
                             background: '#0284c7',
                             border: 'none',
-                            borderRadius: '5px',
+                            borderRadius: '6px',
                             color: '#ffffff',
-                            padding: '4px 8px',
+                            padding: '5px 10px',
                             cursor: 'pointer',
                             display: 'flex',
                             alignItems: 'center',
-                            gap: '4px',
-                            fontSize: '10px',
+                            justifyContent: 'center',
+                            gap: '6px',
+                            fontSize: '11px',
                             fontWeight: 600,
-                            flexShrink: 0,
                             transition: 'background 0.2s',
                           }}
                           onMouseEnter={(e) => {
@@ -619,28 +630,24 @@ export const Sidebar: React.FC = () => {
                             e.currentTarget.style.background = '#0284c7';
                           }}
                         >
-                          <Plus size={11} />
+                          <Plus size={12} />
                           <span>Adicionar</span>
                           {count > 0 && (
                             <span
                               style={{
                                 background: 'rgba(255,255,255,0.25)',
-                                borderRadius: '8px',
-                                padding: '0px 5px',
+                                borderRadius: '10px',
+                                padding: '1px 6px',
                                 fontSize: '9px',
                                 fontWeight: 700,
-                                marginLeft: '2px',
+                                marginLeft: '4px',
                               }}
                             >
-                              {count}
+                              {count} ativo(s)
                             </span>
                           )}
                         </button>
                       </div>
-
-                      <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', lineHeight: '1.4' }}>
-                        {item.manifest.description}
-                      </p>
                     </div>
                   );
                 })

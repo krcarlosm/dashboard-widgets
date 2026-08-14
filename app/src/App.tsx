@@ -11,6 +11,7 @@ import { dateCalculatorWidget } from './widgets/date-calculator';
 import { ruleOfThreeWidget } from './widgets/rule-of-three';
 import { memoryBauWidget } from './widgets/memory-bau';
 import { editedFilesWidget } from './widgets/edited-files';
+import { kanbanWidget } from './widgets/kanban';
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 
@@ -21,12 +22,15 @@ export const App: React.FC = () => {
   const density = useDashboardStore((state) => state.density);
   const accentColor = useDashboardStore((state) => state.accentColor);
 
+  // Mapa de cores de destaque principais. Ajuste aqui para alterar o tema de acento do aplicativo.
   const accentMap = {
     sky: '#38bdf8',
     violet: '#8b5cf6',
     emerald: '#34d399',
   } as const;
 
+  // Variáveis CSS base usadas em todo o app. Aqui você define superfície, bordas e cores de texto.
+  // Cada valor muda automaticamente entre o modo claro e escuro.
   const appearanceStyle = {
     ['--app-accent' as string]: accentMap[accentColor],
     ['--app-surface' as string]: theme === 'light' ? '#ffffff' : '#0f172a',
@@ -45,6 +49,7 @@ export const App: React.FC = () => {
     registerWidget(pomodoroWidget);       // Now: Timer Multiferramenta (v2)
     registerWidget(todoWidget);
     registerWidget(noiseWidget);
+    registerWidget(kanbanWidget);
 
     // ── Phase 2 new widgets ──────────────────────────────────────────────────
     registerWidget(snippetsWidget);       // Item 12
