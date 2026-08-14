@@ -1,6 +1,10 @@
 # Dashboard Modular de Widgets Locais
 
-O **Dashboard Modular de Widgets** é uma plataforma de produtividade pessoal desenvolvida em **React + TypeScript + Vite** no frontend e **Python (FastAPI + WebSockets)** no agente backend. O objetivo é oferecer uma área de trabalho altamente personalizável, modular e privada com widgets arrastáveis e redimensionáveis.
+
+O **Dashboard Modular de Widgets** é uma plataforma de produtividade pessoal desenvolvida em **React + TypeScript + Vite** no frontend e **Python (FastAPI + WebSockets)** no agente backend. 
+
+O projeto consiste em um dashboard customizável, onde o usuário pode adicionar widgets/aplicativos arrastáveis, redimensionáveis e personalizáveis. A proposta é criar um ambiente simples e útil para organização diária, com foco em execução local, privacidade e integração com um agente de apoio em Python.
+
 
 ---
 
