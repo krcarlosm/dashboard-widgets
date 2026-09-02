@@ -136,7 +136,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             padding: '5px 8px',
           }}
         >
-          <Search size={12} color="#64748b" />
+          <Search size={12} color="var(--app-muted-strong)" />
           <input
             type="text"
             value={search}
@@ -211,7 +211,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               style={{
                 background: 'var(--app-input)',
                 border: '1px solid var(--app-border)',
-                color: langColor[newLanguage] || '#94a3b8',
+                color: langColor[newLanguage] || 'var(--app-muted)',
                 borderRadius: '4px',
                 padding: '4px 6px',
                 fontSize: '10px',
@@ -226,7 +226,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               ))}
             </select>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: '#94a3b8' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--app-muted)' }}>
             <span>Categoria atribuída:</span>
             <span style={{ color: 'var(--app-accent)', fontWeight: 600 }}>{CATEGORY_BY_LANGUAGE[newLanguage] || 'Other'}</span>
           </div>
@@ -253,7 +253,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
             <button
               onClick={() => setIsAdding(false)}
-              style={{ background: 'transparent', border: '1px solid #334155', color: '#64748b', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '10px' }}
+              style={{ background: 'transparent', border: '1px solid var(--app-border)', color: 'var(--app-muted-strong)', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '10px' }}
             >
               Cancelar
             </button>
@@ -269,9 +269,9 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
 
       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: '4px', background: 'var(--app-surface-muted)', borderRadius: '6px', padding: '2px', border: '1px solid var(--app-border)', flexWrap: 'wrap' }}>
-          <button onClick={() => setFilterMode('all')} style={{ background: filterMode === 'all' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'all' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Todos</button>
-          <button onClick={() => setFilterMode('favorites')} style={{ background: filterMode === 'favorites' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'favorites' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Favoritos</button>
-          <button onClick={() => setFilterMode('categories')} style={{ background: filterMode === 'categories' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'categories' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Categorias</button>
+          <button onClick={() => setFilterMode('all')} style={{ background: filterMode === 'all' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'all' ? '#fff' : 'var(--app-muted)', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Todos</button>
+          <button onClick={() => setFilterMode('favorites')} style={{ background: filterMode === 'favorites' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'favorites' ? '#fff' : 'var(--app-muted)', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Favoritos</button>
+          <button onClick={() => setFilterMode('categories')} style={{ background: filterMode === 'categories' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'categories' ? '#fff' : 'var(--app-muted)', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Categorias</button>
           <button onClick={() => setShowAllContents((prev) => !prev)} style={{ background: showAllContents ? '#0ea5e9' : 'transparent', border: `1px solid ${showAllContents ? '#0ea5e9' : '#334155'}`, color: showAllContents ? '#fff' : '#94a3b8', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>
             {showAllContents ? 'Mostrar títulos' : 'Mostrar conteúdos'}
           </button>
@@ -333,7 +333,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                       style={{
                         background: 'transparent',
                         border: 'none',
-                        color: '#94a3b8',
+                        color: 'var(--app-muted)',
                         cursor: 'pointer',
                         padding: '2px',
                         display: 'flex',
@@ -433,7 +433,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                     padding: '8px 10px',
                     fontSize: '11px',
                     fontFamily: 'monospace',
-                    color: '#e2e8f0',
+                    color: 'var(--app-text)',
                     whiteSpace: 'pre-wrap',
                     wordBreak: 'break-all',
                     lineHeight: '1.5',
@@ -455,7 +455,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
  
 
       {/* Footer count */}
-      <div style={{ flexShrink: 0, fontSize: '10px', color: '#475569', textAlign: 'right' }}>
+      <div style={{ flexShrink: 0, fontSize: '10px', color: 'var(--app-muted)', textAlign: 'right' }}>
         {filteredSnippets.length} de {snippets.length} snippet(s)
       </div>
     </div>
