@@ -3,7 +3,7 @@ import { WidgetDefinition, WidgetContext } from '../sdk/types';
 import { ScopedWidgetStorage } from '../sdk/storage';
 import { defaultAgentClient } from '../sdk/agentClient';
 import { useDashboardStore } from '../store/dashboardStore';
-import { X, GripHorizontal, Wrench, AlertTriangle, Lock, Unlock, Palette } from 'lucide-react';
+import { X, GripHorizontal, Wrench, AlertTriangle, Lock, Unlock, Palette, Pencil } from 'lucide-react';
 
 export const COLOR_PRESETS: Record<string, { label: string; bg: string; border: string; accent: string }> = {
   default: { label: 'Padrão Slate', bg: 'rgba(30, 41, 59, 0.6)', border: 'rgba(51, 65, 85, 0.7)', accent: '#64748b' },
@@ -43,6 +43,8 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
   const containerRef = useRef<HTMLDivElement>(null);
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [showColorPicker, setShowColorPicker] = useState<boolean>(false);
+  const [isEditingTitle, setIsEditingTitle] = useState(false);
+  const [titleDraft, setTitleDraft] = useState('');
 
   const storage = useRef(new ScopedWidgetStorage(instanceId)).current;
   const colorTheme = COLOR_PRESETS[colorPreset] || COLOR_PRESETS.default;
@@ -57,9 +59,27 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
     : (colorPreset !== 'default' ? colorTheme.bg : (isLight ? 'rgba(241, 245, 249, 0.95)' : 'rgba(30, 41, 59, 0.6)'));
 
   const titleTextColor = isLight ? '#0f172a' : '#f1f5f9';
+  const canRename = widgetDef.manifest.id === 'todo';
+  const customTitle = typeof config.customTitle === 'string' ? config.customTitle.trim() : '';
+  const displayTitle = canRename && customTitle ? customTitle : widgetDef.manifest.name;
 
   const handleUpdateConfig = (newConfig: Partial<Record<string, any>>) => {
     updateWidgetConfig(instanceId, newConfig);
+  };
+
+  const stopPropagation = (e: React.MouseEvent | React.TouchEvent) => {
+    e.stopPropagation();
+  };
+
+  const startTitleEditing = (event: React.MouseEvent) => {
+    stopPropagation(event);
+    setTitleDraft(customTitle || widgetDef.manifest.name);
+    setIsEditingTitle(true);
+  };
+
+  const saveTitle = () => {
+    handleUpdateConfig({ customTitle: titleDraft.trim().slice(0, 50) });
+    setIsEditingTitle(false);
   };
 
   const context: WidgetContext = {
@@ -108,10 +128,6 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
   const status = widgetDef.manifest.status || 'stable';
   const isInactive = status === 'in_development' || status === 'needs_improvement';
 
-  const stopPropagation = (e: React.MouseEvent | React.TouchEvent) => {
-    e.stopPropagation();
-  };
-
   return (
     <div
       style={{
@@ -148,11 +164,39 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
           userSelect: 'none',
         }}
       >
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', pointerEvents: 'none' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px', minWidth: 0 }}>
           <GripHorizontal size={14} color={isLocked ? '#6366f1' : colorTheme.accent} />
-          <span style={{ fontSize: '12px', fontWeight: 600, color: titleTextColor }}>
-            {widgetDef.manifest.name}
-          </span>
+          {isEditingTitle ? (
+            <input
+              autoFocus
+              value={titleDraft}
+              maxLength={50}
+              onChange={(event) => setTitleDraft(event.target.value)}
+              onBlur={saveTitle}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter') saveTitle();
+                if (event.key === 'Escape') setIsEditingTitle(false);
+              }}
+              onMouseDown={stopPropagation}
+              onTouchStart={stopPropagation}
+              style={{ width: '150px', background: 'transparent', border: `1px solid ${colorTheme.accent}`, borderRadius: '4px', color: titleTextColor, padding: '2px 5px', fontSize: '12px', fontWeight: 600, outline: 'none' }}
+            />
+          ) : (
+            <span title={displayTitle} style={{ fontSize: '12px', fontWeight: 600, color: titleTextColor, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+              {displayTitle}
+            </span>
+          )}
+          {canRename && !isEditingTitle && (
+            <button
+              onClick={startTitleEditing}
+              onMouseDown={stopPropagation}
+              onTouchStart={stopPropagation}
+              title="Editar título"
+              style={{ background: 'transparent', border: 'none', color: colorTheme.accent, cursor: 'pointer', padding: '2px', display: 'flex', flexShrink: 0 }}
+            >
+              <Pencil size={12} />
+            </button>
+          )}
 
           {status === 'in_development' && (
             <span
