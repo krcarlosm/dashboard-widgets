@@ -10,6 +10,7 @@ export class LocalAgentClient implements AgentClientProtocol {
   private url: string;
   private subscribers: Map<string, Set<EventCallback>> = new Map();
   private reconnectTimer: any = null;
+  private shouldReconnect = true;
   public isConnected: boolean = false;
   private statusListeners: Set<(connected: boolean) => void> = new Set();
   private token: string | null = null;
@@ -20,6 +21,8 @@ export class LocalAgentClient implements AgentClientProtocol {
   }
 
   public connect(): void {
+    this.shouldReconnect = true;
+
     if (this.ws && (this.ws.readyState === WebSocket.CONNECTING || this.ws.readyState === WebSocket.OPEN)) {
       return;
     }
@@ -46,15 +49,32 @@ export class LocalAgentClient implements AgentClientProtocol {
         }
         this.isConnected = false;
         this.notifyStatus(false);
-        this.scheduleReconnect();
+        if (this.shouldReconnect) {
+          this.scheduleReconnect();
+        }
       };
 
       this.ws.onerror = () => {
         this.ws?.close();
       };
     } catch {
-      this.scheduleReconnect();
+      if (this.shouldReconnect) {
+        this.scheduleReconnect();
+      }
     }
+  }
+
+  public disconnect(): void {
+    this.shouldReconnect = false;
+
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
+    this.setConnected(false);
+    this.ws?.close();
+    this.ws = null;
   }
 
   private async performHandshake(): Promise<void> {

@@ -33,6 +33,7 @@ export interface AgentMessage {
 
 export interface AgentClientProtocol {
   isConnected: boolean;
+  disconnect(): void;
   send(message: AgentMessage): void;
   subscribe(eventType: string, callback: (payload: any) => void): () => void;
   checkHealth(): Promise<boolean>;
