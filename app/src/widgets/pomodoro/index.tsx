@@ -260,7 +260,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     if (mode === 'stopwatch') return '#f59e0b';
     if (mode === 'countdown') return '#a78bfa';
     if (phase === 'focus') return '#ef4444';
-    if (phase === 'short_break') return '#38bdf8';
+    if (phase === 'short_break') return 'var(--app-accent)';
     return '#10b981';
   };
 
@@ -406,7 +406,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           {mode === 'pomodoro' && (
             <button
               onClick={() => setShowSettings(!showSettings)}
-              style={{ background: 'transparent', border: 'none', color: showSettings ? '#38bdf8' : '#64748b', cursor: 'pointer', padding: '3px' }}
+              style={{ background: 'transparent', border: 'none', color: showSettings ? 'var(--app-accent)' : '#64748b', cursor: 'pointer', padding: '3px' }}
               title="Configurações"
             >
               <Settings size={14} />
@@ -456,7 +456,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           </div>
           <button
             onClick={() => updateSettings(config)}
-            style={{ marginTop: 'auto', background: '#0284c7', color: '#fff', border: 'none', borderRadius: '4px', padding: '6px', cursor: 'pointer', fontWeight: 600 }}
+            style={{ marginTop: 'auto', background: 'var(--app-accent-strong)', color: '#fff', border: 'none', borderRadius: '4px', padding: '6px', cursor: 'pointer', fontWeight: 600 }}
           >
             Salvar
           </button>
@@ -485,7 +485,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               />
               <button
                 onClick={applyCountdownInput}
-                style={{ background: '#0284c7', color: '#fff', border: 'none', borderRadius: '5px', padding: '4px 8px', cursor: 'pointer', fontSize: '10px', fontWeight: 600 }}
+                style={{ background: 'var(--app-accent-strong)', color: '#fff', border: 'none', borderRadius: '5px', padding: '4px 8px', cursor: 'pointer', fontSize: '10px', fontWeight: 600 }}
               >
                 OK
               </button>

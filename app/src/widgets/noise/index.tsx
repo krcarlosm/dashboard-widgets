@@ -297,7 +297,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               onClick={() => handleTypeChange(type)}
               style={{
                 flex: 1,
-                background: noiseType === type ? '#0284c7' : 'transparent',
+                background: noiseType === type ? 'var(--app-accent-strong)' : 'transparent',
                 color: noiseType === type ? '#ffffff' : '#94a3b8',
                 border: 'none',
                 borderRadius: '6px',
@@ -318,9 +318,9 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           onClick={() => setShowSettings(!showSettings)}
           title="Configurações de Temporizador"
           style={{
-            background: showSettings ? 'rgba(56, 189, 248, 0.2)' : 'rgba(51, 65, 85, 0.4)',
-            border: `1px solid ${showSettings ? '#38bdf8' : 'rgba(51, 65, 85, 0.6)'}`,
-            color: showSettings ? '#38bdf8' : '#94a3b8',
+            background: showSettings ? 'var(--app-accent-soft)' : 'rgba(51, 65, 85, 0.4)',
+            border: `1px solid ${showSettings ? 'var(--app-accent)' : 'rgba(51, 65, 85, 0.6)'}`,
+            color: showSettings ? 'var(--app-accent)' : '#94a3b8',
             borderRadius: '8px',
             width: '32px',
             height: '32px',
@@ -357,14 +357,14 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 600, color: '#f8fafc' }}>
-                <Timer size={14} color="#38bdf8" />
+                <Timer size={14} color="var(--app-accent)" />
                 <span>Temporizador Automático</span>
               </label>
               <input
                 type="checkbox"
                 checked={isTimerEnabled}
                 onChange={(e) => handleToggleTimer(e.target.checked)}
-                style={{ accentColor: '#38bdf8', cursor: 'pointer', width: '15px', height: '15px' }}
+                style={{ accentColor: 'var(--app-accent)', cursor: 'pointer', width: '15px', height: '15px' }}
               />
             </div>
 
@@ -377,9 +377,9 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                       key={mins}
                       onClick={() => handleSelectMinutes(mins)}
                       style={{
-                        background: selectedMinutes === mins ? '#0284c7' : 'rgba(51, 65, 85, 0.5)',
+                        background: selectedMinutes === mins ? 'var(--app-accent-strong)' : 'rgba(51, 65, 85, 0.5)',
                         color: selectedMinutes === mins ? '#ffffff' : '#94a3b8',
-                        border: `1px solid ${selectedMinutes === mins ? '#38bdf8' : 'rgba(51, 65, 85, 0.6)'}`,
+                        border: `1px solid ${selectedMinutes === mins ? 'var(--app-accent)' : 'rgba(51, 65, 85, 0.6)'}`,
                         borderRadius: '6px',
                         padding: '5px 0',
                         fontSize: '10px',
@@ -425,7 +425,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             onClick={() => setShowSettings(false)}
             style={{
               width: '100%',
-              background: '#0284c7',
+              background: 'var(--app-accent-strong)',
               color: '#ffffff',
               border: 'none',
               borderRadius: '6px',
@@ -454,7 +454,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 height: '68px',
                 borderRadius: '50%',
                 background: isPlaying
-                  ? 'linear-gradient(135deg, #0284c7, #38bdf8)'
+                  ? 'linear-gradient(135deg, var(--app-accent-strong), var(--app-accent))'
                   : 'rgba(51, 65, 85, 0.6)',
                 border: 'none',
                 color: '#ffffff',
@@ -462,7 +462,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: isPlaying ? '0 0 24px rgba(56, 189, 248, 0.4)' : 'none',
+                boxShadow: isPlaying ? '0 0 24px var(--app-accent-border)' : 'none',
                 transition: 'all 0.3s ease',
               }}
             >
@@ -477,9 +477,9 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                   gap: '4px',
                   fontSize: '11px',
                   fontWeight: 700,
-                  color: '#38bdf8',
-                  background: 'rgba(56, 189, 248, 0.12)',
-                  border: '1px solid rgba(56, 189, 248, 0.3)',
+                  color: 'var(--app-accent)',
+                  background: 'var(--app-accent-soft)',
+                  border: '1px solid var(--app-accent-border)',
                   padding: '2px 8px',
                   borderRadius: '12px',
                 }}
@@ -492,7 +492,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
 
           {/* Volume Slider */}
           <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            {volume === 0 ? <VolumeX size={15} color="#4b84d4" /> : <Volume2 size={15} color="#38bdf8" />}
+            {volume === 0 ? <VolumeX size={15} color="#4b84d4" /> : <Volume2 size={15} color="var(--app-accent)" />}
             <input
               type="range"
               min="0"
@@ -501,7 +501,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               onChange={handleVolumeChange}
               style={{
                 flex: 1,
-                accentColor: '#38bdf8',
+                accentColor: 'var(--app-accent)',
                 cursor: 'pointer',
               }}
             />

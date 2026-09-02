@@ -49,7 +49,7 @@ const HelloWorldWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '6px' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-          <Activity size={16} color="#38bdf8" />
+          <Activity size={16} color="var(--app-accent)" />
           <span>Status do SDK</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: isAgentOnline ? '#4ade80' : '#94a3b8' }}>
@@ -60,7 +60,7 @@ const HelloWorldWidget: React.FC<WidgetComponentProps> = ({ context }) => {
 
       <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: '6px' }}>
         <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>Dimensões Atuais (px):</div>
-        <code style={{ color: '#38bdf8', fontWeight: 'bold' }}>
+        <code style={{ color: 'var(--app-accent)', fontWeight: 'bold' }}>
           {context.dimensions.width}px × {context.dimensions.height}px
         </code>
       </div>
@@ -71,7 +71,7 @@ const HelloWorldWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           <button
             onClick={handleIncrement}
             style={{
-              background: '#0284c7',
+              background: 'var(--app-accent-strong)',
               color: '#ffffff',
               border: 'none',
               borderRadius: '4px',

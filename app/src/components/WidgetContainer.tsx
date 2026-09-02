@@ -206,9 +206,9 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
                 alignItems: 'center',
                 gap: '3px',
                 fontSize: '10px',
-                background: 'rgba(56, 189, 248, 0.2)',
-                color: '#38bdf8',
-                border: '1px solid rgba(56, 189, 248, 0.4)',
+                background: 'var(--app-accent-soft)',
+                color: 'var(--app-accent)',
+                border: '1px solid var(--app-accent-border)',
                 padding: '1px 6px',
                 borderRadius: '4px',
               }}

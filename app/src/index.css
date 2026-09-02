@@ -85,8 +85,8 @@ body {
   bottom: 6px !important;
   width: 8px !important;
   height: 8px !important;
-  border-right: 2px solid #38bdf8 !important;
-  border-bottom: 2px solid #38bdf8 !important;
+  border-right: 2px solid var(--app-accent) !important;
+  border-bottom: 2px solid var(--app-accent) !important;
   border-radius: 0 0 2px 0 !important;
 }
 
@@ -98,8 +98,8 @@ body {
 }
 
 .react-grid-item.react-grid-placeholder {
-  background: rgba(56, 189, 248, 0.15) !important;
-  border: 2px dashed #38bdf8 !important;
+  background: var(--app-accent-soft) !important;
+  border: 2px dashed var(--app-accent) !important;
   border-radius: 12px !important;
   opacity: 0.8 !important;
   z-index: 1 !important;

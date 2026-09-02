@@ -116,7 +116,7 @@ const DateCalcWidget: React.FC<WidgetComponentProps> = () => {
             onClick={() => setResultUnit(u)}
             style={{
               flex: 1,
-              background: resultUnit === u ? '#0284c7' : 'transparent',
+              background: resultUnit === u ? 'var(--app-accent-strong)' : 'transparent',
               border: 'none',
               color: resultUnit === u ? '#fff' : '#64748b',
               borderRadius: '5px',

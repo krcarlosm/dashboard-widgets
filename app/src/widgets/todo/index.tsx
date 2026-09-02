@@ -139,7 +139,7 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           <button
             onClick={() => setViewMode('today')}
             style={{
-              background: viewMode === 'today' ? '#0284c7' : 'transparent',
+              background: viewMode === 'today' ? 'var(--app-accent-strong)' : 'transparent',
               color: viewMode === 'today' ? '#ffffff' : '#94a3b8',
               border: 'none',
               borderRadius: '4px',
@@ -154,7 +154,7 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           <button
             onClick={() => setViewMode('week')}
             style={{
-              background: viewMode === 'week' ? '#0284c7' : 'transparent',
+              background: viewMode === 'week' ? 'var(--app-accent-strong)' : 'transparent',
               color: viewMode === 'week' ? '#ffffff' : '#94a3b8',
               border: 'none',
               borderRadius: '4px',
@@ -230,7 +230,7 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         <button
           type="submit"
           style={{
-            background: '#0284c7',
+            background: 'var(--app-accent-strong)',
             border: 'none',
             color: '#ffffff',
             borderRadius: '6px',
@@ -341,7 +341,7 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#38bdf8',
+                    color: 'var(--app-accent)',
                     cursor: 'pointer',
                     padding: '2px',
                   }}

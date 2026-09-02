@@ -24,15 +24,19 @@ export const App: React.FC = () => {
 
   // Mapa de cores de destaque principais. Ajuste aqui para alterar o tema de acento do aplicativo.
   const accentMap = {
-    sky: '#38bdf8',
-    violet: '#8b5cf6',
-    emerald: '#34d399',
+    sky: { base: '#38bdf8', strong: '#0284c7', soft: 'rgba(56, 189, 248, 0.14)', border: 'rgba(56, 189, 248, 0.4)' },
+    violet: { base: '#8b5cf6', strong: '#7c3aed', soft: 'rgba(139, 92, 246, 0.14)', border: 'rgba(139, 92, 246, 0.4)' },
+    emerald: { base: '#34d399', strong: '#059669', soft: 'rgba(52, 211, 153, 0.14)', border: 'rgba(52, 211, 153, 0.4)' },
   } as const;
+  const accent = accentMap[accentColor];
 
   // Variáveis CSS base usadas em todo o app. Aqui você define superfície, bordas e cores de texto.
   // Cada valor muda automaticamente entre o modo claro e escuro.
   const appearanceStyle = {
-    ['--app-accent' as string]: accentMap[accentColor],
+    ['--app-accent' as string]: accent.base,
+    ['--app-accent-strong' as string]: accent.strong,
+    ['--app-accent-soft' as string]: accent.soft,
+    ['--app-accent-border' as string]: accent.border,
     ['--app-surface' as string]: theme === 'light' ? '#ffffff' : '#0f172a',
     ['--app-surface-muted' as string]: theme === 'light' ? '#f1f5f9' : '#111827',
     ['--app-border' as string]: theme === 'light' ? '#cbd5e1' : '#334155',

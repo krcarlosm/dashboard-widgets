@@ -156,8 +156,8 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           onClick={() => { setIsAdding(!isAdding); }}
           title="Novo snippet"
           style={{
-            background: isAdding ? 'rgba(2, 132, 199, 0.2)' : '#0284c7',
-            border: `1px solid ${isAdding ? 'rgba(2, 132, 199, 0.4)' : '#0284c7'}`,
+            background: isAdding ? 'var(--app-accent-soft)' : 'var(--app-accent-strong)',
+            border: `1px solid ${isAdding ? 'var(--app-accent-border)' : 'var(--app-accent-strong)'}`,
             color: '#fff',
             borderRadius: '6px',
             padding: '5px 9px',
@@ -228,7 +228,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           </div>
           <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: '#94a3b8' }}>
             <span>Categoria atribuída:</span>
-            <span style={{ color: '#38bdf8', fontWeight: 600 }}>{CATEGORY_BY_LANGUAGE[newLanguage] || 'Other'}</span>
+            <span style={{ color: 'var(--app-accent)', fontWeight: 600 }}>{CATEGORY_BY_LANGUAGE[newLanguage] || 'Other'}</span>
           </div>
           <textarea
             value={newContent}
@@ -259,7 +259,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             </button>
             <button
               onClick={addSnippet}
-              style={{ background: '#0284c7', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '10px', fontWeight: 600 }}
+              style={{ background: 'var(--app-accent-strong)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '10px', fontWeight: 600 }}
             >
               Salvar
             </button>
@@ -269,9 +269,9 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
 
       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
         <div style={{ display: 'flex', gap: '4px', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155', flexWrap: 'wrap' }}>
-          <button onClick={() => setFilterMode('all')} style={{ background: filterMode === 'all' ? '#0284c7' : 'transparent', color: filterMode === 'all' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Todos</button>
-          <button onClick={() => setFilterMode('favorites')} style={{ background: filterMode === 'favorites' ? '#0284c7' : 'transparent', color: filterMode === 'favorites' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Favoritos</button>
-          <button onClick={() => setFilterMode('categories')} style={{ background: filterMode === 'categories' ? '#0284c7' : 'transparent', color: filterMode === 'categories' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Categorias</button>
+          <button onClick={() => setFilterMode('all')} style={{ background: filterMode === 'all' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'all' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Todos</button>
+          <button onClick={() => setFilterMode('favorites')} style={{ background: filterMode === 'favorites' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'favorites' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Favoritos</button>
+          <button onClick={() => setFilterMode('categories')} style={{ background: filterMode === 'categories' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'categories' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Categorias</button>
           <button onClick={() => setShowAllContents((prev) => !prev)} style={{ background: showAllContents ? '#0ea5e9' : 'transparent', border: `1px solid ${showAllContents ? '#0ea5e9' : '#334155'}`, color: showAllContents ? '#fff' : '#94a3b8', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>
             {showAllContents ? 'Mostrar títulos' : 'Mostrar conteúdos'}
           </button>

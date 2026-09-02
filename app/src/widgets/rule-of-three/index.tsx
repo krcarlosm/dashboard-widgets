@@ -104,7 +104,7 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
             value={a}
             onChange={(e) => setA(e.target.value)}
             placeholder="A"
-            style={{ ...inputStyle, borderColor: a && !isNaN(av) ? 'rgba(56, 189, 248, 0.4)' : '#334155' }}
+            style={{ ...inputStyle, borderColor: a && !isNaN(av) ? 'var(--app-accent-border)' : '#334155' }}
           />
           <div style={dividerStyle} />
           <input
@@ -112,7 +112,7 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
             value={b}
             onChange={(e) => setB(e.target.value)}
             placeholder="B"
-            style={{ ...inputStyle, borderColor: b && !isNaN(bv) ? 'rgba(56, 189, 248, 0.4)' : '#334155' }}
+            style={{ ...inputStyle, borderColor: b && !isNaN(bv) ? 'var(--app-accent-border)' : '#334155' }}
           />
           <div style={labelStyle}>B</div>
         </div>
@@ -128,7 +128,7 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
             value={c}
             onChange={(e) => setC(e.target.value)}
             placeholder="C"
-            style={{ ...inputStyle, borderColor: c && !isNaN(cv) ? 'rgba(56, 189, 248, 0.4)' : '#334155' }}
+            style={{ ...inputStyle, borderColor: c && !isNaN(cv) ? 'var(--app-accent-border)' : '#334155' }}
           />
           <div style={dividerStyle} />
           {/* X = result */}

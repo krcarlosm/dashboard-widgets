@@ -92,7 +92,7 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
 
   const columns: { id: KanbanStatus; label: string; icon: React.ReactNode; color: string; badgeBg: string }[] = [
     { id: 'todo', label: 'À Fazer', icon: <CircleDot size={12} color="#94a3b8" />, color: '#94a3b8', badgeBg: 'rgba(148, 163, 184, 0.15)' },
-    { id: 'in_progress', label: 'Em Andamento', icon: <Clock size={12} color="#38bdf8" />, color: '#38bdf8', badgeBg: 'rgba(56, 189, 248, 0.15)' },
+    { id: 'in_progress', label: 'Em Andamento', icon: <Clock size={12} color="var(--app-accent)" />, color: 'var(--app-accent)', badgeBg: 'var(--app-accent-soft)' },
     { id: 'done', label: 'Concluído', icon: <CheckCircle2 size={12} color="#34d399" />, color: '#34d399', badgeBg: 'rgba(52, 211, 153, 0.15)' },
   ];
 
@@ -156,7 +156,7 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           onClick={addItem}
           title="Adicionar Tarefa"
           style={{
-            background: '#0284c7',
+            background: 'var(--app-accent-strong)',
             border: 'none',
             color: '#ffffff',
             borderRadius: '6px',
@@ -294,8 +294,8 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                               onClick={() => setItemStatus(item.id, st)}
                               title={`Mudar para: ${statusIcons[st].title}`}
                               style={{
-                                background: item.status === st ? 'rgba(56, 189, 248, 0.25)' : 'transparent',
-                                border: `1px solid ${item.status === st ? '#38bdf8' : 'transparent'}`,
+                                background: item.status === st ? 'var(--app-accent-soft)' : 'transparent',
+                                border: `1px solid ${item.status === st ? 'var(--app-accent)' : 'transparent'}`,
                                 borderRadius: '4px',
                                 padding: '1px 3px',
                                 cursor: 'pointer',

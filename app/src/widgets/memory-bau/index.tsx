@@ -61,14 +61,14 @@ const MemoryBauWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '8px', color: '#f8fafc', fontSize: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
-          <Camera size={14} color="#38bdf8" />
+          <Camera size={14} color="var(--app-accent)" />
           <span>Baú de Lembranças</span>
         </div>
         <button
           onClick={handleCapture}
           disabled={!isAgentReady}
           style={{
-            background: isAgentReady ? '#0284c7' : 'rgba(51, 65, 85, 0.35)',
+            background: isAgentReady ? 'var(--app-accent-strong)' : 'rgba(51, 65, 85, 0.35)',
             border: 'none',
             borderRadius: '6px',
             padding: '4px 8px',
@@ -101,7 +101,7 @@ const MemoryBauWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         ) : formattedItems.map((item) => (
           <div key={item.id} style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: '8px', padding: '8px 9px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', fontWeight: 600 }}>
-              {item.kind === 'image' ? <ImageIcon size={12} color="#38bdf8" /> : <FileText size={12} color="#34d399" />}
+              {item.kind === 'image' ? <ImageIcon size={12} color="var(--app-accent)" /> : <FileText size={12} color="#34d399" />}
               <span>{item.label}</span>
             </div>
             <div style={{ fontSize: '10px', color: '#94a3b8' }}>

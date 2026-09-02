@@ -85,8 +85,8 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             key={option.id}
             onClick={() => handleModeChange(option.id)}
             style={{
-              background: mode === option.id ? '#0284c7' : 'rgba(15, 23, 42, 0.6)',
-              border: mode === option.id ? '1px solid #0284c7' : '1px solid rgba(51, 65, 85, 0.6)',
+              background: mode === option.id ? 'var(--app-accent-strong)' : 'var(--app-surface-muted)',
+              border: mode === option.id ? '1px solid var(--app-accent-strong)' : '1px solid var(--app-border)',
               color: mode === option.id ? '#ffffff' : '#94a3b8',
               borderRadius: '6px',
               padding: '4px 8px',
@@ -181,7 +181,7 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       >
         {/* Left: char count */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-          <FileText size={12} color="#38bdf8" />
+          <FileText size={12} color="var(--app-accent)" />
           <span>{content.length} caracteres</span>
         </div>
 
@@ -189,8 +189,8 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flex: 1, justifyContent: 'center' }}>
           {isSaving ? (
             <>
-              <Save size={12} color="#38bdf8" />
-              <span style={{ color: '#38bdf8' }}>Salvando...</span>
+              <Save size={12} color="var(--app-accent)" />
+              <span style={{ color: 'var(--app-accent)' }}>Salvando...</span>
             </>
           ) : (
             lastSaved && (

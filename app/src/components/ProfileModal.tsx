@@ -84,7 +84,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 width: '32px',
                 height: '32px',
                 borderRadius: '8px',
-                background: 'linear-gradient(135deg, #0284c7, #38bdf8)',
+                background: 'linear-gradient(135deg, var(--app-accent-strong), var(--app-accent))',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -129,9 +129,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 <button
                   onClick={() => setAppearance({ theme: 'dark' })}
                   style={{
-                    background: theme === 'dark' ? 'rgba(56, 189, 248, 0.16)' : 'rgba(15, 23, 42, 0.7)',
+                    background: theme === 'dark' ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
                     color: '#f8fafc',
-                    border: '1px solid rgba(56, 189, 248, 0.24)',
+                    border: '1px solid var(--app-accent-border)',
                     borderRadius: '8px',
                     padding: '6px 10px',
                     cursor: 'pointer',
@@ -146,9 +146,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 <button
                   onClick={() => setAppearance({ theme: 'light' })}
                   style={{
-                    background: theme === 'light' ? 'rgba(56, 189, 248, 0.16)' : 'rgba(15, 23, 42, 0.7)',
+                    background: theme === 'light' ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
                     color: '#f8fafc',
-                    border: '1px solid rgba(56, 189, 248, 0.24)',
+                    border: '1px solid var(--app-accent-border)',
                     borderRadius: '8px',
                     padding: '6px 10px',
                     cursor: 'pointer',
@@ -165,9 +165,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 <button
                   onClick={() => setAppearance({ density: 'comfortable' })}
                   style={{
-                    background: density === 'comfortable' ? 'rgba(56, 189, 248, 0.16)' : 'rgba(15, 23, 42, 0.7)',
+                    background: density === 'comfortable' ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
                     color: '#f8fafc',
-                    border: '1px solid rgba(56, 189, 248, 0.24)',
+                    border: '1px solid var(--app-accent-border)',
                     borderRadius: '8px',
                     padding: '6px 10px',
                     cursor: 'pointer',
@@ -179,9 +179,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 <button
                   onClick={() => setAppearance({ density: 'compact' })}
                   style={{
-                    background: density === 'compact' ? 'rgba(56, 189, 248, 0.16)' : 'rgba(15, 23, 42, 0.7)',
+                    background: density === 'compact' ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
                     color: '#f8fafc',
-                    border: '1px solid rgba(56, 189, 248, 0.24)',
+                    border: '1px solid var(--app-accent-border)',
                     borderRadius: '8px',
                     padding: '6px 10px',
                     cursor: 'pointer',
@@ -197,9 +197,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                     key={value}
                     onClick={() => setAppearance({ accentColor: value })}
                     style={{
-                      background: accentColor === value ? 'rgba(56, 189, 248, 0.16)' : 'rgba(15, 23, 42, 0.7)',
+                      background: accentColor === value ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
                       color: '#f8fafc',
-                      border: '1px solid rgba(56, 189, 248, 0.24)',
+                      border: '1px solid var(--app-accent-border)',
                       borderRadius: '8px',
                       padding: '6px 10px',
                       cursor: 'pointer',
@@ -217,7 +217,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
           <div style={{ background: 'var(--app-surface-muted)', borderRadius: '10px', padding: '14px', border: '1px solid var(--app-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9' }}>Schema v1.0</span>
-              <span style={{ fontSize: '10px', background: '#0284c7', color: '#fff', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '10px', background: 'var(--app-accent-strong)', color: '#fff', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <ShieldCheck size={10} /> Local-First
               </span>
             </div>
@@ -229,7 +229,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
           {/* Grid de Métricas */}
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px' }}>
             <div style={{ background: 'var(--app-surface-muted)', padding: '12px', borderRadius: '8px', border: '1px solid var(--app-border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#38bdf8', marginBottom: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--app-accent)', marginBottom: '4px' }}>
                 <Cpu size={14} />
                 <span style={{ fontSize: '11px', fontWeight: 600 }}>Widgets Ativos</span>
               </div>
@@ -335,7 +335,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
           <button
             onClick={onClose}
             style={{
-              background: '#0284c7',
+              background: 'var(--app-accent-strong)',
               color: '#ffffff',
               border: 'none',
               borderRadius: '6px',

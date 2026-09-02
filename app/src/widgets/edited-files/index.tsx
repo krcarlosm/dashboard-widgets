@@ -34,7 +34,7 @@ const EditedFilesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '8px', color: '#f8fafc', fontSize: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
-        <FolderOpen size={14} color="#38bdf8" />
+        <FolderOpen size={14} color="var(--app-accent)" />
         <span>Top 10 Arquivos Editados</span>
       </div>
 
@@ -59,7 +59,7 @@ const EditedFilesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 {new Date(item.modifiedAt).toLocaleString('pt-BR')}
               </div>
             </div>
-            <span style={{ fontSize: '10px', color: '#38bdf8' }}>#{index + 1}</span>
+            <span style={{ fontSize: '10px', color: 'var(--app-accent)' }}>#{index + 1}</span>
           </div>
         ))}
       </div>

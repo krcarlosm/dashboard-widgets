@@ -134,7 +134,7 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
             onClick={() => handleCategoryChange(cat)}
             style={{
               flex: 1,
-              background: category === cat ? '#0284c7' : 'transparent',
+              background: category === cat ? 'var(--app-accent-strong)' : 'transparent',
               border: 'none',
               color: category === cat ? '#fff' : '#64748b',
               borderRadius: '5px',
@@ -178,7 +178,7 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
             transition: 'all 0.2s',
           }}
           onMouseEnter={(e) => {
-            e.currentTarget.style.color = '#38bdf8';
+            e.currentTarget.style.color = 'var(--app-accent)';
             e.currentTarget.style.borderColor = 'rgba(56,189,248,0.4)';
           }}
           onMouseLeave={(e) => {
@@ -229,7 +229,7 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
           alignItems: 'center',
           justifyContent: 'center',
           background: 'rgba(15, 23, 42, 0.6)',
-          border: '1px solid rgba(56, 189, 248, 0.2)',
+          border: '1px solid var(--app-accent-border)',
           borderRadius: '10px',
           padding: '10px',
           gap: '4px',
@@ -240,7 +240,7 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
           style={{
             fontSize: '22px',
             fontWeight: 700,
-            color: '#38bdf8',
+            color: 'var(--app-accent)',
             wordBreak: 'break-all',
             textAlign: 'center',
           }}
@@ -256,9 +256,9 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
           disabled={result === '—'}
           style={{
             marginTop: '6px',
-            background: copied ? 'rgba(74, 222, 128, 0.15)' : 'rgba(56, 189, 248, 0.1)',
-            border: `1px solid ${copied ? 'rgba(74, 222, 128, 0.4)' : 'rgba(56, 189, 248, 0.3)'}`,
-            color: copied ? '#4ade80' : result !== '—' ? '#38bdf8' : '#334155',
+            background: copied ? 'rgba(74, 222, 128, 0.15)' : 'var(--app-accent-soft)',
+            border: `1px solid ${copied ? 'rgba(74, 222, 128, 0.4)' : 'var(--app-accent-border)'}`,
+            color: copied ? '#4ade80' : result !== '—' ? 'var(--app-accent)' : '#334155',
             borderRadius: '6px',
             padding: '4px 12px',
             cursor: result !== '—' ? 'pointer' : 'default',

@@ -73,7 +73,7 @@ export const Canvas: React.FC = () => {
             style={{
               background: theme === 'light' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.9)',
               color: theme === 'light' ? '#0f172a' : '#f8fafc',
-              border: '1px solid rgba(56, 189, 248, 0.4)',
+              border: '1px solid var(--app-accent-border)',
               borderRadius: '8px',
               padding: '8px 12px',
               cursor: 'pointer',
@@ -87,8 +87,8 @@ export const Canvas: React.FC = () => {
             onClick={() => mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'smooth' })}
             style={{
               background: theme === 'light' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.9)',
-              color: '#0284c7',
-              border: '1px solid rgba(56, 189, 248, 0.3)',
+              color: 'var(--app-accent-strong)',
+              border: '1px solid var(--app-accent-border)',
               borderRadius: '8px',
               padding: '8px 12px',
               cursor: 'pointer',
