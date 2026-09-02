@@ -72,7 +72,7 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
-        color: '#f8fafc',
+        color: 'var(--app-text)',
       }}
     >
       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
@@ -87,7 +87,7 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             style={{
               background: mode === option.id ? 'var(--app-accent-strong)' : 'var(--app-surface-muted)',
               border: mode === option.id ? '1px solid var(--app-accent-strong)' : '1px solid var(--app-border)',
-              color: mode === option.id ? '#ffffff' : '#94a3b8',
+              color: mode === option.id ? '#ffffff' : 'var(--app-muted)',
               borderRadius: '6px',
               padding: '4px 8px',
               cursor: 'pointer',
@@ -109,8 +109,8 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             style={{
               width: '100%',
               height: '100%',
-              background: 'rgba(15, 23, 42, 0.6)',
-              border: '1px solid rgba(51, 65, 85, 0.6)',
+              background: 'var(--app-surface-muted)',
+              border: '1px solid var(--app-border)',
               borderRadius: '8px',
               padding: '10px 12px',
               color: '#e2e8f0',
@@ -131,11 +131,11 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             style={{
               width: '100%',
               height: '100%',
-              background: 'rgba(15, 23, 42, 0.6)',
-              border: '1px solid rgba(51, 65, 85, 0.6)',
+              background: 'var(--app-surface-muted)',
+              border: '1px solid var(--app-border)',
               borderRadius: '8px',
               padding: '10px 12px',
-              color: '#f8fafc',
+              color: 'var(--app-text)',
               fontSize: '13px',
               lineHeight: '1.6',
               resize: 'none',
@@ -152,11 +152,11 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             style={{
               width: '100%',
               height: '100%',
-              background: 'rgba(15, 23, 42, 0.6)',
-              border: '1px solid rgba(51, 65, 85, 0.6)',
+              background: 'var(--app-surface-muted)',
+              border: '1px solid var(--app-border)',
               borderRadius: '8px',
               padding: '10px 12px',
-              color: '#f8fafc',
+              color: 'var(--app-text)',
               fontSize: '13px',
               lineHeight: '1.6',
               resize: 'none',

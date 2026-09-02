@@ -95,9 +95,9 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
   };
 
   const selectStyle = {
-    background: '#0f172a',
+    background: 'var(--app-input)',
     border: '1px solid #334155',
-    color: '#f8fafc',
+    color: 'var(--app-text)',
     borderRadius: '5px',
     padding: '5px 6px',
     fontSize: '11px',
@@ -112,7 +112,7 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        color: '#f8fafc',
+        color: 'var(--app-text)',
         fontSize: '12px',
         gap: '12px',
       }}
@@ -121,7 +121,7 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
       <div
         style={{
           display: 'flex',
-          background: '#0f172a',
+          background: 'var(--app-input)',
           border: '1px solid #334155',
           borderRadius: '8px',
           padding: '3px',
@@ -206,9 +206,9 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
         onChange={(e) => setInputValue(e.target.value)}
         placeholder="Digite o valor..."
         style={{
-          background: '#0f172a',
+          background: 'var(--app-input)',
           border: '1px solid #334155',
-          color: '#f8fafc',
+          color: 'var(--app-text)',
           borderRadius: '6px',
           padding: '8px 10px',
           fontSize: '14px',
@@ -228,7 +228,7 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
           flexDirection: 'column',
           alignItems: 'center',
           justifyContent: 'center',
-          background: 'rgba(15, 23, 42, 0.6)',
+          background: 'var(--app-surface-elevated)',
           border: '1px solid var(--app-accent-border)',
           borderRadius: '10px',
           padding: '10px',

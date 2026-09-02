@@ -291,7 +291,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        color: '#f8fafc',
+        color: 'var(--app-text)',
         gap: '8px',
         fontSize: '12px',
       }}
@@ -301,10 +301,10 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         style={{
           display: 'flex',
           width: '100%',
-          background: '#0f172a',
+          background: 'var(--app-input)',
           padding: '3px',
           borderRadius: '8px',
-          border: '1px solid #334155',
+          border: '1px solid var(--app-border)',
           gap: '2px',
           flexShrink: 0,
         }}
@@ -327,7 +327,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               flex: 1,
               background: mode === tab.id ? getPhaseColor() + '30' : 'transparent',
               border: `1px solid ${mode === tab.id ? getPhaseColor() + '60' : 'transparent'}`,
-              color: mode === tab.id ? '#f8fafc' : '#64748b',
+              color: mode === tab.id ? 'var(--app-text)' : 'var(--app-muted-strong)',
               borderRadius: '5px',
               padding: '5px 2px',
               cursor: isRunning ? 'not-allowed' : 'pointer',
@@ -366,10 +366,10 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             placeholder="Nome do timer..."
             style={{
               flex: 1,
-              background: '#0f172a',
-              border: '1px solid #334155',
+              background: 'var(--app-input)',
+              border: '1px solid var(--app-border)',
               borderRadius: '4px',
-              color: '#f8fafc',
+              color: 'var(--app-text)',
               fontSize: '11px',
               padding: '3px 6px',
               outline: 'none',
@@ -424,34 +424,34 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             display: 'flex',
             flexDirection: 'column',
             gap: '8px',
-            background: 'rgba(15, 23, 42, 0.8)',
+            background: 'var(--app-surface-elevated)',
             padding: '10px',
             borderRadius: '8px',
-            border: '1px solid #334155',
+            border: '1px solid var(--app-border)',
             fontSize: '11px',
           }}
         >
-          <div style={{ fontWeight: 600, color: '#f8fafc', marginBottom: '2px' }}>Tempos (min)</div>
+          <div style={{ fontWeight: 600, color: 'var(--app-text)', marginBottom: '2px' }}>Tempos (min)</div>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px' }}>
             <label>Foco:
               <input type="number" min="1" max="120" value={config.focusMinutes}
                 onChange={(e) => setConfig({ ...config, focusMinutes: parseInt(e.target.value) || 1 })}
-                style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px', padding: '3px' }} />
+                style={{ width: '100%', background: 'var(--app-input)', border: '1px solid var(--app-border)', color: 'var(--app-text)', borderRadius: '4px', padding: '3px' }} />
             </label>
             <label>Pausa Curta:
               <input type="number" min="1" max="60" value={config.shortBreakMinutes}
                 onChange={(e) => setConfig({ ...config, shortBreakMinutes: parseInt(e.target.value) || 1 })}
-                style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px', padding: '3px' }} />
+                style={{ width: '100%', background: 'var(--app-input)', border: '1px solid var(--app-border)', color: 'var(--app-text)', borderRadius: '4px', padding: '3px' }} />
             </label>
             <label>Pausa Longa:
               <input type="number" min="1" max="60" value={config.longBreakMinutes}
                 onChange={(e) => setConfig({ ...config, longBreakMinutes: parseInt(e.target.value) || 1 })}
-                style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px', padding: '3px' }} />
+                style={{ width: '100%', background: 'var(--app-input)', border: '1px solid var(--app-border)', color: 'var(--app-text)', borderRadius: '4px', padding: '3px' }} />
             </label>
             <label>Ciclos p/ Long:
               <input type="number" min="1" max="10" value={config.cyclesUntilLongBreak}
                 onChange={(e) => setConfig({ ...config, cyclesUntilLongBreak: parseInt(e.target.value) || 1 })}
-                style={{ width: '100%', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px', padding: '3px' }} />
+                style={{ width: '100%', background: 'var(--app-input)', border: '1px solid var(--app-border)', color: 'var(--app-text)', borderRadius: '4px', padding: '3px' }} />
             </label>
           </div>
           <button
@@ -472,7 +472,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 max="999"
                 value={countdownMinutes}
                 onChange={(e) => setCountdownMinutes(Math.max(0, parseInt(e.target.value) || 0))}
-                style={{ width: '48px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px', padding: '4px', textAlign: 'center', fontSize: '13px' }}
+                style={{ width: '48px', background: 'var(--app-input)', border: '1px solid var(--app-border)', color: 'var(--app-text)', borderRadius: '4px', padding: '4px', textAlign: 'center', fontSize: '13px' }}
               />
               <span style={{ color: '#64748b', fontWeight: 700 }}>:</span>
               <input
@@ -481,7 +481,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 max="59"
                 value={countdownSeconds}
                 onChange={(e) => setCountdownSeconds(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
-                style={{ width: '48px', background: '#0f172a', border: '1px solid #334155', color: '#fff', borderRadius: '4px', padding: '4px', textAlign: 'center', fontSize: '13px' }}
+                style={{ width: '48px', background: 'var(--app-input)', border: '1px solid var(--app-border)', color: 'var(--app-text)', borderRadius: '4px', padding: '4px', textAlign: 'center', fontSize: '13px' }}
               />
               <button
                 onClick={applyCountdownInput}
@@ -570,7 +570,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           {mode === 'pomodoro' && (
             <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
               <CheckCircle size={12} color="#10b981" />
-              <span>Ciclos: <strong style={{ color: '#f8fafc' }}>{completedCycles}</strong></span>
+              <span>Ciclos: <strong style={{ color: 'var(--app-text)' }}>{completedCycles}</strong></span>
             </div>
           )}
         </>

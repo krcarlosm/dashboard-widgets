@@ -104,7 +104,7 @@ export const Sidebar: React.FC = () => {
             zIndex: 100,
             width: '40px',
             height: '40px',
-            background: 'rgba(15, 23, 42, 0.95)',
+            background: 'var(--app-surface)',
             border: '1px solid var(--app-accent-border)',
             borderRadius: '10px',
             color: 'var(--app-accent)',
@@ -166,7 +166,7 @@ export const Sidebar: React.FC = () => {
                 <LayoutGrid size={16} color="#ffffff" />
               </div>
               <div style={{ minWidth: 0 }}>
-                <h1 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: '#f8fafc', whiteSpace: 'nowrap' }}>
+                <h1 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--app-text)', whiteSpace: 'nowrap' }}>
                   Dashboard
                 </h1>
                 <span style={{ fontSize: '10px', color: '#94a3b8' }}>Widgets Locais v0.3</span>
@@ -253,8 +253,8 @@ export const Sidebar: React.FC = () => {
               onClick={handleViewAll}
               style={{
                 flex: 1,
-                background: 'rgba(15, 23, 42, 0.8)',
-                color: '#f8fafc',
+                background: 'var(--app-surface)',
+                color: 'var(--app-text)',
                 border: '1px solid rgba(51, 65, 85, 0.5)',
                 borderRadius: '8px',
                 padding: '7px 10px',
@@ -313,7 +313,7 @@ export const Sidebar: React.FC = () => {
                     style={{
                       width: '40px',
                       height: '40px',
-                      background: count > 0 ? 'rgba(2, 132, 199, 0.15)' : 'rgba(30, 41, 59, 0.6)',
+                      background: count > 0 ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
                       border: `1px solid ${count > 0 ? 'rgba(2, 132, 199, 0.4)' : 'rgba(51, 65, 85, 0.5)'}`,
                       borderRadius: '8px',
                       color: status === 'in_development' ? 'var(--app-accent)' : count > 0 ? 'var(--app-accent-strong)' : '#94a3b8',
@@ -330,7 +330,7 @@ export const Sidebar: React.FC = () => {
                     }}
                     onMouseLeave={(e) => {
                       e.currentTarget.style.borderColor = count > 0 ? 'rgba(2, 132, 199, 0.4)' : 'rgba(51, 65, 85, 0.5)';
-                      e.currentTarget.style.background = count > 0 ? 'rgba(2, 132, 199, 0.15)' : 'rgba(30, 41, 59, 0.6)';
+                      e.currentTarget.style.background = count > 0 ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)';
                     }}
                       >
                     <span style={{ fontSize: '13px', fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -436,7 +436,7 @@ export const Sidebar: React.FC = () => {
               }}
             >
               {agentStatus === 'online' ? <CheckCircle2 size={13} color="#4ade80" /> : agentStatus === 'checking' ? <Bot size={13} color="var(--app-accent)" /> : <AlertCircle size={13} color="#fda4af" />}
-              <span style={{ color: '#f8fafc' }}>{agentMessage}</span>
+              <span style={{ color: 'var(--app-text)' }}>{agentMessage}</span>
             </div>
 
             {/* Active widgets counter */}
@@ -446,7 +446,7 @@ export const Sidebar: React.FC = () => {
                 padding: '7px 10px',
                 background: totalActiveWidgets > 0
                   ? 'var(--app-accent-soft)'
-                  : 'rgba(30, 41, 59, 0.3)',
+                  : 'var(--app-surface-elevated)',
                 border: `1px solid ${totalActiveWidgets > 0 ? 'var(--app-accent-border)' : 'rgba(51, 65, 85, 0.3)'}`,
                 borderRadius: '8px',
                 display: 'flex',
@@ -478,7 +478,7 @@ export const Sidebar: React.FC = () => {
                   display: 'flex',
                   alignItems: 'center',
                   gap: '6px',
-                  background: '#0f172a',
+                  background: 'var(--app-input)',
                   border: '1px solid #334155',
                   borderRadius: '6px',
                   padding: '6px 10px',
@@ -493,7 +493,7 @@ export const Sidebar: React.FC = () => {
                   style={{
                     background: 'transparent',
                     border: 'none',
-                    color: '#f8fafc',
+                    color: 'var(--app-text)',
                     fontSize: '11px',
                     outline: 'none',
                     width: '100%',
@@ -555,7 +555,7 @@ export const Sidebar: React.FC = () => {
                     <div
                       key={item.manifest.id}
                       style={{
-                        background: 'rgba(30, 41, 59, 0.5)',
+                        background: 'var(--app-surface-elevated)',
                         border: `1px solid ${count > 0 ? 'rgba(2, 132, 199, 0.3)' : 'rgba(51, 65, 85, 0.5)'}`,
                         borderRadius: '8px',
                         padding: '10px 12px',
@@ -568,7 +568,7 @@ export const Sidebar: React.FC = () => {
                     >
                       {/* Linha 1: Título do app e badges */}
                       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexWrap: 'wrap' }}>
-                        <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9' }}>
+                        <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--app-text)' }}>
                           {item.manifest.name}
                         </span>
                         {status === 'in_development' && (

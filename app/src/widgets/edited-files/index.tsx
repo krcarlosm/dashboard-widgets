@@ -32,7 +32,7 @@ const EditedFilesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   }, [context.instanceId, items]);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '8px', color: '#f8fafc', fontSize: '12px' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--app-text)', fontSize: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
         <FolderOpen size={14} color="var(--app-accent)" />
         <span>Top 10 Arquivos Editados</span>
@@ -51,7 +51,7 @@ const EditedFilesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             Aguardando indexação local do Agent.
           </div>
         ) : items.slice(0, 10).map((item, index) => (
-          <div key={`${item.path}-${index}`} style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: '8px', padding: '8px 9px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <div key={`${item.path}-${index}`} style={{ background: 'var(--app-surface-muted)', border: '1px solid var(--app-border)', borderRadius: '8px', padding: '8px 9px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <div style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.path}</div>
               <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '3px' }}>

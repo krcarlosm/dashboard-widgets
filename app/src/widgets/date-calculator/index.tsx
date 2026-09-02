@@ -50,9 +50,9 @@ const DateCalcWidget: React.FC<WidgetComponentProps> = () => {
     resultUnit === 'all' ? resultItems : resultItems.filter((i) => i.unit === resultUnit);
 
   const inputStyle: React.CSSProperties = {
-    background: '#0f172a',
-    border: '1px solid #334155',
-    color: '#f8fafc',
+    background: 'var(--app-input)',
+    border: '1px solid var(--app-border)',
+    color: 'var(--app-text)',
     borderRadius: '6px',
     padding: '7px 10px',
     fontSize: '12px',
@@ -68,7 +68,7 @@ const DateCalcWidget: React.FC<WidgetComponentProps> = () => {
         height: '80%',
         display: 'flex',
         flexDirection: 'column',
-        color: '#f8fafc',
+        color: 'var(--app-text)',
         fontSize: '12px',
         gap: '10px',
       }}
@@ -103,8 +103,8 @@ const DateCalcWidget: React.FC<WidgetComponentProps> = () => {
       <div
         style={{
           display: 'flex',
-          background: '#0f172a',
-          border: '1px solid #334155',
+          background: 'var(--app-input)',
+          border: '1px solid var(--app-border)',
           borderRadius: '7px',
           padding: '2px',
           gap: '2px',
@@ -147,7 +147,7 @@ const DateCalcWidget: React.FC<WidgetComponentProps> = () => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: 'rgba(15, 23, 42, 0.6)',
+                background: 'var(--app-surface-muted)',
                 border: '1px solid rgba(51, 65, 85, 0.5)',
                 borderRadius: '8px',
                 padding: '10px 12px',

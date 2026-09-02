@@ -194,7 +194,7 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               onDragOver={handleDragOver}
               onDrop={(e) => handleDrop(e, col.id)}
               style={{
-                background: 'rgba(15, 23, 42, 0.4)',
+                background: 'var(--app-surface-muted)',
                 border: '1px solid var(--app-border)',
                 borderRadius: '8px',
                 display: 'flex',
@@ -259,7 +259,7 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                       draggable
                       onDragStart={(e) => handleDragStart(e, item.id)}
                       style={{
-                        background: 'rgba(30, 41, 59, 0.75)',
+                        background: 'var(--app-surface-elevated)',
                         border: '1px solid var(--app-border)',
                         borderRadius: '6px',
                         padding: '6px 8px',

@@ -129,13 +129,13 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
-        color: '#f8fafc',
+        color: 'var(--app-text)',
         fontSize: '12px',
       }}
     >
       {/* Header controls */}
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: '4px', background: '#0f172a', padding: '2px', borderRadius: '6px', border: '1px solid #334155' }}>
+        <div style={{ display: 'flex', gap: '4px', background: 'var(--app-surface-muted)', padding: '2px', borderRadius: '6px', border: '1px solid var(--app-border)' }}>
           <button
             onClick={() => setViewMode('today')}
             style={{
@@ -218,11 +218,11 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           placeholder="Adicionar nova tarefa..."
           style={{
             flex: 1,
-            background: 'rgba(15, 23, 42, 0.6)',
-            border: '1px solid #334155',
+            background: 'var(--app-input)',
+            border: '1px solid var(--app-border)',
             borderRadius: '6px',
             padding: '6px 10px',
-            color: '#f8fafc',
+            color: 'var(--app-text)',
             fontSize: '12px',
             outline: 'none',
           }}
@@ -260,7 +260,7 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'space-between',
-                background: 'rgba(30, 41, 59, 0.5)',
+                background: 'var(--app-surface-elevated)',
                 border: '1px solid rgba(51, 65, 85, 0.5)',
                 borderRadius: '6px',
                 padding: '6px 10px',
@@ -307,11 +307,11 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                     }}
                     style={{
                       flex: 1,
-                      background: 'rgba(15, 23, 42, 0.6)',
-                      border: '1px solid #334155',
+                      background: 'var(--app-input)',
+                      border: '1px solid var(--app-border)',
                       borderRadius: '4px',
                       padding: '4px 6px',
-                      color: '#f8fafc',
+                      color: 'var(--app-text)',
                       fontSize: '12px',
                       outline: 'none',
                     }}
@@ -321,7 +321,7 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                     onDoubleClick={() => startEditing(item)}
                     style={{
                       textDecoration: item.done ? 'line-through' : 'none',
-                      color: item.done ? '#64748b' : '#f8fafc',
+                      color: item.done ? 'var(--app-muted-strong)' : 'var(--app-text)',
                       fontSize: '12px',
                       lineHeight: '1.4',
                       wordBreak: 'break-word',

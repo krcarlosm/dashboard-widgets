@@ -271,7 +271,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         flexDirection: 'column',
         alignItems: 'center',
         justifyContent: 'space-between',
-        color: '#f8fafc',
+        color: 'var(--app-text)',
         gap: '8px',
         fontSize: '12px',
         overflow: 'hidden',
@@ -285,7 +285,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             display: 'flex',
             gap: '3px',
             flex: 1,
-            background: '#0f172a',
+            background: 'var(--app-input)',
             padding: '3px',
             borderRadius: '8px',
             border: '1px solid #334155',
@@ -345,7 +345,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             display: 'flex',
             flexDirection: 'column',
             justifyContent: 'space-between',
-            background: 'rgba(15, 23, 42, 0.8)',
+            background: 'var(--app-surface-elevated)',
             border: '1px solid #334155',
             borderRadius: '8px',
             padding: '10px',
@@ -356,7 +356,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 600, color: '#f8fafc' }}>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 600, color: 'var(--app-text)' }}>
                 <Timer size={14} color="var(--app-accent)" />
                 <span>Temporizador Automático</span>
               </label>
@@ -402,10 +402,10 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                     onChange={(e) => handleCustomMinutesChange(e.target.value)}
                     style={{
                       width: '50px',
-                      background: '#0f172a',
+                      background: 'var(--app-input)',
                       border: '1px solid #334155',
                       borderRadius: '4px',
-                      color: '#f8fafc',
+                      color: 'var(--app-text)',
                       padding: '3px 6px',
                       fontSize: '11px',
                       textAlign: 'center',

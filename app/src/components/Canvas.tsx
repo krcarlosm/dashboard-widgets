@@ -71,8 +71,8 @@ export const Canvas: React.FC = () => {
           <button
             onClick={() => reorganizeLayouts()}
             style={{
-              background: theme === 'light' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.9)',
-              color: theme === 'light' ? '#0f172a' : '#f8fafc',
+              background: 'var(--app-surface)',
+              color: 'var(--app-text)',
               border: '1px solid var(--app-accent-border)',
               borderRadius: '8px',
               padding: '8px 12px',
@@ -86,7 +86,7 @@ export const Canvas: React.FC = () => {
           <button
             onClick={() => mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'smooth' })}
             style={{
-              background: theme === 'light' ? 'rgba(255, 255, 255, 0.9)' : 'rgba(15, 23, 42, 0.9)',
+              background: 'var(--app-surface)',
               color: 'var(--app-accent-strong)',
               border: '1px solid var(--app-accent-border)',
               borderRadius: '8px',

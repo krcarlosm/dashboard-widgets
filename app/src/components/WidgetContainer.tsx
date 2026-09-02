@@ -58,7 +58,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
     ? (isLight ? 'rgba(224, 231, 255, 0.8)' : 'rgba(49, 46, 129, 0.4)')
     : (colorPreset !== 'default' ? colorTheme.bg : (isLight ? 'rgba(241, 245, 249, 0.95)' : 'rgba(30, 41, 59, 0.6)'));
 
-  const titleTextColor = isLight ? '#0f172a' : '#f1f5f9';
+  const titleTextColor = 'var(--app-text-strong)';
   const canRename = widgetDef.manifest.id === 'todo';
   const customTitle = typeof config.customTitle === 'string' ? config.customTitle.trim() : '';
   const displayTitle = canRename && customTitle ? customTitle : widgetDef.manifest.name;
@@ -147,7 +147,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
         overflow: 'hidden',
         boxSizing: 'border-box',
         position: 'relative',
-        color: isLight ? '#0f172a' : '#f8fafc',
+        color: 'var(--app-text)',
       }}
     >
       {/* Titlebar / Drag Handle */}
@@ -274,8 +274,8 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
                 top: '26px',
                 right: '0',
                 zIndex: 999,
-                background: '#0f172a',
-                border: '1px solid #334155',
+                background: 'var(--app-input)',
+                border: '1px solid var(--app-border)',
                 borderRadius: '8px',
                 padding: '8px',
                 boxShadow: '0 10px 25px rgba(0,0,0,0.6)',

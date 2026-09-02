@@ -58,7 +58,7 @@ const MemoryBauWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const formattedItems = useMemo(() => items.slice(0, 8), [items]);
 
   return (
-    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '8px', color: '#f8fafc', fontSize: '12px' }}>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--app-text)', fontSize: '12px' }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
           <Camera size={14} color="var(--app-accent)" />
@@ -99,7 +99,7 @@ const MemoryBauWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             Ainda não há registros. Copie texto ou imagem e o Baú vai aparecer aqui.
           </div>
         ) : formattedItems.map((item) => (
-          <div key={item.id} style={{ background: 'rgba(15, 23, 42, 0.7)', border: '1px solid rgba(51, 65, 85, 0.5)', borderRadius: '8px', padding: '8px 9px' }}>
+          <div key={item.id} style={{ background: 'var(--app-surface-muted)', border: '1px solid var(--app-border)', borderRadius: '8px', padding: '8px 9px' }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '4px', fontWeight: 600 }}>
               {item.kind === 'image' ? <ImageIcon size={12} color="var(--app-accent)" /> : <FileText size={12} color="#34d399" />}
               <span>{item.label}</span>

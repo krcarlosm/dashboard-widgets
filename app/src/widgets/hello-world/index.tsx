@@ -58,7 +58,7 @@ const HelloWorldWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         </div>
       </div>
 
-      <div style={{ background: '#1e293b', padding: '8px 12px', borderRadius: '6px' }}>
+      <div style={{ background: 'var(--app-surface-elevated)', padding: '8px 12px', borderRadius: '6px' }}>
         <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>Dimensões Atuais (px):</div>
         <code style={{ color: 'var(--app-accent)', fontWeight: 'bold' }}>
           {context.dimensions.width}px × {context.dimensions.height}px
@@ -95,11 +95,11 @@ const HelloWorldWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           onChange={handleNoteChange}
           placeholder="Digite algo para salvar..."
           style={{
-            background: '#0f172a',
+            background: 'var(--app-input)',
             border: '1px solid #334155',
             borderRadius: '4px',
             padding: '6px 8px',
-            color: '#f8fafc',
+            color: 'var(--app-text)',
             fontSize: '12px',
             outline: 'none',
           }}

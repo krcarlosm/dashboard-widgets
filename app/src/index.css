@@ -16,6 +16,12 @@ body {
   user-select: none;
 }
 
+input,
+textarea,
+select {
+  color-scheme: inherit;
+}
+
 /* Barras de rolagem customizadas. Ajuste cores e largura aqui. */
 ::-webkit-scrollbar {
   width: 6px;

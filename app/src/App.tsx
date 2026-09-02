@@ -39,9 +39,13 @@ export const App: React.FC = () => {
     ['--app-accent-border' as string]: accent.border,
     ['--app-surface' as string]: theme === 'light' ? '#ffffff' : '#0f172a',
     ['--app-surface-muted' as string]: theme === 'light' ? '#f1f5f9' : '#111827',
+    ['--app-surface-elevated' as string]: theme === 'light' ? '#f8fafc' : '#1e293b',
+    ['--app-input' as string]: theme === 'light' ? '#ffffff' : '#0f172a',
     ['--app-border' as string]: theme === 'light' ? '#cbd5e1' : '#334155',
     ['--app-text' as string]: theme === 'light' ? '#0f172a' : '#f8fafc',
+    ['--app-text-strong' as string]: theme === 'light' ? '#1e293b' : '#f8fafc',
     ['--app-muted' as string]: theme === 'light' ? '#475569' : '#94a3b8',
+    ['--app-muted-strong' as string]: theme === 'light' ? '#64748b' : '#94a3b8',
   } as React.CSSProperties;
 
   useEffect(() => {
@@ -78,6 +82,7 @@ export const App: React.FC = () => {
         overflow: 'hidden',
         background: theme === 'light' ? '#f8fafc' : 'radial-gradient(circle at top, #1e293b 0%, #0f172a 100%)',
         color: 'var(--app-text)',
+        colorScheme: theme,
         ...appearanceStyle,
       }}
     >

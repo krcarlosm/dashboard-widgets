@@ -58,12 +58,12 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
       <div
         style={{
           width: '460px',
-          background: '#1e293b',
+          background: 'var(--app-surface)',
           border: '1px solid #334155',
           borderRadius: '16px',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
           overflow: 'hidden',
-          color: '#f8fafc',
+          color: 'var(--app-text)',
         }}
         onClick={(e) => e.stopPropagation()}
       >
@@ -71,11 +71,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
         <div
           style={{
             padding: '16px 20px',
-            borderBottom: '1px solid #334155',
+            borderBottom: '1px solid var(--app-border)',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'space-between',
-            background: 'rgba(30, 41, 59, 0.8)',
+            background: 'var(--app-surface-elevated)',
           }}
         >
           <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
@@ -130,7 +130,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                   onClick={() => setAppearance({ theme: 'dark' })}
                   style={{
                     background: theme === 'dark' ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
-                    color: '#f8fafc',
+                    color: 'var(--app-text)',
                     border: '1px solid var(--app-accent-border)',
                     borderRadius: '8px',
                     padding: '6px 10px',
@@ -147,7 +147,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                   onClick={() => setAppearance({ theme: 'light' })}
                   style={{
                     background: theme === 'light' ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
-                    color: '#f8fafc',
+                    color: 'var(--app-text)',
                     border: '1px solid var(--app-accent-border)',
                     borderRadius: '8px',
                     padding: '6px 10px',
@@ -166,7 +166,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                   onClick={() => setAppearance({ density: 'comfortable' })}
                   style={{
                     background: density === 'comfortable' ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
-                    color: '#f8fafc',
+                    color: 'var(--app-text)',
                     border: '1px solid var(--app-accent-border)',
                     borderRadius: '8px',
                     padding: '6px 10px',
@@ -180,7 +180,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                   onClick={() => setAppearance({ density: 'compact' })}
                   style={{
                     background: density === 'compact' ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
-                    color: '#f8fafc',
+                    color: 'var(--app-text)',
                     border: '1px solid var(--app-accent-border)',
                     borderRadius: '8px',
                     padding: '6px 10px',
@@ -198,7 +198,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                     onClick={() => setAppearance({ accentColor: value })}
                     style={{
                       background: accentColor === value ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
-                      color: '#f8fafc',
+                      color: 'var(--app-text)',
                       border: '1px solid var(--app-accent-border)',
                       borderRadius: '8px',
                       padding: '6px 10px',
@@ -216,7 +216,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
           {/* Card: Perfil Info */}
           <div style={{ background: 'var(--app-surface-muted)', borderRadius: '10px', padding: '14px', border: '1px solid var(--app-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <span style={{ fontSize: '12px', fontWeight: 600, color: '#f1f5f9' }}>Schema v1.0</span>
+              <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--app-text)' }}>Schema v1.0</span>
               <span style={{ fontSize: '10px', background: 'var(--app-accent-strong)', color: '#fff', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <ShieldCheck size={10} /> Local-First
               </span>
@@ -233,17 +233,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 <Cpu size={14} />
                 <span style={{ fontSize: '11px', fontWeight: 600 }}>Widgets Ativos</span>
               </div>
-              <span style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc' }}>
+              <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--app-text)' }}>
                 {activeInstances.length} <span style={{ fontSize: '12px', fontWeight: 400, color: '#64748b' }}>/ {registeredWidgets.size} disponíveis</span>
               </span>
             </div>
 
-            <div style={{ background: '#0f172a', padding: '12px', borderRadius: '8px', border: '1px solid #334155' }}>
+            <div style={{ background: 'var(--app-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--app-border)' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80', marginBottom: '4px' }}>
                 <HardDrive size={14} />
                 <span style={{ fontSize: '11px', fontWeight: 600 }}>Uso do Dexie IDB</span>
               </div>
-              <span style={{ fontSize: '18px', fontWeight: 700, color: '#f8fafc' }}>
+              <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--app-text)' }}>
                 {estimatedSizeKb} KB <span style={{ fontSize: '12px', fontWeight: 400, color: '#64748b' }}>({storageCount} registros)</span>
               </span>
             </div>
@@ -285,7 +285,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 disabled
                 style={{
                   flex: 1,
-                  background: '#334155',
+                  background: 'var(--app-surface-elevated)',
                   color: '#94a3b8',
                   border: 'none',
                   borderRadius: '6px',
@@ -308,7 +308,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 disabled
                 style={{
                   flex: 1,
-                  background: '#334155',
+                  background: 'var(--app-surface-elevated)',
                   color: '#94a3b8',
                   border: 'none',
                   borderRadius: '6px',

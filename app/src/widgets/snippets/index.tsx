@@ -118,7 +118,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         display: 'flex',
         flexDirection: 'column',
         gap: '8px',
-        color: '#f8fafc',
+        color: 'var(--app-text)',
         fontSize: '12px',
       }}
     >
@@ -130,8 +130,8 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             display: 'flex',
             alignItems: 'center',
             gap: '5px',
-            background: '#0f172a',
-            border: '1px solid #334155',
+            background: 'var(--app-input)',
+            border: '1px solid var(--app-border)',
             borderRadius: '6px',
             padding: '5px 8px',
           }}
@@ -145,7 +145,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#f8fafc',
+              color: 'var(--app-text)',
               fontSize: '11px',
               outline: 'none',
               width: '80%',
@@ -179,8 +179,8 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       {isAdding && (
         <div
           style={{
-            background: 'rgba(15, 23, 42, 0.8)',
-            border: '1px solid #334155',
+            background: 'var(--app-surface-elevated)',
+            border: '1px solid var(--app-border)',
             borderRadius: '8px',
             padding: '10px',
             display: 'flex',
@@ -196,9 +196,9 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               placeholder="Título do snippet..."
               style={{
                 flex: 1,
-                background: '#0f172a',
-                border: '1px solid #334155',
-                color: '#f8fafc',
+                background: 'var(--app-input)',
+                border: '1px solid var(--app-border)',
+                color: 'var(--app-text)',
                 borderRadius: '4px',
                 padding: '5px 8px',
                 fontSize: '11px',
@@ -209,8 +209,8 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               value={newLanguage}
               onChange={(e) => setNewLanguage(e.target.value)}
               style={{
-                background: '#0f172a',
-                border: '1px solid #334155',
+                background: 'var(--app-input)',
+                border: '1px solid var(--app-border)',
                 color: langColor[newLanguage] || '#94a3b8',
                 borderRadius: '4px',
                 padding: '4px 6px',
@@ -220,7 +220,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               }}
             >
               {LANGUAGES.map((l) => (
-                <option key={l} value={l} style={{ color: '#f8fafc' }}>
+                <option key={l} value={l} style={{ color: 'var(--app-text)' }}>
                   {l}
                 </option>
               ))}
@@ -236,9 +236,9 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             placeholder="Cole seu código ou comando aqui..."
             rows={4}
             style={{
-              background: '#0f172a',
-              border: '1px solid #334155',
-              color: '#f8fafc',
+              background: 'var(--app-input)',
+              border: '1px solid var(--app-border)',
+              color: 'var(--app-text)',
               borderRadius: '4px',
               padding: '6px 8px',
               fontSize: '11px',
@@ -268,7 +268,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       )}
 
       <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: '4px', background: '#0f172a', borderRadius: '6px', padding: '2px', border: '1px solid #334155', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', gap: '4px', background: 'var(--app-surface-muted)', borderRadius: '6px', padding: '2px', border: '1px solid var(--app-border)', flexWrap: 'wrap' }}>
           <button onClick={() => setFilterMode('all')} style={{ background: filterMode === 'all' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'all' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Todos</button>
           <button onClick={() => setFilterMode('favorites')} style={{ background: filterMode === 'favorites' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'favorites' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Favoritos</button>
           <button onClick={() => setFilterMode('categories')} style={{ background: filterMode === 'categories' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'categories' ? '#fff' : '#94a3b8', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Categorias</button>
@@ -277,7 +277,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           </button>
         </div>
         {filterMode === 'categories' && (
-          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={{ background: '#0f172a', border: '1px solid #334155', color: '#f8fafc', borderRadius: '4px', padding: '3px 6px', fontSize: '10px', outline: 'none' }}>
+          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={{ background: 'var(--app-input)', border: '1px solid var(--app-border)', color: 'var(--app-text)', borderRadius: '4px', padding: '3px 6px', fontSize: '10px', outline: 'none' }}>
             <option value="all">Todas</option>
             {categories.map((category) => (
               <option key={category} value={category}>{category}</option>
@@ -307,8 +307,8 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               <div
                 key={snippet.id}
                 style={{
-                  background: 'rgba(30, 41, 59, 0.6)',
-                  border: '1px solid rgba(51, 65, 85, 0.5)',
+                  background: 'var(--app-surface-elevated)',
+                  border: '1px solid var(--app-border)',
                   borderRadius: '8px',
                   overflow: 'hidden',
                   flexShrink: 0,
@@ -322,7 +322,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                     justifyContent: 'space-between',
                     padding: '6px 10px',
                     borderBottom: '1px solid rgba(51, 65, 85, 0.3)',
-                    background: 'rgba(15, 23, 42, 0.4)',
+                    background: 'var(--app-surface-muted)',
                     gap: '6px',
                   }}
                 >
@@ -349,7 +349,7 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                       style={{
                         fontSize: '11px',
                         fontWeight: 600,
-                        color: '#f1f5f9',
+                        color: 'var(--app-text)',
                         overflow: 'hidden',
                         textOverflow: 'ellipsis',
                         whiteSpace: 'nowrap',

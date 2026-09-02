@@ -40,9 +40,9 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
   };
 
   const inputStyle: React.CSSProperties = {
-    background: '#0f172a',
-    border: '1px solid #334155',
-    color: '#f8fafc',
+    background: 'var(--app-input)',
+    border: '1px solid var(--app-border)',
+    color: 'var(--app-text)',
     borderRadius: '6px',
     padding: '8px 10px',
     fontSize: '16px',
@@ -81,7 +81,7 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
-        color: '#f8fafc',
+        color: 'var(--app-text)',
         fontSize: '12px',
         gap: '10px',
         alignItems: 'center',
@@ -89,9 +89,9 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
       }}
     >
       <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'center' }}>
-        Se <strong style={{ color: '#f8fafc' }}>A</strong> corresponde a <strong style={{ color: '#f8fafc' }}>B</strong>,
+        Se <strong style={{ color: 'var(--app-text)' }}>A</strong> corresponde a <strong style={{ color: 'var(--app-text)' }}>B</strong>,
         <br />
-        então <strong style={{ color: '#f8fafc' }}>C</strong> corresponde a <strong style={{ color: '#a78bfa' }}>X</strong>
+        então <strong style={{ color: 'var(--app-text)' }}>C</strong> corresponde a <strong style={{ color: 'var(--app-accent)' }}>X</strong>
       </div>
 
       {/* A/B = C/X layout */}
@@ -135,9 +135,9 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
           <div
             style={{
               ...inputStyle,
-              background: result !== null ? 'rgba(167, 139, 250, 0.1)' : '#0f172a',
-              border: `1px solid ${result !== null ? 'rgba(167, 139, 250, 0.4)' : '#334155'}`,
-              color: result !== null ? '#a78bfa' : '#475569',
+              background: result !== null ? 'var(--app-accent-soft)' : 'var(--app-input)',
+              border: `1px solid ${result !== null ? 'var(--app-accent-border)' : 'var(--app-border)'}`,
+              color: result !== null ? 'var(--app-accent)' : 'var(--app-muted)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -151,7 +151,7 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
           >
             {displayResult}
           </div>
-          <div style={{ ...labelStyle, color: '#a78bfa' }}>X</div>
+          <div style={{ ...labelStyle, color: 'var(--app-accent)' }}>X</div>
         </div>
       </div>
 
