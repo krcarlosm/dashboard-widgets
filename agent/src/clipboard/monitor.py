@@ -12,7 +12,17 @@ class ClipboardMonitor:
         self.storage_dir = storage_dir
         self.broadcast_fn = broadcast_fn
         self._running = False
+        self._paused = False
         self._task: Optional[asyncio.Task] = None
+
+    def pause(self) -> None:
+        self._paused = True
+
+    def resume(self) -> None:
+        self._paused = False
+
+    def is_paused(self) -> bool:
+        return self._paused
 
     async def start(self) -> None:
         if self._running:
@@ -35,21 +45,30 @@ class ClipboardMonitor:
         reader = get_reader()
         last_hash: Optional[str] = None
         while self._running:
-            content = reader.read()
-            if content:
-                content_hash = self._hash_content(content)
-                if content_hash != last_hash:
-                    last_hash = content_hash
-                    saved_path = self._save_content(content)
-                    if saved_path is not None:
-                        await self.broadcast_fn({
-                            "type": "clipboard:event",
-                            "payload": {
-                                "kind": content.kind,
-                                "path": str(saved_path),
-                                "timestamp": int(time.time()),
-                            },
-                        })
+            if self._paused:
+                await asyncio.sleep(0.8)
+                continue
+
+            try:
+                content = reader.read()
+                if content:
+                    content_hash = self._hash_content(content)
+                    if content_hash != last_hash:
+                        last_hash = content_hash
+                        saved_path = self._save_content(content)
+                        if saved_path is not None:
+                            await self.broadcast_fn({
+                                "type": "clipboard:event",
+                                "payload": {
+                                    "kind": content.kind,
+                                    "path": str(saved_path),
+                                    "timestamp": int(time.time()),
+                                },
+                            })
+            except Exception as exc:
+                # Logar exceções do leitor sem derrubar a execução do monitor
+                pass
+
             await asyncio.sleep(0.8)
 
     def _hash_content(self, content: ClipboardContent) -> str:

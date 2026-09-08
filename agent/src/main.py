@@ -150,6 +150,23 @@ async def websocket_endpoint(websocket: WebSocket):
                             ).model_dump_json()
                         )
 
+                elif msg.type == "clipboard:pause":
+                    clipboard_monitor.pause()
+                    await websocket.send_text(
+                        AgentMessage(type="clipboard:status", payload={"paused": True}).model_dump_json()
+                    )
+
+                elif msg.type == "clipboard:resume":
+                    clipboard_monitor.resume()
+                    await websocket.send_text(
+                        AgentMessage(type="clipboard:status", payload={"paused": False}).model_dump_json()
+                    )
+
+                elif msg.type == "clipboard:status":
+                    await websocket.send_text(
+                        AgentMessage(type="clipboard:status", payload={"paused": clipboard_monitor.is_paused()}).model_dump_json()
+                    )
+
                 elif msg.type == "watcher:configure":
                     payload = msg.payload or {}
                     folders = payload.get("folders", []) if isinstance(payload, dict) else []

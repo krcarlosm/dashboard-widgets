@@ -219,6 +219,14 @@ export class LocalAgentClient implements AgentClientProtocol {
     return () => this.statusListeners.delete(listener);
   }
 
+  public pauseClipboard(): void {
+    this.send({ type: 'clipboard:pause' });
+  }
+
+  public resumeClipboard(): void {
+    this.send({ type: 'clipboard:resume' });
+  }
+
   private notifyStatus(connected: boolean): void {
     this.statusListeners.forEach((fn) => fn(connected));
   }

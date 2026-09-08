@@ -46,6 +46,25 @@ class WindowsClipboardReader(ClipboardReader):
 
 class LinuxClipboardReader(ClipboardReader):
     def read(self) -> Optional[ClipboardContent]:
+        import subprocess
+        # Tentativa 1: Wayland (wl-paste)
+        try:
+            res = subprocess.run(["wl-paste", "--type", "text/plain"], capture_output=True, timeout=1)
+            if res.returncode == 0 and res.stdout:
+                text = res.stdout.decode("utf-8", errors="replace")
+                return ClipboardContent(kind="text", data=res.stdout, text=text)
+        except Exception:
+            pass
+
+        # Tentativa 2: X11 (xclip)
+        try:
+            res = subprocess.run(["xclip", "-selection", "clipboard", "-o"], capture_output=True, timeout=1)
+            if res.returncode == 0 and res.stdout:
+                text = res.stdout.decode("utf-8", errors="replace")
+                return ClipboardContent(kind="text", data=res.stdout, text=text)
+        except Exception:
+            pass
+
         return None
 
 
