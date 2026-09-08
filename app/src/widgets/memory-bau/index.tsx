@@ -16,7 +16,10 @@ const MemoryBauWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [isCapturing, setIsCapturing] = useState(false);
 
   useEffect(() => {
-    const unsubscribe = context.agentClient.subscribe('handshake:ack', () => setIsAgentReady(true));
+    const unsubscribeStatus = context.agentClient.onStatusChange((connected) => {
+      setIsAgentReady(connected);
+    });
+    
     const unsubscribeClipboard = context.agentClient.subscribe('clipboard:event', (payload) => {
       const nextItem: BauItem = {
         id: `${payload.kind}-${payload.timestamp || Date.now()}`,
@@ -27,9 +30,23 @@ const MemoryBauWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       };
       setItems((current) => [nextItem, ...current].slice(0, 12));
     });
+
+    const unsubscribeScreenshot = context.agentClient.subscribe('screenshot:result', (payload) => {
+      const nextItem: BauItem = {
+        id: `screenshot-${payload.timestamp || Date.now()}`,
+        kind: 'image',
+        path: payload.path,
+        timestamp: payload.timestamp || Date.now(),
+        label: 'Captura de tela',
+      };
+      setItems((current) => [nextItem, ...current].slice(0, 12));
+      setIsCapturing(false);
+    });
+
     return () => {
-      unsubscribe();
+      unsubscribeStatus();
       unsubscribeClipboard();
+      unsubscribeScreenshot();
     };
   }, [context.agentClient]);
 
@@ -52,7 +69,8 @@ const MemoryBauWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     if (!isAgentReady) return;
     setIsCapturing(true);
     context.agentClient.send({ type: 'screenshot:request', payload: {} });
-    setTimeout(() => setIsCapturing(false), 1200);
+    // Remove fixed timeout, rely on event
+    setTimeout(() => setIsCapturing(false), 5000); // 5s timeout fallback
   };
 
   const formattedItems = useMemo(() => items.slice(0, 8), [items]);
