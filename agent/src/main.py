@@ -5,7 +5,7 @@ import os
 import secrets
 from contextlib import asynccontextmanager
 from pathlib import Path
-from fastapi import FastAPI, WebSocket, WebSocketDisconnect
+from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from src.auth import LocalAuth
@@ -53,11 +53,22 @@ async def lifespan(app: FastAPI):
     logger.info("Agent encerrado")
 
 
+DEFAULT_ALLOWED_ORIGINS = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000",
+    "http://localhost:5137",
+    "http://127.0.0.1:5137",
+]
+env_origins = os.environ.get("ALLOWED_ORIGINS", "")
+ALLOWED_ORIGINS = [o.strip() for o in env_origins.split(",") if o.strip()] if env_origins else DEFAULT_ALLOWED_ORIGINS
+
 app = FastAPI(title="Dashboard Local Agent", version="0.1.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
+    allow_origins=ALLOWED_ORIGINS,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -72,9 +83,16 @@ async def root():
         "status": "ok",
         "service": "Dashboard Local Agent",
         "version": "0.1.0",
-        "token": TOKEN,
         "agentHome": str(AGENT_HOME),
     }
+
+
+@app.get("/auth/token")
+async def get_auth_token(request: Request):
+    origin = request.headers.get("origin")
+    if origin and origin not in ALLOWED_ORIGINS:
+        raise HTTPException(status_code=403, detail="Origem não autorizada")
+    return {"token": TOKEN}
 
 
 @app.websocket("/ws")

@@ -107,7 +107,7 @@ export class LocalAgentClient implements AgentClientProtocol {
     }
 
     try {
-      const response = await fetch(DEFAULT_AGENT_HTTP_URL, { headers: { Accept: 'application/json' } });
+      const response = await fetch(`${DEFAULT_AGENT_HTTP_URL}/auth/token`, { headers: { Accept: 'application/json' } });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }

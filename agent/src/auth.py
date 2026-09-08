@@ -15,6 +15,10 @@ class LocalAuth:
 
         token = secrets.token_hex(16)
         self.token_file.write_text(token, encoding="utf-8")
+        try:
+            os.chmod(self.token_file, 0o600)
+        except Exception:
+            pass
         return token
 
     def validate_token(self, token: str | None) -> bool:
