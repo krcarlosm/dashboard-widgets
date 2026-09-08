@@ -26,20 +26,31 @@ class WindowsClipboardReader(ClipboardReader):
         except Exception:
             return None
 
+        # Try Text first via win32clipboard
         try:
             win32clipboard.OpenClipboard()
             try:
                 if win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_UNICODETEXT):
                     data = win32clipboard.GetClipboardData(win32clipboard.CF_UNICODETEXT)
                     return ClipboardContent(kind="text", data=data.encode("utf-8"), text=data, hash_value=None)
-
-                if win32clipboard.IsClipboardFormatAvailable(win32clipboard.CF_DIB):
-                    data = win32clipboard.GetClipboardData(win32clipboard.CF_DIB)
-                    return ClipboardContent(kind="image", data=data, hash_value=None)
             finally:
                 win32clipboard.CloseClipboard()
         except Exception:
-            return None
+            pass
+            
+        # Try Image via Pillow
+        try:
+            from PIL import ImageGrab
+            import io
+            img = ImageGrab.grabclipboard()
+            if img is not None:
+                # If it's a list (e.g. copied files), we ignore for now, we want a single image
+                if not isinstance(img, list):
+                    buf = io.BytesIO()
+                    img.save(buf, format='PNG')
+                    return ClipboardContent(kind="image", data=buf.getvalue(), hash_value=None)
+        except Exception:
+            pass
 
         return None
 
