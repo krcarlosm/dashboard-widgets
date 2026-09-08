@@ -124,18 +124,25 @@ export class LocalAgentClient implements AgentClientProtocol {
     }
   }
 
+  private reconnectAttempts = 0;
+
   private scheduleReconnect(): void {
     if (this.reconnectTimer) return;
+    const delay = Math.min(30000, 1000 * Math.pow(1.5, this.reconnectAttempts));
+    this.reconnectAttempts++;
     this.reconnectTimer = setTimeout(() => {
       this.reconnectTimer = null;
       this.connect();
-    }, 3000);
+    }, delay);
   }
 
   private handleMessage(message: AgentMessage): void {
     if (message.type === 'handshake:ack') {
+      this.reconnectAttempts = 0;
       this.setConnected(true);
     } else if (message.type === 'handshake:rejected') {
+      this.token = null;
+      window.localStorage.removeItem(AGENT_TOKEN_KEY);
       this.setConnected(false);
     }
 
