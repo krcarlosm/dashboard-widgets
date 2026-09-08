@@ -3,7 +3,9 @@ import { AgentClientProtocol, AgentMessage } from './types';
 type EventCallback = (payload: any) => void;
 
 const AGENT_TOKEN_KEY = 'dashboard-agent-token';
-const DEFAULT_AGENT_URL = 'ws://127.0.0.1:8765/ws';
+const DEFAULT_AGENT_PORT = 5137;
+const DEFAULT_AGENT_WS_URL = (import.meta.env.VITE_AGENT_WS_URL as string) || `ws://127.0.0.1:${DEFAULT_AGENT_PORT}/ws`;
+const DEFAULT_AGENT_HTTP_URL = (import.meta.env.VITE_AGENT_HTTP_URL as string) || `http://127.0.0.1:${DEFAULT_AGENT_PORT}`;
 
 export class LocalAgentClient implements AgentClientProtocol {
   private ws: WebSocket | null = null;
@@ -15,7 +17,7 @@ export class LocalAgentClient implements AgentClientProtocol {
   private statusListeners: Set<(connected: boolean) => void> = new Set();
   private token: string | null = null;
 
-  constructor(url: string = DEFAULT_AGENT_URL) {
+  constructor(url: string = DEFAULT_AGENT_WS_URL) {
     this.url = url;
     this.connect();
   }
@@ -105,7 +107,7 @@ export class LocalAgentClient implements AgentClientProtocol {
     }
 
     try {
-      const response = await fetch('http://127.0.0.1:8765/', { headers: { Accept: 'application/json' } });
+      const response = await fetch(DEFAULT_AGENT_HTTP_URL, { headers: { Accept: 'application/json' } });
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}`);
       }
