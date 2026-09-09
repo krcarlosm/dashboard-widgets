@@ -3,6 +3,24 @@ import { useDashboardStore } from '../store/dashboardStore';
 import { X, User, HardDrive, Cpu, Download, Upload, ShieldCheck, MoonStar, SunMedium, Sparkles, RotateCcw } from 'lucide-react';
 import { db } from '../sdk/storage';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// ProfileModal — Modal de configurações e diagnóstico do dashboard.
+//
+// Seções:
+//  • Tema & Aparência: controla theme (dark/light), density e accentColor.
+//  • Diagnóstico Local: exibe schema e informa que os dados são local-first.
+//  • Métricas: widgets ativos e uso de armazenamento (IndexedDB via Dexie).
+//  • Ações globais: Reset Global e futuramente Import/Export de perfil.
+//
+// COMO ADICIONAR UMA NOVA COR DE TEMA (accentColor):
+//   1. Adicione a nova chave no array da linha ~195 (ex: 'rose').
+//   2. Adicione o label de exibição no ternário abaixo (ex: value === 'rose' ? 'Rosa' : ...).
+//   3. Em App.tsx, adicione a mesma chave no objeto 'accentMap' com as variantes
+//      base, strong, soft e border.
+//   4. Em dashboardStore.ts (função normalizeAppearance), adicione a chave na
+//      lista de valores válidos do accentColor para que ela seja persistida.
+// ─────────────────────────────────────────────────────────────────────────────
+
 interface ProfileModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -191,8 +209,15 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                   Compacto
                 </button>
               </div>
+              {/* ── Seleção de Cor de Tema (accentColor) ──────────────────────────
+                   Para ADICIONAR uma nova cor aqui:
+                   1. Adicione sua chave neste array (ex: 'rose').
+                   2. Adicione o label no ternário de exibição abaixo.
+                   3. Registre a chave em App.tsx > accentMap.
+                   4. Registre a chave em dashboardStore.ts > normalizeAppearance.
+              ────────────────────────────────────────────────────────────────── */}
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {(['sky','violet','emerald'] as const).map((value) => (
+                {(['sky','violet','emerald', 'rose', 'amber', 'indigo'] as const).map((value) => (
                   <button
                     key={value}
                     onClick={() => setAppearance({ accentColor: value })}
@@ -206,7 +231,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                       fontSize: '12px',
                     }}
                   >
-                    {value === 'sky' ? 'Azul' : value === 'violet' ? 'Violeta' : 'Verde'}
+                    {value === 'sky' ? 'Azul' : value === 'violet' ? 'Violeta' : value === 'rose' ? 'Rosa': value === 'amber' ? 'Âmbar' : value === 'emerald' ? 'Esmeralda' : value === 'indigo' ? 'Índigo' : ''}
                   </button>
                 ))}
               </div>

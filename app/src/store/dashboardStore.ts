@@ -117,7 +117,7 @@ function normalizeAppearance(value: unknown): ProfileAppearance {
     return {
       theme: candidate.theme === 'light' ? 'light' : 'dark',
       density: candidate.density === 'compact' ? 'compact' : 'comfortable',
-      accentColor: candidate.accentColor === 'violet' || candidate.accentColor === 'emerald' ? candidate.accentColor : 'sky',
+      accentColor: candidate.accentColor === 'violet' || candidate.accentColor === 'emerald' || candidate.accentColor === 'rose' || candidate.accentColor === 'amber' || candidate.accentColor === 'indigo' ? candidate.accentColor : 'sky',
     };
   }
   return DEFAULT_APPEARANCE;

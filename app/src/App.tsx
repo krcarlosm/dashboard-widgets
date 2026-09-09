@@ -24,9 +24,41 @@ export const App: React.FC = () => {
 
   // Mapa de cores de destaque principais. Ajuste aqui para alterar o tema de acento do aplicativo.
   const accentMap = {
-    sky: { base: '#38bdf8', strong: '#0284c7', soft: 'rgba(56, 189, 248, 0.14)', border: 'rgba(56, 189, 248, 0.4)' },
-    violet: { base: '#8b5cf6', strong: '#7c3aed', soft: 'rgba(139, 92, 246, 0.14)', border: 'rgba(139, 92, 246, 0.4)' },
-    emerald: { base: '#34d399', strong: '#059669', soft: 'rgba(52, 211, 153, 0.14)', border: 'rgba(52, 211, 153, 0.4)' },
+    sky: { 
+      base: '#38bdf8', 
+      strong: '#0284c7', 
+      soft: 'rgba(56, 189, 248, 0.14)', 
+      border: 'rgba(56, 189, 248, 0.4)' },
+    violet: { 
+      base: '#8b5cf6', 
+      strong: '#7c3aed', 
+      soft: 'rgba(139, 92, 246, 0.14)', 
+      border: 'rgba(139, 92, 246, 0.4)' },
+    emerald: { 
+      base: '#34d399', 
+      strong: '#059669', 
+      soft: 'rgba(52, 211, 153, 0.14)', 
+      border: 'rgba(52, 211, 153, 0.4)' },
+
+      // Novas adições
+    rose: { 
+      base: '#fb7185', 
+      strong: '#e11d48', 
+      soft: 'rgba(251, 113, 133, 0.14)', 
+      border: 'rgba(251, 113, 133, 0.4)' 
+    },
+    amber: { 
+      base: '#fbbf24', 
+      strong: '#d97706', 
+      soft: 'rgba(251, 191, 36, 0.14)', 
+      border: 'rgba(251, 191, 36, 0.4)' 
+    },
+    indigo: { 
+      base: '#818cf8', 
+      strong: '#4f46e5', 
+      soft: 'rgba(129, 140, 248, 0.14)', 
+      border: 'rgba(129, 140, 248, 0.4)' 
+    }
   } as const;
   const accent = accentMap[accentColor];
 
