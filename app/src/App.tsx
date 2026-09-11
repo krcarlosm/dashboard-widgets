@@ -12,6 +12,7 @@ import { ruleOfThreeWidget } from './widgets/rule-of-three';
 import { memoryBauWidget } from './widgets/memory-bau';
 import { editedFilesWidget } from './widgets/edited-files';
 import { kanbanWidget } from './widgets/kanban';
+
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 
@@ -81,23 +82,20 @@ export const App: React.FC = () => {
   } as React.CSSProperties;
 
   useEffect(() => {
-    // ── Phase 1 widgets ──────────────────────────────────────────────────────
+    
     registerWidget(helloWorldWidget);
-
-    // ── Phase 2 MVP widgets ──────────────────────────────────────────────────
     registerWidget(notesWidget);
     registerWidget(pomodoroWidget);       // Now: Timer Multiferramenta (v2)
     registerWidget(todoWidget);
     registerWidget(noiseWidget);
     registerWidget(kanbanWidget);
-
-    // ── Phase 2 new widgets ──────────────────────────────────────────────────
     registerWidget(snippetsWidget);       // Item 12
     registerWidget(unitConverterWidget);  // Item 9a
     registerWidget(dateCalculatorWidget); // Item 9b
     registerWidget(ruleOfThreeWidget);    // Item 9c
-
-    // ── Phase 4 agent-dependent widgets ─────────────────────────────────────
+	
+	
+    // Agent-dependent widgets ─────────────────────────────────────
     registerWidget(memoryBauWidget);
     registerWidget(editedFilesWidget);
 

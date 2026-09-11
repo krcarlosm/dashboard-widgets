@@ -4,6 +4,23 @@ import { defaultAgentClient } from '../sdk/agentClient';
 import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu, FileText, CheckSquare, Clock3, Radio, Calculator, Code2, ArrowRightLeft, Divide, CalendarRange, Sparkles as SparklesIcon, RotateCcw, Bot, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
 
+// ─────────────────────────────────────────────────────────────────────────────
+// Sidebar — Barra lateral de navegação e adição de widgets.
+//
+// Estados possíveis (SidebarState):
+//   'expanded'  → modo completo com lista de widgets, barra de busca e footer
+//   'compact'   → modo ícone-only (botões quadrados com tooltip)
+//   'collapsed' → completamente oculta; exibe botão flutuante para reabrir
+//
+// PARÂMETROS AJUSTÁVEIS:
+//   sidebarWidth (linha ~91): largura em px de cada estado.
+//     expanded  → '260px'  | compact → '62px' | collapsed → '0px'
+//   transition (linha ~137): duração e curva da animação de colapso.
+//     Ex: 'width 0.25s ease' — mude '0.25s' para acelerar/desacelerar.
+//   iconMap: mapeamento entre ícone do manifest e o componente Lucide usado.
+//     Adicione novas entradas para novos widgets com ícones personalizados.
+// ─────────────────────────────────────────────────────────────────────────────
+
 type SidebarState = 'expanded' | 'compact' | 'collapsed';
 
 export const Sidebar: React.FC = () => {
@@ -19,10 +36,14 @@ export const Sidebar: React.FC = () => {
   const [agentStatus, setAgentStatus] = useState<'checking' | 'online' | 'offline'>('offline');
   const [agentMessage, setAgentMessage] = useState<string>('Agent ainda não verificado');
 
+  // Filtra widgets com status 'deprecated' para não exibi-los na lista
   const widgetsList = Array.from(registeredWidgets.values()).filter(
     (item) => item.manifest.status !== 'deprecated'
   );
 
+  // iconMap — mapeia o campo 'icon' do manifest.json de cada widget para um
+  // componente Lucide. Para registrar um novo ícone, adicione uma entrada aqui
+  // com a chave igual ao valor do campo 'icon' no manifest do widget.
   const iconMap: Record<string, React.ReactNode> = {
     Activity: <SparklesIcon size={16} />,
     FileText: <FileText size={16} />,
@@ -39,6 +60,7 @@ export const Sidebar: React.FC = () => {
     FolderOpen: <Bot size={16} />,
   };
 
+  // Filtra os widgets pelo termo de busca (nome ou descrição)
   const filteredWidgets = widgetsList.filter((item) => {
     const term = searchTerm.toLowerCase();
     return (
@@ -47,7 +69,8 @@ export const Sidebar: React.FC = () => {
     );
   });
 
-  // Map: widgetId -> count of active instances
+  // Mapa de contagem de instâncias ativas por widgetId
+  // Usado para exibir badges de quantidade nos botões da lista
   const instanceCountMap: Record<string, number> = {};
   for (const inst of activeInstances) {
     instanceCountMap[inst.widgetId] = (instanceCountMap[inst.widgetId] || 0) + 1;
@@ -55,6 +78,9 @@ export const Sidebar: React.FC = () => {
 
   const totalActiveWidgets = activeInstances.length;
 
+  // ── Listener de status do Agent ───────────────────────────────────────────
+  // Assina o evento de mudança de conexão do agente local (Python FastAPI).
+  // 'online' → agente respondendo | 'offline' → agente indisponível
   useEffect(() => {
     const unsubscribe = defaultAgentClient.onStatusChange((connected) => {
       setAgentStatus(connected ? 'online' : 'offline');
@@ -67,6 +93,7 @@ export const Sidebar: React.FC = () => {
     reorganizeLayouts();
   };
 
+  // Dispara evento global capturado pelo Canvas para rolar até o topo
   const handleViewAll = () => {
     window.dispatchEvent(new CustomEvent('dashboard:view-all'));
   };
@@ -79,6 +106,9 @@ export const Sidebar: React.FC = () => {
     setAgentMessage(ok ? 'Agent respondeu corretamente' : 'Agent não respondeu ao handshake');
   };
 
+  // ── Ciclo de estados da sidebar ───────────────────────────────────────────
+  // expanded → compact → collapsed → expanded → ...
+  // O botão de toggle no header avança nessa ordem circular.
   const cycleSidebar = () => {
     setSidebarState((prev) => {
       if (prev === 'expanded') return 'compact';
@@ -87,6 +117,8 @@ export const Sidebar: React.FC = () => {
     });
   };
 
+  // Largura da sidebar por estado — ajuste aqui para mudar as dimensões.
+  // A transição CSS em <aside> anima a mudança entre esses valores.
   const sidebarWidth =
     sidebarState === 'expanded' ? '260px' : sidebarState === 'compact' ? '62px' : '0px';
 
@@ -431,12 +463,47 @@ export const Sidebar: React.FC = () => {
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
+                justifyContent: 'space-between',
                 gap: '8px',
                 fontSize: '11px',
               }}
             >
-              {agentStatus === 'online' ? <CheckCircle2 size={13} color="#4ade80" /> : agentStatus === 'checking' ? <Bot size={13} color="var(--app-accent)" /> : <AlertCircle size={13} color="#fda4af" />}
-              <span style={{ color: 'var(--app-text)' }}>{agentMessage}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                {agentStatus === 'online' ? <CheckCircle2 size={13} color="#4ade80" /> : agentStatus === 'checking' ? <Bot size={13} color="var(--app-accent)" /> : <AlertCircle size={13} color="#fda4af" />}
+                <span style={{ color: 'var(--app-text)' }}>{agentMessage}</span>
+              </div>
+              
+              {agentStatus === 'online' && (
+                <button
+                  onClick={() => {
+                    // For now, toggle pause/resume without maintaining hard state
+                    const paused = agentMessage.includes('Pausado');
+                    if (paused) {
+                      defaultAgentClient.resumeClipboard();
+                      setAgentMessage('Agent respondendo corretamente');
+                    } else {
+                      defaultAgentClient.pauseClipboard();
+                      setAgentMessage('Agent Pausado');
+                    }
+                  }}
+                  title="Pausar / Retomar Agente"
+                  style={{
+                    background: 'rgba(51, 65, 85, 0.4)',
+                    border: '1px solid rgba(51, 65, 85, 0.5)',
+                    borderRadius: '4px',
+                    color: '#e2e8f0',
+                    cursor: 'pointer',
+                    padding: '2px 6px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    fontSize: '9px',
+                    fontWeight: 600,
+                  }}
+                >
+                  {agentMessage.includes('Pausado') ? 'Retomar' : 'Pausar'}
+                </button>
+              )}
             </div>
 
             {/* Active widgets counter */}

@@ -18,7 +18,8 @@ export interface ProfileWidgetInstance {
 export interface ProfileAppearance {
   theme: 'dark' | 'light';
   density: 'comfortable' | 'compact';
-  accentColor: 'sky' | 'violet' | 'emerald';
+  accentColor: 'sky' | 'violet' | 'emerald' | 'rose' | 'amber' | 'indigo';
+  canvasPreset: 'default' | 'ocean' | 'sunset' | 'midnight' | 'drakula' | 'batman' | 'superman' | 'greenlantern' | 'whiteMarble' | 'blackMarble' | 'noir' | 'azul' | 'violeta' | 'esmeralda' | 'rosa' | 'ambar' | 'indigo' | 'fearOfTheDark';
 }
 
 export interface ProfileManifest {

@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { FileText, Save, Clock, Copy, Check, Type, PenTool, BookOpen } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 
 type NotesMode = 'plain' | 'rich' | 'markdown';
 
@@ -31,7 +33,7 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     loadNotes();
   }, [context.storage]);
 
-  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+  const handleChange = (e: React.ChangeEvent<HTMLTextAreaElement> | { target: { value: string } }) => {
     const val = e.target.value;
     setContent(val);
     setIsSaving(true);
@@ -103,9 +105,10 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         ))}
       </div>
 
-      <div style={{ flex: 1, position: 'relative' }}>
+      <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {mode === 'markdown' ? (
           <div
+            onDoubleClick={() => handleModeChange('plain')}
             style={{
               width: '100%',
               height: '100%',
@@ -114,20 +117,28 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               borderRadius: '8px',
               padding: '10px 12px',
               color: '#e2e8f0',
-              fontSize: '12px',
+              fontSize: '13px',
               lineHeight: '1.6',
               overflow: 'auto',
               boxSizing: 'border-box',
-              whiteSpace: 'pre-wrap',
             }}
           >
-            {content || 'Pré-visualização Markdown aparecerá aqui.'}
+            {content ? (
+              <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+            ) : (
+              <span style={{ color: '#94a3b8', fontStyle: 'italic', fontSize: '11px' }}>Dê duplo clique para editar o texto, ou alterne para o modo "Texto" acima. Suporta marcação Markdown.</span>
+            )}
           </div>
         ) : mode === 'rich' ? (
-          <textarea
-            value={content}
-            onChange={handleChange}
-            placeholder="Use texto com marcação simples..."
+          <div
+            contentEditable
+            suppressContentEditableWarning
+            onBlur={(e) => {
+              if (e.currentTarget.innerHTML !== content) {
+                handleChange({ target: { value: e.currentTarget.innerHTML } });
+              }
+            }}
+            dangerouslySetInnerHTML={{ __html: content || '<em>Escreva em modo visual rico (cole imagens, negrito, etc)...</em>' }}
             style={{
               width: '100%',
               height: '100%',
@@ -138,10 +149,9 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               color: 'var(--app-text)',
               fontSize: '13px',
               lineHeight: '1.6',
-              resize: 'none',
+              overflow: 'auto',
               outline: 'none',
               boxSizing: 'border-box',
-              fontFamily: 'inherit',
             }}
           />
         ) : (

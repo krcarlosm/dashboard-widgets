@@ -2,6 +2,28 @@ import React, { useEffect, useState } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
 import { X, User, HardDrive, Cpu, Download, Upload, ShieldCheck, MoonStar, SunMedium, Sparkles, RotateCcw } from 'lucide-react';
 import { db } from '../sdk/storage';
+import { backgroundMap, CanvasPreset } from './themeGradients';
+
+const canvasPresetLabels: Record<CanvasPreset, string> = {
+  default: 'Padrão',
+  ocean: 'Oceano',
+  sunset: 'Pôr do sol',
+  midnight: 'Meia-noite',
+  drakula: 'Drakula',
+  batman: 'Batman',
+  superman: 'Superman',
+  greenlantern: 'Lanterna Verde',
+  whiteMarble: 'Mármore branco',
+  blackMarble: 'Mármore preto',
+  noir: 'Noir',
+  azul: 'Azul',
+  violeta: 'Violeta',
+  esmeralda: 'Esmeralda',
+  rosa: 'Rosa',
+  ambar: 'Âmbar',
+  indigo: 'Índigo',
+  fearOfTheDark: 'Fear of the dark',
+};
 
 // ─────────────────────────────────────────────────────────────────────────────
 // ProfileModal — Modal de configurações e diagnóstico do dashboard.
@@ -32,6 +54,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
   const theme = useDashboardStore((state) => state.theme);
   const density = useDashboardStore((state) => state.density);
   const accentColor = useDashboardStore((state) => state.accentColor);
+  const canvasPreset = useDashboardStore((state) => state.canvasPreset);
   const setAppearance = useDashboardStore((state) => state.setAppearance);
   const resetDashboard = useDashboardStore((state) => state.resetDashboard);
 
@@ -142,7 +165,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
               <Sparkles size={14} color="var(--app-accent)" />
               <span style={{ fontSize: '12px', fontWeight: 700, color: 'var(--app-text)' }}>Tema & Aparência</span>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
                 <button
                   onClick={() => setAppearance({ theme: 'dark' })}
@@ -209,32 +232,33 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                   Compacto
                 </button>
               </div>
-              {/* ── Seleção de Cor de Tema (accentColor) ──────────────────────────
-                   Para ADICIONAR uma nova cor aqui:
-                   1. Adicione sua chave neste array (ex: 'rose').
-                   2. Adicione o label no ternário de exibição abaixo.
-                   3. Registre a chave em App.tsx > accentMap.
-                   4. Registre a chave em dashboardStore.ts > normalizeAppearance.
-              ────────────────────────────────────────────────────────────────── */}
-              <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                {(['sky','violet','emerald', 'rose', 'amber', 'indigo'] as const).map((value) => (
-                  <button
-                    key={value}
-                    onClick={() => setAppearance({ accentColor: value })}
-                    style={{
-                      background: accentColor === value ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
-                      color: 'var(--app-text)',
-                      border: '1px solid var(--app-accent-border)',
-                      borderRadius: '8px',
-                      padding: '6px 10px',
-                      cursor: 'pointer',
-                      fontSize: '12px',
-                    }}
-                  >
-                    {value === 'sky' ? 'Azul' : value === 'violet' ? 'Violeta' : value === 'rose' ? 'Rosa': value === 'amber' ? 'Âmbar' : value === 'emerald' ? 'Esmeralda' : value === 'indigo' ? 'Índigo' : ''}
-                  </button>
-                ))}
-              </div>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '11px', color: 'var(--app-muted)' }}>
+                Tema do canvas
+                <select
+                  value={canvasPreset}
+                  onChange={(event) => setAppearance({ canvasPreset: event.target.value as CanvasPreset })}
+                  style={{ background: 'var(--app-surface-elevated)', color: 'var(--app-text)', border: '1px solid var(--app-accent-border)', borderRadius: '8px', padding: '7px 9px', fontSize: '12px' }}
+                >
+                  {(Object.keys(backgroundMap) as CanvasPreset[]).map((value) => (
+                    <option key={value} value={value}>{canvasPresetLabels[value]}</option>
+                  ))}
+                </select>
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: '5px', fontSize: '11px', color: 'var(--app-muted)' }}>
+                Cor de acento
+                <select
+                  value={accentColor}
+                  onChange={(event) => setAppearance({ accentColor: event.target.value as typeof accentColor })}
+                  style={{ background: 'var(--app-surface-elevated)', color: 'var(--app-text)', border: '1px solid var(--app-accent-border)', borderRadius: '8px', padding: '7px 9px', fontSize: '12px' }}
+                >
+                  <option value="sky">Azul</option>
+                  <option value="violet">Violeta</option>
+                  <option value="emerald">Esmeralda</option>
+                  <option value="rose">Rosa</option>
+                  <option value="amber">Âmbar</option>
+                  <option value="indigo">Índigo</option>
+                </select>
+              </label>
             </div>
           </div>
 

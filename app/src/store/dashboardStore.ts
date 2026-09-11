@@ -3,6 +3,7 @@ import { Layout } from 'react-grid-layout';
 import { WidgetDefinition } from '../sdk/types';
 import { db } from '../sdk/storage';
 import { ProfileAppearance, ProfileWidgetInstance, ProfileManifest } from '../types/profile';
+import { backgroundMap, CanvasPreset } from '../components/themeGradients';
 
 interface DashboardState {
   registeredWidgets: Map<string, WidgetDefinition>;
@@ -11,6 +12,7 @@ interface DashboardState {
   theme: ProfileAppearance['theme'];
   density: ProfileAppearance['density'];
   accentColor: ProfileAppearance['accentColor'];
+  canvasPreset: ProfileAppearance['canvasPreset'];
 
   registerWidget: (widget: WidgetDefinition) => void;
   loadProfile: () => void;
@@ -31,6 +33,7 @@ const DEFAULT_APPEARANCE: ProfileAppearance = {
   theme: 'dark',
   density: 'comfortable',
   accentColor: 'sky',
+  canvasPreset: 'batman',
 };
 
 // Grid columns constant (must match Canvas.tsx)
@@ -114,10 +117,12 @@ function reorganizeInstancesLayout(instances: ProfileWidgetInstance[]): ProfileW
 function normalizeAppearance(value: unknown): ProfileAppearance {
   if (typeof value === 'object' && value !== null) {
     const candidate = value as Partial<ProfileAppearance>;
+    const canvasPreset = candidate.canvasPreset;
     return {
       theme: candidate.theme === 'light' ? 'light' : 'dark',
       density: candidate.density === 'compact' ? 'compact' : 'comfortable',
       accentColor: candidate.accentColor === 'violet' || candidate.accentColor === 'emerald' || candidate.accentColor === 'rose' || candidate.accentColor === 'amber' || candidate.accentColor === 'indigo' ? candidate.accentColor : 'sky',
+      canvasPreset: typeof canvasPreset === 'string' && canvasPreset in backgroundMap ? canvasPreset as CanvasPreset : DEFAULT_APPEARANCE.canvasPreset,
     };
   }
   return DEFAULT_APPEARANCE;
@@ -130,6 +135,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   theme: DEFAULT_APPEARANCE.theme,
   density: DEFAULT_APPEARANCE.density,
   accentColor: DEFAULT_APPEARANCE.accentColor,
+  canvasPreset: DEFAULT_APPEARANCE.canvasPreset,
 
   registerWidget: (widget) => {
     set((state) => {
@@ -151,23 +157,24 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           theme: appearance.theme,
           density: appearance.density,
           accentColor: appearance.accentColor,
+          canvasPreset: appearance.canvasPreset,
         });
         return;
       }
     } catch (e) {
       console.error('[DashboardStore] Erro ao carregar perfil:', e);
     }
-    set({ activeInstances: [], isLoaded: true, theme: DEFAULT_APPEARANCE.theme, density: DEFAULT_APPEARANCE.density, accentColor: DEFAULT_APPEARANCE.accentColor });
+    set({ activeInstances: [], isLoaded: true, theme: DEFAULT_APPEARANCE.theme, density: DEFAULT_APPEARANCE.density, accentColor: DEFAULT_APPEARANCE.accentColor, canvasPreset: DEFAULT_APPEARANCE.canvasPreset });
   },
 
   saveProfile: () => {
-    const { activeInstances, theme, density, accentColor } = get();
+    const { activeInstances, theme, density, accentColor, canvasPreset } = get();
     const manifest: ProfileManifest = {
       schemaVersion: 1,
       name: 'Meu Dashboard',
       createdAt: new Date().toISOString(),
       updatedAt: new Date().toISOString(),
-      appearance: { theme, density, accentColor },
+      appearance: { theme, density, accentColor, canvasPreset },
       widgets: activeInstances,
     };
     try {
@@ -314,6 +321,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       theme: DEFAULT_APPEARANCE.theme,
       density: DEFAULT_APPEARANCE.density,
       accentColor: DEFAULT_APPEARANCE.accentColor,
+      canvasPreset: DEFAULT_APPEARANCE.canvasPreset,
     });
     get().saveProfile();
 
