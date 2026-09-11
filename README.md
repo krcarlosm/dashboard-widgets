@@ -5,6 +5,7 @@ O **Dashboard Modular de Widgets** é uma plataforma de produtividade pessoal de
 
 O projeto consiste em um dashboard customizável, onde o usuário pode adicionar widgets/aplicativos arrastáveis, redimensionáveis e personalizáveis. A proposta é criar um ambiente simples e útil para organização diária, com foco em execução local, privacidade e integração com um agente de apoio em Python.
 
+<img width="2000" height="1071" alt="image" src="https://github.com/user-attachments/assets/9e15cdb1-fed0-4cee-83e9-6013cfb3deff" />
 
 ---
 
@@ -12,8 +13,8 @@ O projeto consiste em um dashboard customizável, onde o usuário pode adicionar
 
 - **Canvas Modular Responsivo:** Layout flexível com persistência local via `IndexedDB` e `localStorage`.
 - **Coleção de Widgets Integrados:** Notas Rápidas, Pomodoro Multiferramenta, Lista de Tarefas, Gerador de Ruído, Snippets, Conversores de Unidades, Calculadora de Datas, Regra de Três, Memória Baú, Monitor de Arquivos Editados e muito mais.
-- **Agente Local em Python:** Comunicação bidirecional via WebSocket para recursos do sistema operacional (captura de tela, área de transferência, indexação de arquivos, monitoramento).
-- **Temas e Personalização:** Suporte a modo Claro/Escuro, densidade de grid (Confortável/Compacto) e cores de acento personalizadas por instância de widget.
+- **Agente Local em Python:** Comunicação bidirecional via WebSocket para recursos do sistema operacional (captura de tela, área de transferência, indexação de arquivos, monitoramento). O Agente Python serve apenas para os widgets (aplicativos) que dependem de recursos do sistema operacional. Caso não queira usá-los, não precisa iniciá-lo.
+- **Temas e Personalização:** Suporte a modo Claro/Escuro, densidade de grid (Confortável/Compacto) e cores de acento personalizadas por instância de widget - quando você usa múltiplas instâncias do widget `Lista de Tarefas`, por exemplo, você pode mudar a cor de cada lista, ou ainda, mudar o título da lista, para que assim você possa localizar facilmente lista de tarefas distintas.
 
 ---
 
@@ -54,6 +55,7 @@ O projeto consiste em um dashboard customizável, onde o usuário pode adicionar
 
 ### 1. Iniciar o Frontend (`/app`)
 
+Abra o diretório do projeto e abra o terminal. Execute os seguintes comandos:
 ```bash
 cd app
 npm install
@@ -63,6 +65,7 @@ Acesse a aplicação em `http://localhost:3000` (ou `http://localhost:5173`).
 
 ### 2. Iniciar o Agente Python (`/agent`)
 
+Em um novo terminal, dentro do diretório do projeto, execute:
 ```bash
 cd agent
 python -m venv .venv
@@ -77,6 +80,8 @@ pip install -r requirements.txt
 python -m src.main
 ```
 O servidor do agente estará ativo em `ws://localhost:8000/ws`.
+
+Como explicado anteriormente, o Agente Python serve apenas para que os widgets que dependam de recursos do sistema operacional, possam realizar sua função. Como por exemplo, o `Bau de Lembranças`, que atua como uma **área de transferência** (Win + V, do windows) e precisa ter acesso ao conteúdo que você copiou recentemente. O aplicativo ainda está em desenvolvimento, mas já é capaz de armazenar o conteúdo em um diretório específico `C:\Users\.dashboard-agent`
 
 ---
 
@@ -158,6 +163,32 @@ export const meuWidget: WidgetDefinition<MeuWidgetConfig> = {
    - Para registrar seu widget, importe-o em `app/src/App.tsx` e chame `registerWidget(meuWidget)`.
 
 ---
+
+## 📸 Prints do Projeto
+
+### Listas de tarefas com título personalizáveis.
+<img width="814" height="474" alt="image" src="https://github.com/user-attachments/assets/786cac30-271f-47f6-ba12-394cdaa63b94" />
+
+
+### Menu Colapsável
+Menu com barra lateral colapsável em 3 estágios:
+- Expandido
+- Compacto
+- Oculto
+
+<img width="116" height="652" alt="image" src="https://github.com/user-attachments/assets/dfaf08a7-4f20-461e-ac24-8deefe2dc923" />
+
+
+
+### Menu Perfil
+Menu de perfil, onde possibilita escolher entre:
+- Modo Claro/Escuro
+- Espaçamento Confortável/Compacto
+- Cores de acento: 6 opções
+- Portabilidade do perfil: exportar/importar (ainda em desenvolvimento)
+
+<img width="496" height="682" alt="image" src="https://github.com/user-attachments/assets/a05c70ae-d99b-4fad-a1d1-cc4ff3d335ef" />
+
 
 ## 🛠️ Licença
 
