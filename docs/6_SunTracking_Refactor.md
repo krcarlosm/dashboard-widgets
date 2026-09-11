@@ -1,330 +1,255 @@
-# 1. Atualização do `themeGradients.ts`
+# Sun Tracking: plano de implementação
 
-Vamos substituir o `0%` estático da posição do círculo por uma variável CSS chamada `var(--focal-y, 0%)`. Assim, o React pode injetar o valor dinâmico sem precisar recriar a string do gradiente a todo momento.
+> Status: nova feature em desenvolvimento. Este documento define o escopo e a sequência de implementação; ele não representa que a feature já esteja concluída.
 
-Substitua o conteúdo do `themeGradients.ts`:
+## 1. Objetivo
 
-```typescript
-export type ThemeType = 'light' | 'dark';
+Adicionar ao canvas um efeito visual de passagem do tempo. A posição vertical do foco do gradiente deverá avançar conforme o horário local do sistema, dentro de um intervalo configurável pelo usuário.
 
-export type CanvasPreset =
-  | 'default'
-  | 'ocean'
-  | 'sunset'
-  | 'midnight'
-  | 'drakula'
-  | 'batman'
-  | 'superman'
-  | 'greenlantern'
-  | 'whiteMarble'
-  | 'blackMarble'
-  | 'noir'
-  | 'azul'
-  | 'violeta'
-  | 'esmeralda'
-  | 'rosa'
-  | 'ambar'
-  | 'indigo'
-  | 'fearOfTheDark';
+A posição será calculada como uma porcentagem:
 
-export const backgroundMap: Record<CanvasPreset, Record<ThemeType, string>> = {
-  default: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #ffffff 0%, #f1f5f9 40%, #cbd5e1 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #334155 0%, #1e293b 40%, #0f172a 100%)',
-  },
-  ocean: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #f0f9ff 0%, #e0f2fe 40%, #7dd3fc 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #0284c7 0%, #0c4a6e 40%, #082f49 100%)',
-  },
-  sunset: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #fef3c7 0%, #fed7aa 40%, #f97316 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #ea580c 0%, #7c2d12 40%, #2a0800 100%)',
-  },
-  midnight: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #fdf4ff 0%, #f3e8ff 40%, #c084fc 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #7e22ce 0%, #4c1d95 40%, #170535 100%)',
-  },
-  drakula: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #ffffff 0%, #f8f8f2 40%, #d6d6c2 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #6272a4 0%, #282a36 40%, #191a21 100%)',
-  },
-  batman: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #f3f4f6 0%, #9ca3af 40%, #4b5563 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #374151 0%, #111827 40%, #000000 100%)',
-  },
-  superman: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #eff6ff 0%, #93c5fd 50%, #ef4444 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #1d4ed8 0%, #1e3a8a 40%, #7f1d1d 100%)',
-  },
-  greenlantern: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #f0fdf4 0%, #86efac 40%, #22c55e 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #16a34a 0%, #14532d 40%, #052e16 100%)',
-  },
-  whiteMarble: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #ffffff 0%, #f3f4f6 50%, #d1d5db 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #e5e7eb 0%, #9ca3af 40%, #4b5563 100%)',
-  },
-  blackMarble: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #9ca3af 0%, #4b5563 50%, #1f2937 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #4b5563 0%, #1f2937 40%, #000000 100%)',
-  },
-  noir: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #f5f5f5 0%, #d4d4d4 40%, #737373 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #525252 0%, #262626 40%, #0a0a0a 100%)',
-  },
-  azul: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #e0f2fe 0%, #38bdf8 40%, #0284c7 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #0284c7 0%, #0369a1 40%, #082f49 100%)',
-  },
-  violeta: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #ede9fe 0%, #8b5cf6 40%, #7c3aed 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #7c3aed 0%, #5b21b6 40%, #2e1065 100%)',
-  },
-  esmeralda: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #d1fae5 0%, #34d399 40%, #059669 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #059669 0%, #047857 40%, #022c22 100%)',
-  },
-  rosa: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #ffe4e6 0%, #fb7185 40%, #e11d48 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #e11d48 0%, #be123c 40%, #4c0519 100%)',
-  },
-  ambar: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #fef3c7 0%, #fbbf24 40%, #d97706 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #d97706 0%, #b45309 40%, #451a03 100%)',
-  },
-  indigo: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #e0e7ff 0%, #818cf8 40%, #4f46e5 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #4f46e5 0%, #4338ca 40%, #1e1b4b 100%)',
-  },
-  fearOfTheDark: {
-    light: 'radial-gradient(circle at 50% var(--focal-y, 0%), #f1f5f9 0%, #cbd5e1 40%, #64748b 100%)',
-    dark: 'radial-gradient(circle at 50% var(--focal-y, 0%), #334155 0%, #0f172a 40%, #020617 100%)',
-  }
-};
+- antes do início configurado: `0%`;
+- depois do fim configurado: `100%`;
+- entre os dois horários: progresso linear do intervalo transcorrido.
+
+A posição será recalculada **a cada 30 minutos**, e também imediatamente na montagem do canvas e no retorno da janela ao primeiro plano.
+
+## 2. Decisões de arquitetura
+
+### 2.1 Variável CSS para a posição focal
+
+`themeGradients.ts` deverá trocar a posição fixa `0%` por `var(--focal-y, 0%)` em todos os presets e temas.
+
+Exemplo:
+
+```ts
+'dark': 'radial-gradient(circle at 50% var(--focal-y, 0%), #334155 0%, #1e293b 40%, #0f172a 100%)'
 ```
 
----
+O `Canvas` deverá fornecer `--focal-y` no estilo do elemento `main`. O fallback `0%` garante um estado visual válido caso a variável ainda não tenha sido definida.
 
-# 2. Atualização do `Canvas.tsx`
+Não será recriada a string completa do gradiente a cada atualização. Somente o valor da propriedade CSS será alterado.
 
-Adicionaremos um estado `focalY` e um hook para calcular a progressão do tempo.
+### 2.2 Fonte dos horários
 
-```typescript
-import React, { useEffect, useRef, useState } from 'react';
-import RGL, { WidthProvider } from 'react-grid-layout';
-import 'react-grid-layout/css/styles.css';
-import 'react-resizable/css/styles.css';
-import { useDashboardStore } from '../store/dashboardStore';
-import { WidgetContainer } from './WidgetContainer';
-import { backgroundMap, CanvasPreset } from './themeGradients';
+Os horários serão preferências da aparência do perfil, e não constantes no código nem arquivo `.config` externo.
 
-const ReactGridLayout = WidthProvider(RGL);
+A escolha do menu de perfil é adequada porque:
 
-export const Canvas: React.FC = () => {
-  const activeInstances = useDashboardStore((state) => state.activeInstances);
-  const registeredWidgets = useDashboardStore((state) => state.registeredWidgets);
-  const updateLayout = useDashboardStore((state) => state.updateLayout);
-  const removeWidgetFromCanvas = useDashboardStore((state) => state.removeWidgetFromCanvas);
-  const toggleLockWidget = useDashboardStore((state) => state.toggleLockWidget);
-  const reorganizeLayouts = useDashboardStore((state) => state.reorganizeLayouts);
+- `ProfileModal.tsx` já concentra as preferências do usuário;
+- `dashboardStore.ts` já persiste a aparência no `localStorage`;
+- `ProfileManifest` já transporta as configurações de aparência;
+- a configuração permanece local, portátil e compatível com a execução atual no navegador.
 
-  const mainRef = useRef<HTMLElement>(null);
-  const theme = useDashboardStore((state) => state.theme);
-  const density = useDashboardStore((state) => state.density);
-  
-  const activePreset: CanvasPreset = 'default';
+Um arquivo `.config` não será usado nesta primeira versão. Um frontend Vite não consegue ler silenciosamente um arquivo arbitrário do disco. Essa alternativa exigiria empacotamento desktop, seletor de arquivo ou uma API adicional no agente Python.
 
-  // ── ESTADO PARA O EFEITO DE PASSAGEM DO TEMPO ──
-  const [focalY, setFocalY] = useState('0%');
+## 3. Alterações planejadas por arquivo
 
-  const rowHeight = density === 'compact' ? 60 : 80;
-  const gridMargin: [number, number] = density === 'compact' ? [6, 6] : [12, 12];
+### 3.1 `app/src/types/profile.ts`
 
-  // ── LÓGICA DE CÁLCULO DA POSIÇÃO FOCAL ──
-  useEffect(() => {
-    const calculateFocalY = () => {
-      const now = new Date();
-      const hours = now.getHours();
-      const minutes = now.getMinutes();
-      
-      const timeInMinutes = hours * 60 + minutes;
-      const startMinutes = 7 * 60;  // 07:00
-      const endMinutes = 17 * 60;   // 17:00
-      
-      // Antes das 7h, a luz está no topo (0%)
-      if (timeInMinutes <= startMinutes) return '0%';
-      // Depois das 17h, a luz está no fundo (100%)
-      if (timeInMinutes >= endMinutes) return '100%';
-      
-      // Calcula a porcentagem do dia comercial que já passou
-      const progress = ((timeInMinutes - startMinutes) / (endMinutes - startMinutes)) * 100;
-      return `${progress.toFixed(2)}%`;
-    };
+Estender `ProfileAppearance` com:
 
-    // Aplica imediatamente ao montar
-    setFocalY(calculateFocalY());
-
-    // Atualiza a cada 1 minuto (60000ms)
-    const interval = setInterval(() => {
-      setFocalY(calculateFocalY());
-    }, 60000);
-
-    return () => clearInterval(interval);
-  }, []);
-
-  useEffect(() => {
-    const handleFocusWidget = (event: Event) => {
-      const customEvent = event as CustomEvent<{ instanceId?: string }>;
-      const instanceId = customEvent.detail?.instanceId;
-      if (!instanceId) return;
-
-      requestAnimationFrame(() => {
-        const target = document.querySelector(`[data-widget-instance-id="${instanceId}"]`) as HTMLElement | null;
-        if (target) {
-          target.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'nearest' });
-        }
-      });
-    };
-
-    const handleViewAll = () => {
-      mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'smooth' });
-    };
-
-    window.addEventListener('dashboard:focus-widget', handleFocusWidget as EventListener);
-    window.addEventListener('dashboard:view-all', handleViewAll as EventListener);
-
-    return () => {
-      window.removeEventListener('dashboard:focus-widget', handleFocusWidget as EventListener);
-      window.removeEventListener('dashboard:view-all', handleViewAll as EventListener);
-    };
-  }, []);
-
-  const currentBackground = backgroundMap[activePreset]?.[theme] || backgroundMap.default[theme];
-
-  return (
-    <main
-      ref={mainRef}
-      style={{
-        flex: 1,
-        height: '100vh',
-        overflowY: 'auto',
-        padding: density === 'compact' ? '5px' : '18px',
-        boxSizing: 'border-box',
-        background: currentBackground,
-        // Injetamos a variável CSS dinâmica aqui (usando type assertion para o React aceitar custom properties)
-        '--focal-y': focalY,
-        scrollBehavior: 'smooth',
-      } as React.CSSProperties}
-    >
-      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: '12px' }}>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <button
-            onClick={() => reorganizeLayouts()}
-            style={{
-              background: 'var(--app-surface)',
-              color: 'var(--app-text)',
-              border: '1px solid var(--app-accent-border)',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: 600,
-            }}
-          >
-            Reorganizar
-          </button>
-          <button
-            onClick={() => mainRef.current?.scrollTo({ top: 0, left: 0, behavior: 'smooth' })}
-            style={{
-              background: 'var(--app-surface)',
-              color: 'var(--app-accent-strong)',
-              border: '1px solid var(--app-accent-border)',
-              borderRadius: '8px',
-              padding: '8px 12px',
-              cursor: 'pointer',
-              fontSize: '12px',
-              fontWeight: 600,
-            }}
-          >
-            Ver tudo
-          </button>
-        </div>
-      </div>
-
-      {activeInstances.length === 0 ? (
-        <div
-          style={{
-            height: 'calc(100vh - 40px)',
-            display: 'flex',
-            flexDirection: 'column',
-            alignItems: 'center',
-            justifyContent: 'center',
-            border: `2px dashed ${theme === 'light' ? '#cbd5e1' : 'rgba(51, 65, 85, 0.4)'}`,
-            borderRadius: '16px',
-            color: theme === 'light' ? '#64748b' : '#64748b',
-            gap: '8px',
-          }}
-        >
-          <span style={{ fontSize: '15px', fontWeight: 500 }}>Canvas Limpo</span>
-          <span style={{ fontSize: '12px', color: theme === 'light' ? '#64748b' : '#475569' }}>
-            Selecione um widget na barra lateral à esquerda para adicionar ao seu dashboard.
-          </span>
-        </div>
-      ) : (
-        <ReactGridLayout
-          className="layout"
-          cols={12}
-          rowHeight={rowHeight}
-          draggableHandle=".widget-drag-handle"
-          onLayoutChange={updateLayout}
-          isDraggable={true}
-          isResizable={true}
-          useCSSTransforms={false}
-          isBounded={false}
-          compactType={null}
-          margin={gridMargin}
-        >
-          {activeInstances.map((instance) => {
-            const widgetDef = registeredWidgets.get(instance.widgetId);
-            if (!widgetDef) return <div key={instance.instanceId} />;
-
-            const minSize = widgetDef.manifest.minSize || { w: 2, h: 2 };
-            const maxSize = widgetDef.manifest.maxSize || { w: 12, h: 12 };
-            const isLocked = instance.isLocked ?? false;
-
-            return (
-              <div
-                key={instance.instanceId}
-                data-widget-instance-id={instance.instanceId}
-                data-grid={{
-                  x: instance.layout.x,
-                  y: instance.layout.y,
-                  w: instance.layout.w,
-                  h: instance.layout.h,
-                  minW: minSize.w,
-                  minH: minSize.h,
-                  maxW: maxSize.w,
-                  maxH: maxSize.h,
-                  isDraggable: !isLocked,
-                  isResizable: !isLocked,
-                  static: isLocked,
-                }}
-              >
-                <WidgetContainer
-                  instanceId={instance.instanceId}
-                  widgetDef={widgetDef}
-                  config={instance.config}
-                  isLocked={isLocked}
-                  colorPreset={instance.colorPreset}
-                  onRemove={() => removeWidgetFromCanvas(instance.instanceId)}
-                  onToggleLock={() => toggleLockWidget(instance.instanceId)}
-                />
-              </div>
-            );
-          })}
-        </ReactGridLayout>
-      )}
-    </main>
-  );
-};
+```ts
+workdayStart: string;
+workdayEnd: string;
 ```
+
+Os valores serão strings no formato `HH:mm`, compatíveis com `<input type="time">` e fáceis de transportar em exportações de perfil.
+
+### 3.2 `app/src/store/dashboardStore.ts`
+
+Adicionar os padrões:
+
+```ts
+workdayStart: '07:00',
+workdayEnd: '17:00',
+```
+
+Atualizar `normalizeAppearance` para:
+
+1. aceitar somente horários válidos no formato `HH:mm`;
+2. aplicar `07:00` e `17:00` quando os campos não existirem, preservando perfis antigos;
+3. rejeitar valores impossíveis, como `25:00`, `10:75` ou strings arbitrárias;
+4. rejeitar `workdayStart >= workdayEnd`;
+5. retornar os padrões quando a configuração for inválida.
+
+A validação deverá ficar em uma função reutilizável, por exemplo `parseTimeToMinutes`, evitando que a lógica de conversão seja duplicada no modal e no canvas.
+
+Atualizar também `loadProfile`, `saveProfile` e `resetDashboard` para carregar, persistir e restaurar os dois horários.
+
+### 3.3 `app/src/components/ProfileModal.tsx`
+
+Adicionar dois campos de horário na seção de aparência:
+
+- início do período: `input type="time"`;
+- fim do período: `input type="time"`.
+
+Ao alterar um campo, usar `setAppearance` para persistir a preferência pelo fluxo já existente.
+
+A interface deverá impedir ou sinalizar combinações inválidas. O estado persistido nunca deverá aceitar o intervalo invertido, mesmo que um valor seja alterado antes do outro. A mensagem de validação deve explicar que o horário inicial precisa ser anterior ao horário final.
+
+### 3.4 `app/src/components/themeGradients.ts`
+
+Substituir a posição estática `0%` pela variável CSS `var(--focal-y, 0%)` em todos os gradientes existentes.
+
+Não alterar as cores, os presets ou os tipos públicos sem necessidade. O preset ativo deverá continuar vindo do Zustand; não deverá ser substituído por `const activePreset = 'default'`.
+
+### 3.5 `app/src/components/Canvas.tsx`
+
+O canvas deverá:
+
+1. ler `canvasPreset`, `theme`, `density`, `workdayStart` e `workdayEnd` do store;
+2. converter os horários para minutos;
+3. calcular o foco usando o horário local retornado por `new Date()`;
+4. limitar o resultado a `0%` e `100%` fora do intervalo;
+5. atualizar o estado visual imediatamente ao montar;
+6. atualizar a cada 30 minutos (`30 * 60 * 1000`);
+7. recalcular ao receber `visibilitychange` quando o documento voltar a ficar visível;
+8. limpar o intervalo e os listeners no unmount;
+9. manter o `canvasPreset` selecionado pelo usuário;
+10. aplicar `--focal-y` no estilo do `main`.
+
+A função de cálculo deverá ser pura e receber o horário atual e os limites em minutos. Isso permitirá testá-la sem depender do relógio real do sistema.
+
+Exemplo conceitual:
+
+```ts
+function calculateFocalY(
+  timeInMinutes: number,
+  startMinutes: number,
+  endMinutes: number,
+): string {
+  if (timeInMinutes <= startMinutes) return '0%';
+  if (timeInMinutes >= endMinutes) return '100%';
+
+  const progress = ((timeInMinutes - startMinutes) / (endMinutes - startMinutes)) * 100;
+  return `${progress.toFixed(2)}%`;
+}
+```
+
+A função deverá ser chamada somente depois de os horários terem sido validados. Ainda assim, deve possuir proteção contra intervalo nulo ou invertido para evitar divisão por zero.
+
+## 4. Erros e riscos mitigados
+
+### 4.1 Preset do canvas sobrescrito
+
+O snippet original define `const activePreset: CanvasPreset = 'default'`. Isso ignoraria o preset já selecionado no perfil. O plano mantém `canvasPreset` vindo do Zustand, evitando regressão visual e perda da preferência do usuário.
+
+### 4.2 Horários fixos no código
+
+Os valores `7 * 60` e `17 * 60` impedem adaptação a diferentes jornadas ou preferências. Os horários passarão a fazer parte do perfil e serão editáveis no menu de configurações.
+
+### 4.3 Divisão por zero e intervalo invertido
+
+Se início e fim forem iguais, o cálculo produziria `NaN`. Se o início for posterior ao fim, o progresso ficaria semanticamente incorreto. A normalização e a função de cálculo terão validação em duas camadas.
+
+### 4.4 Perfis existentes incompatíveis
+
+Perfis salvos antes da feature não terão os novos campos. A normalização preencherá os valores ausentes com `07:00` e `17:00`, evitando quebra na leitura do `localStorage`.
+
+### 4.5 Aba suspensa ou computador em suspensão
+
+`setInterval` não é uma garantia de execução pontual quando a aba fica em segundo plano ou o sistema suspende. O recalculo na montagem e no evento `visibilitychange` corrige o valor assim que o canvas volta a ser exibido.
+
+### 4.6 Relógio ou fuso horário do sistema
+
+A feature usa deliberadamente o horário local de `new Date()`. Se o relógio ou fuso do sistema estiver incorreto, o efeito também estará. Isso é uma limitação conhecida da proposta, não um erro silencioso da aplicação; não será introduzida uma dependência de horário externo nesta versão.
+
+### 4.7 Atualização excessiva
+
+A proposta inicial mencionava atualizações muito frequentes. A taxa definida para esta feature será de 30 minutos, suficiente para o efeito visual e com menor custo de renderização. O valor continua sendo corrigido ao abrir ou retornar à aplicação.
+
+### 4.8 Atualização da string do gradiente
+
+Recriar todos os gradientes em cada mudança de horário aumentaria o trabalho do React sem necessidade. A variável CSS altera apenas a posição focal e mantém o mapa de gradientes estável.
+
+## 5. Regras funcionais
+
+- O intervalo padrão é `07:00` a `17:00`.
+- Antes do início, o foco fica em `0%`.
+- Depois do fim, o foco fica em `100%`.
+- Dentro do intervalo, o progresso é linear.
+- A atualização automática ocorre a cada 30 minutos.
+- A aplicação recalcula ao montar e ao voltar a ficar visível.
+- O horário usado é o local do sistema.
+- Horários inválidos não são persistidos.
+- Perfis antigos continuam válidos com os padrões novos.
+- O efeito funciona com qualquer combinação existente de tema e preset.
+
+## 6. Estratégia de testes e validação
+
+### 6.1 Testes da função de cálculo
+
+Cobrir pelo menos:
+
+- antes do início;
+- exatamente no início;
+- no ponto intermediário;
+- exatamente no fim;
+- depois do fim;
+- início igual ao fim;
+- início posterior ao fim;
+- horários com minutos diferentes, como `07:30` e `16:45`.
+
+### 6.2 Testes do perfil
+
+Verificar:
+
+- carregamento de perfil antigo sem os novos campos;
+- persistência de horários válidos;
+- rejeição de formato inválido;
+- rejeição de intervalo invertido;
+- restauração dos padrões em `resetDashboard`.
+
+### 6.3 Validação de integração
+
+Executar na pasta `app`:
+
+```powershell
+npm run build
+```
+
+Também verificar manualmente:
+
+1. trocar o preset e confirmar que ele permanece ativo;
+2. alterar os horários no perfil e recarregar a aplicação;
+3. testar canvas vazio e canvas com widgets;
+4. ocultar e reexibir a aba;
+5. alternar tema claro/escuro;
+6. confirmar que não há erro no console.
+
+## 7. Critérios de aceite
+
+A feature será considerada pronta quando:
+
+- o foco do gradiente refletir o horário local configurado;
+- o intervalo padrão funcionar sem configuração manual;
+- o usuário conseguir alterar os horários no menu de perfil;
+- perfis anteriores carregarem sem erro;
+- o preset do canvas não for alterado pelo Sun Tracking;
+- a atualização ocorrer a cada 30 minutos e após retorno à aba;
+- intervalos inválidos forem rejeitados;
+- `npm run build` finalizar sem erros;
+- os testes da função de cálculo e da persistência passarem.
+
+## 8. Ordem de implementação
+
+1. Atualizar os tipos de perfil e os valores padrão.
+2. Implementar validação e normalização dos horários.
+3. Persistir os novos campos no Zustand e no `ProfileManifest`.
+4. Adicionar os campos de horário ao `ProfileModal`.
+5. Atualizar os gradientes para usar `--focal-y`.
+6. Implementar a função pura de cálculo.
+7. Integrar o cálculo ao `Canvas` com intervalo de 30 minutos e `visibilitychange`.
+8. Criar e executar os testes unitários e de integração.
+9. Executar `npm run build` e a validação manual.
+10. Atualizar este documento quando a feature sair de desenvolvimento e for concluída.
+
+## 9. Fora do escopo desta feature
+
+- sincronização com nascer e pôr do sol reais;
+- consulta a serviços externos de horário ou localização;
+- configuração por arquivo `.config`;
+- atualização contínua segundo a segundo;
+- mudança automática do tema claro/escuro;
+- alteração das cores dos presets existentes.
