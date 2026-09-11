@@ -1,11 +1,10 @@
 import React, { useEffect, useRef } from 'react';
 import RGL, { WidthProvider } from 'react-grid-layout';
-// @ts-ignore - allow importing CSS side-effect in this project without type declarations
 import 'react-grid-layout/css/styles.css';
-// @ts-ignore - allow importing CSS side-effect in this project without type declarations
 import 'react-resizable/css/styles.css';
 import { useDashboardStore } from '../store/dashboardStore';
 import { WidgetContainer } from './WidgetContainer';
+import { backgroundMap, CanvasPreset } from './themeGradients'; // Importa o mapa de gradientes
 
 const ReactGridLayout = WidthProvider(RGL);
 
@@ -16,13 +15,38 @@ export const Canvas: React.FC = () => {
   const removeWidgetFromCanvas = useDashboardStore((state) => state.removeWidgetFromCanvas);
   const toggleLockWidget = useDashboardStore((state) => state.toggleLockWidget);
   const reorganizeLayouts = useDashboardStore((state) => state.reorganizeLayouts);
-  const mainRef = useRef<HTMLElement>(null);
 
+  const mainRef = useRef<HTMLElement>(null);
   const theme = useDashboardStore((state) => state.theme);
   const density = useDashboardStore((state) => state.density);
 
+	// Como padrão para esta versão, definimos "default".
+	// Futuramente, você pode puxar activePreset direto do seu Zustand (ex: state.activePreset)
+	// -----------------------------------
+	// Temas pré-definidos
+	// 'default'
+	// 'ocean'
+	// 'sunset'
+	// 'midnight'
+	// 'drakula'
+	// 'batman'
+	// 'superman'
+	// 'greenlantern'
+	// 'whiteMarble'
+	// 'blackMarble'
+	// 'noir'
+	// 'azul'
+	// 'violeta'
+	// 'esmeralda'
+	// 'rosa'
+	// 'ambar'
+	// 'indigo'
+	// 'fearOfTheDark'
+	// -----------------------------------
+  const activePreset: CanvasPreset = 'batman';
+
   const rowHeight = density === 'compact' ? 60 : 80;
-  const gridMargin: [number, number] = density === 'compact' ? [10, 10] : [16, 16];
+  const gridMargin: [number, number] = density === 'compact' ? [6, 6] : [12, 12];
 
   useEffect(() => {
     const handleFocusWidget = (event: Event) => {
@@ -51,6 +75,9 @@ export const Canvas: React.FC = () => {
     };
   }, []);
 
+  // Busca o gradiente baseado no tema ativo e adiciona um fallback seguro
+  const currentBackground = backgroundMap[activePreset]?.[theme] || backgroundMap.default[theme];
+
   return (
     <main
       ref={mainRef}
@@ -58,11 +85,9 @@ export const Canvas: React.FC = () => {
         flex: 1,
         height: '100vh',
         overflowY: 'auto',
-        padding: density === 'compact' ? '12px' : '20px',
+        padding: density === 'compact' ? '5px' : '18px',
         boxSizing: 'border-box',
-        background: theme === 'light'
-          ? 'radial-gradient(circle at 50% 0%, #f1f5f9 0%, #cbd5e1 100%)'
-          : 'radial-gradient(circle at 50% 0%, #1e293b 0%, #0f172a 100%)',
+        background: currentBackground,
         scrollBehavior: 'smooth',
       }}
     >
@@ -100,6 +125,7 @@ export const Canvas: React.FC = () => {
           </button>
         </div>
       </div>
+
       {activeInstances.length === 0 ? (
         <div
           style={{
@@ -154,7 +180,6 @@ export const Canvas: React.FC = () => {
                   minH: minSize.h,
                   maxW: maxSize.w,
                   maxH: maxSize.h,
-                  // Disable drag & resize for locked widgets
                   isDraggable: !isLocked,
                   isResizable: !isLocked,
                   static: isLocked,
