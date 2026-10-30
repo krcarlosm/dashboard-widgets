@@ -195,7 +195,9 @@ export class LocalAgentClient implements AgentClientProtocol {
     });
   }
 
-  private async httpRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+  // Requisição autenticada ao agente. Se o token em cache estiver vencido (401),
+  // busca um novo e tenta uma vez mais.
+  private async authorizedFetch(path: string, options: RequestInit = {}, retried = false): Promise<Response> {
     const token = await this.loadToken();
     if (!token) throw new Error('Agente local não autenticado.');
 
@@ -203,16 +205,36 @@ export class LocalAgentClient implements AgentClientProtocol {
       ...options,
       headers: {
         Accept: 'application/json',
-        'Content-Type': 'application/json',
+        ...(options.body ? { 'Content-Type': 'application/json' } : {}),
         'X-Dashboard-Agent-Token': token,
         ...(options.headers || {}),
       },
     });
-    const payload = await response.json().catch(() => ({}));
+
+    if (response.status === 401 && !retried) {
+      this.token = null;
+      window.localStorage.removeItem(AGENT_TOKEN_KEY);
+      return this.authorizedFetch(path, options, true);
+    }
     if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
       throw new Error(typeof payload?.detail === 'string' ? payload.detail : `Agente local retornou HTTP ${response.status}.`);
     }
-    return payload as T;
+    return response;
+  }
+
+  private async httpRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const response = await this.authorizedFetch(path, options);
+    return (await response.json().catch(() => ({}))) as T;
+  }
+
+  public async requestJson<T = any>(path: string, options: RequestInit = {}): Promise<T> {
+    return this.httpRequest<T>(path, options);
+  }
+
+  public async requestBlob(path: string): Promise<Blob> {
+    const response = await this.authorizedFetch(path);
+    return response.blob();
   }
 
   public async saveBackup(backup: unknown): Promise<{ path: string; directory: string }> {

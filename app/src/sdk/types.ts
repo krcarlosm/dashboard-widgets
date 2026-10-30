@@ -38,6 +38,10 @@ export interface AgentClientProtocol {
   subscribe(eventType: string, callback: (payload: any) => void): () => void;
   onStatusChange(listener: (connected: boolean) => void): () => void;
   checkHealth(): Promise<boolean>;
+  /** Requisição HTTP autenticada ao agente (o token vai no header, nunca na URL). */
+  requestJson<T = any>(path: string, options?: RequestInit): Promise<T>;
+  /** Baixa um arquivo do agente (ex.: imagem); use URL.createObjectURL para exibir. */
+  requestBlob(path: string): Promise<Blob>;
   saveBackup?(backup: unknown): Promise<{ path: string; directory: string }>;
   openBackupDirectory?(): Promise<{ directory: string }>;
 }

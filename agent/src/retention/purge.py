@@ -1,14 +1,20 @@
 import asyncio
 import logging
-import time
-from pathlib import Path
-from typing import Optional
+from typing import Awaitable, Callable, Optional
+
+from src.bau.settings import BauSettings
+from src.bau.store import BauStore
+
+PURGE_INTERVAL_SECONDS = 15 * 60
 
 
 class PurgeService:
-    def __init__(self, storage_dir: Path, retention_days: int = 7):
-        self.storage_dir = storage_dir
-        self.retention_days = retention_days
+    """Remove do Baú os itens mais antigos que a retenção configurada (padrão: 72h)."""
+
+    def __init__(self, store: BauStore, settings: BauSettings, on_removed: Optional[Callable[[list[str]], Awaitable[None]]] = None):
+        self.store = store
+        self.settings = settings
+        self.on_removed = on_removed
         self.logger = logging.getLogger("LocalAgent.Purge")
         self._task: Optional[asyncio.Task] = None
         self._running = False
@@ -30,22 +36,18 @@ class PurgeService:
             except asyncio.CancelledError:
                 pass
 
+    async def run_once(self) -> list[str]:
+        removed = self.store.purge_older_than(self.settings.retention_hours)
+        if removed:
+            self.logger.info("Expurgo concluído com %s arquivo(s) removido(s)", len(removed))
+            if self.on_removed:
+                await self.on_removed(removed)
+        return removed
+
     async def _loop(self) -> None:
         while self._running:
-            removed = self._purge()
-            if removed:
-                self.logger.info("Expurgo concluído com %s arquivo(s) removido(s)", len(removed))
-            await asyncio.sleep(6 * 60 * 60)
-
-    def _purge(self) -> list[str]:
-        cutoff = time.time() - (self.retention_days * 24 * 60 * 60)
-        removed: list[str] = []
-        for folder_name in ("imagens", "textos"):
-            folder = self.storage_dir / folder_name
-            if not folder.exists():
-                continue
-            for file_path in folder.iterdir():
-                if file_path.is_file() and file_path.stat().st_mtime < cutoff:
-                    file_path.unlink(missing_ok=True)
-                    removed.append(str(file_path))
-        return removed
+            try:
+                await self.run_once()
+            except Exception:
+                self.logger.exception("Falha no expurgo do Baú")
+            await asyncio.sleep(PURGE_INTERVAL_SECONDS)

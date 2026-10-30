@@ -144,9 +144,19 @@ python -m src.main
 ```
 O servidor do agente estará ativo em `ws://127.0.0.1:5137/ws` (HTTP em `http://127.0.0.1:5137`). Para recarregar o agente automaticamente ao editar o código, defina `DASHBOARD_AGENT_DEV=1` antes de iniciá-lo.
 
-Como explicado anteriormente, o Agente Python serve apenas para que os widgets que dependam de recursos do sistema operacional, possam realizar sua função. Como por exemplo, o `Bau de Lembranças`, que atua como uma **área de transferência** (Win + V, do windows) e precisa ter acesso ao conteúdo que você copiou recentemente. O aplicativo ainda está em desenvolvimento, mas já é capaz de armazenar o conteúdo em `~/.dashboard-agent/bau` (no Windows, `C:\Users\<usuário>\.dashboard-agent\bau`).
+Como explicado anteriormente, o Agente Python serve apenas para que os widgets que dependam de recursos do sistema operacional, possam realizar sua função. Como por exemplo, o `Bau de Lembranças`, que atua como uma **área de transferência** (Win + V, do windows) e precisa ter acesso ao conteúdo que você copiou recentemente.
 
-No Linux, o Baú depende de `wl-clipboard` (Wayland) ou `xclip` (X11) para ler a área de transferência.
+### Baú de Lembranças
+
+- Textos e imagens copiados, além das capturas de tela, ficam em `~/.dashboard-agent/bau` (no Windows, `C:\Users\<usuário>\.dashboard-agent\bau`).
+- Os itens são apagados automaticamente após **72 horas** da criação. O prazo pode ser alterado para 24 ou 48 horas nas configurações do widget.
+- Conteúdo marcado como privado por gerenciadores de senha não é registrado.
+- Clicar em um item o coloca de volta na área de transferência.
+- No Linux, o Baú depende de `wl-clipboard` (Wayland) ou `xclip` (X11). A captura de tela no Wayland usa `grim`, `gnome-screenshot` ou `spectacle`.
+
+### Segurança do agente
+
+O agente aceita conexões apenas de `127.0.0.1` e das origens do dashboard (`ALLOWED_ORIGINS`). Todo comando via WebSocket e toda rota HTTP de dados exigem o token local salvo em `~/.dashboard-agent/auth.token`; sem o handshake, nenhuma informação da área de transferência é enviada ao cliente.
 
 ---
 

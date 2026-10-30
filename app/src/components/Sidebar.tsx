@@ -85,8 +85,16 @@ export const Sidebar: React.FC = () => {
     const unsubscribe = defaultAgentClient.onStatusChange((connected) => {
       setAgentStatus(connected ? 'online' : 'offline');
       setAgentMessage(connected ? 'Agent respondendo corretamente' : 'Agent indisponível');
+      // Consulta o estado real do monitor de clipboard (pode ter sido pausado em outra aba).
+      if (connected) defaultAgentClient.send({ type: 'clipboard:status' });
     });
-    return unsubscribe;
+    const unsubscribeClipboard = defaultAgentClient.subscribe('clipboard:status', (payload) => {
+      setAgentMessage(payload?.paused ? 'Agent Pausado' : 'Agent respondendo corretamente');
+    });
+    return () => {
+      unsubscribe();
+      unsubscribeClipboard();
+    };
   }, []);
 
   const handleReorganize = () => {

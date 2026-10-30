@@ -2,15 +2,18 @@ import asyncio
 import json
 import logging
 import os
-import secrets
 import subprocess
 import sys
 from contextlib import asynccontextmanager
+from datetime import datetime
 from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
 from src.auth import LocalAuth
+from src.bau.api import create_bau_router
+from src.bau.settings import BauSettings
+from src.bau.store import BauStore
 from src.clipboard.monitor import ClipboardMonitor
 from src.indexing.file_watcher import EditIndexStore
 from src.protocol import AgentMessage
@@ -22,46 +25,10 @@ logger = logging.getLogger("LocalAgent")
 
 AGENT_HOME = Path(os.environ.get("DASHBOARD_AGENT_HOME", Path.home() / ".dashboard-agent"))
 AGENT_HOME.mkdir(parents=True, exist_ok=True)
+AGENT_PORT = int(os.environ.get("DASHBOARD_AGENT_PORT", "5137"))
 
 auth = LocalAuth(AGENT_HOME)
 TOKEN = auth.get_or_create_token()
-
-storage_dir = AGENT_HOME / "bau"
-storage_dir.mkdir(parents=True, exist_ok=True)
-
-index_store = EditIndexStore(AGENT_HOME)
-clipboard_monitor = ClipboardMonitor(storage_dir=storage_dir, broadcast_fn=lambda payload: None)
-purge_service = PurgeService(storage_dir=storage_dir)
-screenshot_capture = ScreenshotCapture(storage_dir=storage_dir)
-backup_dir = Path.home() / "Documents" / "Dashboard Backups"
-backup_dir.mkdir(parents=True, exist_ok=True)
-
-
-def validate_http_token(request: Request) -> None:
-    token = request.headers.get("x-dashboard-agent-token")
-    if not auth.validate_token(token):
-        raise HTTPException(status_code=401, detail="Token do agente inválido")
-
-
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    async def broadcast(message: dict):
-        if getattr(app.state, "websocket_clients", None):
-            for websocket in list(app.state.websocket_clients):
-                try:
-                    await websocket.send_text(json.dumps(message))
-                except Exception as exc:
-                    logger.warning("Falha ao enviar mensagem push: %s", exc)
-
-    clipboard_monitor.broadcast_fn = broadcast
-    await clipboard_monitor.start()
-    await purge_service.start()
-    logger.info("Agent iniciado com monitor de clipboard e expurgo ativo")
-    yield
-    await clipboard_monitor.stop()
-    await purge_service.stop()
-    logger.info("Agent encerrado")
-
 
 DEFAULT_ALLOWED_ORIGINS = [
     "http://localhost:5173",
@@ -74,7 +41,51 @@ DEFAULT_ALLOWED_ORIGINS = [
 env_origins = os.environ.get("ALLOWED_ORIGINS", "")
 ALLOWED_ORIGINS = [o.strip() for o in env_origins.split(",") if o.strip()] if env_origins else DEFAULT_ALLOWED_ORIGINS
 
-app = FastAPI(title="Dashboard Local Agent", version="0.1.0", lifespan=lifespan)
+# Somente clientes que concluíram o handshake com token recebem eventos.
+authenticated_clients: set[WebSocket] = set()
+
+
+async def broadcast(message: dict) -> None:
+    text = json.dumps(message)
+    for websocket in list(authenticated_clients):
+        try:
+            await websocket.send_text(text)
+        except Exception as exc:
+            logger.warning("Falha ao enviar mensagem push: %s", exc)
+
+
+def require_token(request: Request) -> None:
+    token = request.headers.get("x-dashboard-agent-token")
+    if not auth.validate_token(token):
+        raise HTTPException(status_code=401, detail="Token do agente inválido")
+
+
+bau_store = BauStore(AGENT_HOME / "bau")
+bau_settings = BauSettings(AGENT_HOME)
+index_store = EditIndexStore(AGENT_HOME)
+clipboard_monitor = ClipboardMonitor(store=bau_store, broadcast_fn=broadcast)
+purge_service = PurgeService(
+    store=bau_store,
+    settings=bau_settings,
+    on_removed=lambda ids: broadcast({"type": "bau:items-removed", "payload": {"ids": ids}}),
+)
+screenshot_capture = ScreenshotCapture(store=bau_store)
+backup_dir = Path.home() / "Documents" / "Dashboard Backups"
+backup_dir.mkdir(parents=True, exist_ok=True)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await clipboard_monitor.start()
+    await purge_service.start()
+    logger.info("Agent iniciado com monitor de clipboard e expurgo ativo")
+    yield
+    await clipboard_monitor.stop()
+    await purge_service.stop()
+    logger.info("Agent encerrado")
+
+
+app = FastAPI(title="Dashboard Local Agent", version="0.2.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -84,7 +95,16 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.state.websocket_clients = set()
+app.include_router(
+    create_bau_router(
+        store=bau_store,
+        settings=bau_settings,
+        monitor=clipboard_monitor,
+        purge_service=purge_service,
+        broadcast=broadcast,
+        require_token=require_token,
+    )
+)
 
 
 @app.get("/")
@@ -92,7 +112,7 @@ async def root():
     return {
         "status": "ok",
         "service": "Dashboard Local Agent",
-        "version": "0.1.0",
+        "version": app.version,
         "agentHome": str(AGENT_HOME),
     }
 
@@ -107,12 +127,11 @@ async def get_auth_token(request: Request):
 
 @app.post("/backups")
 async def save_backup(request: Request):
-    validate_http_token(request)
+    require_token(request)
     payload = await request.json()
     if not isinstance(payload, dict) or payload.get("format") != "dashboard-backup":
         raise HTTPException(status_code=400, detail="Formato de backup inválido")
 
-    from datetime import datetime
     timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     backup_path = backup_dir / f"dashboard-backup-{timestamp}.json"
     temporary_path = backup_path.with_suffix(".tmp")
@@ -123,7 +142,7 @@ async def save_backup(request: Request):
 
 @app.post("/backups/open-directory")
 async def open_backup_directory(request: Request):
-    validate_http_token(request)
+    require_token(request)
     if sys.platform == "win32":
         os.startfile(str(backup_dir))
     elif sys.platform == "darwin":
@@ -133,88 +152,77 @@ async def open_backup_directory(request: Request):
     return {"directory": str(backup_dir)}
 
 
+async def send(websocket: WebSocket, message_type: str, payload=None) -> None:
+    await websocket.send_text(AgentMessage(type=message_type, payload=payload).model_dump_json())
+
+
 @app.websocket("/ws")
 async def websocket_endpoint(websocket: WebSocket):
+    # WebSocket não passa por CORS: qualquer site aberto no navegador poderia conectar.
+    origin = websocket.headers.get("origin")
+    if origin and origin not in ALLOWED_ORIGINS:
+        logger.warning("Conexão WebSocket recusada para a origem %s", origin)
+        await websocket.close(code=4003)
+        return
+
     await websocket.accept()
-    app.state.websocket_clients.add(websocket)
+    is_authenticated = False
     logger.info("Cliente WebSocket conectado ao Agent")
 
     try:
         while True:
             raw_data = await websocket.receive_text()
             try:
-                msg_dict = json.loads(raw_data)
-                msg = AgentMessage(**msg_dict)
+                msg = AgentMessage(**json.loads(raw_data))
 
                 if msg.type == "handshake":
-                    payload = msg.payload or {}
-                    token = payload.get("token") if isinstance(payload, dict) else None
-                    logger.info(f"Handshake recebido do cliente: {payload}")
+                    payload = msg.payload if isinstance(msg.payload, dict) else {}
+                    logger.info("Handshake recebido do cliente %s", payload.get("client", "desconhecido"))
 
-                    if not auth.validate_token(token):
-                        response = AgentMessage(
-                            type="handshake:rejected",
-                            payload={"status": "rejected", "reason": "invalid_token"}
-                        )
-                        await websocket.send_text(response.model_dump_json())
+                    if not auth.validate_token(payload.get("token")):
+                        await send(websocket, "handshake:rejected", {"status": "rejected", "reason": "invalid_token"})
                         await websocket.close(code=4001)
                         break
 
-                    response = AgentMessage(
-                        type="handshake:ack",
-                        payload={"status": "authenticated", "agentVersion": "0.1.0"}
-                    )
-                    await websocket.send_text(response.model_dump_json())
+                    is_authenticated = True
+                    authenticated_clients.add(websocket)
+                    await send(websocket, "handshake:ack", {"status": "authenticated", "agentVersion": app.version})
+                    continue
 
-                elif msg.type == "ping":
-                    response = AgentMessage(type="pong", payload={"timestamp": json.dumps(msg.payload)})
-                    await websocket.send_text(response.model_dump_json())
+                if msg.type == "ping":
+                    await send(websocket, "pong", {"timestamp": json.dumps(msg.payload)})
+                    continue
 
-                elif msg.type == "screenshot:request":
+                # Qualquer outro comando exige handshake concluído.
+                if not is_authenticated:
+                    await send(websocket, "error", {"reason": "unauthenticated", "type": msg.type})
+                    continue
+
+                if msg.type == "screenshot:request":
                     try:
-                        path = screenshot_capture.take_screenshot()
-                        await websocket.send_text(
-                            AgentMessage(
-                                type="screenshot:result",
-                                payload={"path": str(path), "timestamp": int(os.path.getmtime(path))},
-                            ).model_dump_json()
-                        )
+                        item = await asyncio.to_thread(screenshot_capture.take_screenshot)
+                        await send(websocket, "screenshot:result", item.to_dict())
+                        await broadcast({"type": "bau:item-added", "payload": item.to_dict()})
                     except Exception as exc:
                         logger.exception("Falha ao capturar tela")
-                        await websocket.send_text(
-                            AgentMessage(
-                                type="screenshot:error",
-                                payload={"error": str(exc)},
-                            ).model_dump_json()
-                        )
+                        await send(websocket, "screenshot:error", {"error": str(exc)})
 
                 elif msg.type == "clipboard:pause":
                     clipboard_monitor.pause()
-                    await websocket.send_text(
-                        AgentMessage(type="clipboard:status", payload={"paused": True}).model_dump_json()
-                    )
+                    await broadcast({"type": "clipboard:status", "payload": {"paused": True}})
 
                 elif msg.type == "clipboard:resume":
                     clipboard_monitor.resume()
-                    await websocket.send_text(
-                        AgentMessage(type="clipboard:status", payload={"paused": False}).model_dump_json()
-                    )
+                    await broadcast({"type": "clipboard:status", "payload": {"paused": False}})
 
                 elif msg.type == "clipboard:status":
-                    await websocket.send_text(
-                        AgentMessage(type="clipboard:status", payload={"paused": clipboard_monitor.is_paused()}).model_dump_json()
-                    )
+                    await send(websocket, "clipboard:status", {"paused": clipboard_monitor.is_paused()})
 
                 elif msg.type == "watcher:configure":
                     payload = msg.payload or {}
                     folders = payload.get("folders", []) if isinstance(payload, dict) else []
                     index_store.save_watched_folders([str(folder) for folder in folders])
-                    await websocket.send_text(
-                        AgentMessage(
-                            type="watcher:configured",
-                            payload={"folders": index_store.load_watched_folders()},
-                        ).model_dump_json()
-                    )
+                    await send(websocket, "watcher:configured", {"folders": index_store.load_watched_folders()})
 
             except Exception as parse_err:
                 logger.error(f"Erro ao processar mensagem JSON: {parse_err}")
@@ -222,10 +230,10 @@ async def websocket_endpoint(websocket: WebSocket):
     except WebSocketDisconnect:
         logger.info("Cliente WebSocket desconectado")
     finally:
-        app.state.websocket_clients.discard(websocket)
+        authenticated_clients.discard(websocket)
 
 
 if __name__ == "__main__":
     # Recarregamento automático apenas em desenvolvimento: DASHBOARD_AGENT_DEV=1
     dev_mode = os.environ.get("DASHBOARD_AGENT_DEV") == "1"
-    uvicorn.run("src.main:app", host="127.0.0.1", port=5137, reload=dev_mode, reload_dirs=["src"] if dev_mode else None)
+    uvicorn.run("src.main:app", host="127.0.0.1", port=AGENT_PORT, reload=dev_mode, reload_dirs=["src"] if dev_mode else None)

@@ -1,19 +1,26 @@
 import asyncio
-import hashlib
+import logging
 import time
-from pathlib import Path
 from typing import Awaitable, Callable, Optional
 
-from src.clipboard.platform_reader import ClipboardContent, get_reader
+from src.bau.store import BauStore, content_hash
+from src.clipboard.platform_reader import get_reader, get_writer
+
+POLL_INTERVAL_SECONDS = 0.8
+# Após o próprio agente escrever na área de transferência, a mudança não vira item novo.
+SELF_WRITE_GRACE_SECONDS = 2.0
 
 
 class ClipboardMonitor:
-    def __init__(self, storage_dir: Path, broadcast_fn: Callable[[dict], Awaitable[None]]):
-        self.storage_dir = storage_dir
+    def __init__(self, store: BauStore, broadcast_fn: Callable[[dict], Awaitable[None]]):
+        self.store = store
         self.broadcast_fn = broadcast_fn
+        self.logger = logging.getLogger("LocalAgent.Clipboard")
         self._running = False
         self._paused = False
         self._task: Optional[asyncio.Task] = None
+        self._last_hash: Optional[str] = None
+        self._ignore_until = 0.0
 
     def pause(self) -> None:
         self._paused = True
@@ -28,6 +35,8 @@ class ClipboardMonitor:
         if self._running:
             return
         self._running = True
+        # Evita registrar de novo o conteúdo que já estava salvo antes de reiniciar.
+        self._last_hash = self.store.latest_hash()
         self._task = asyncio.create_task(self._loop())
 
     async def stop(self) -> None:
@@ -41,52 +50,43 @@ class ClipboardMonitor:
             except asyncio.CancelledError:
                 pass
 
+    def copy_item_to_clipboard(self, item_id: str) -> bool:
+        """Recoloca um item do Baú na área de transferência."""
+        writer = get_writer()
+        self._ignore_until = time.monotonic() + SELF_WRITE_GRACE_SECONDS
+        text = self.store.read_text(item_id)
+        if text is not None:
+            writer.write_text(text)
+            return True
+        image_path = self.store.image_path(item_id)
+        if image_path is not None:
+            writer.write_image(image_path.read_bytes())
+            return True
+        return False
+
     async def _loop(self) -> None:
         reader = get_reader()
-        last_hash: Optional[str] = None
         while self._running:
-            if self._paused:
-                await asyncio.sleep(0.8)
-                continue
+            if not self._paused:
+                try:
+                    if reader.has_changed():
+                        content = await asyncio.to_thread(reader.read)
+                        if content:
+                            await self._handle(content)
+                except Exception:
+                    self.logger.debug("Falha ao ler a área de transferência", exc_info=True)
+            await asyncio.sleep(POLL_INTERVAL_SECONDS)
 
-            try:
-                content = reader.read()
-                if content:
-                    content_hash = self._hash_content(content)
-                    if content_hash != last_hash:
-                        last_hash = content_hash
-                        saved_path = self._save_content(content)
-                        if saved_path is not None:
-                            await self.broadcast_fn({
-                                "type": "clipboard:event",
-                                "payload": {
-                                    "kind": content.kind,
-                                    "path": str(saved_path),
-                                    "timestamp": int(time.time()),
-                                },
-                            })
-            except Exception as exc:
-                # Logar exceções do leitor sem derrubar a execução do monitor
-                pass
+    async def _handle(self, content) -> None:
+        digest = content_hash(content.kind, content.data)
+        if digest == self._last_hash:
+            return
+        self._last_hash = digest
+        if time.monotonic() < self._ignore_until:
+            return
 
-            await asyncio.sleep(0.8)
-
-    def _hash_content(self, content: ClipboardContent) -> str:
-        return hashlib.sha256(content.data).hexdigest()
-
-    def _save_content(self, content: ClipboardContent) -> Optional[Path]:
-        self.storage_dir.mkdir(parents=True, exist_ok=True)
-        folder_name = "imagens" if content.kind == "image" else "textos"
-        folder_path = self.storage_dir / folder_name
-        folder_path.mkdir(parents=True, exist_ok=True)
-
-        extension = ".png" if content.kind == "image" else ".txt"
-        filename = f"clipboard_{int(time.time())}{extension}"
-        target_path = folder_path / filename
-
-        if content.kind == "text" and content.text is not None:
-            target_path.write_text(content.text, encoding="utf-8")
-        else:
-            target_path.write_bytes(content.data)
-
-        return target_path
+        item = self.store.save(content.kind, content.data, source="clipboard")
+        if item is None:
+            self.logger.info("Item da área de transferência ignorado por exceder o tamanho máximo")
+            return
+        await self.broadcast_fn({"type": "bau:item-added", "payload": item.to_dict()})
