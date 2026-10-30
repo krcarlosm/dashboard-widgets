@@ -11,6 +11,10 @@ O projeto consiste em um dashboard customizável, onde o usuário pode adicionar
 
 ## 🚀 Visão Geral e Recursos Principais
 
+- **Canvas Modular Responsivo:** Layout flexível com persistência local via `IndexedDB` e `localStorage`.
+- **Coleção de Widgets Integrados:** Notas Rápidas, Pomodoro Multiferramenta, Lista de Tarefas, Gerador de Ruído, Snippets, Conversores de Unidades, Calculadora de Datas, Regra de Três, Memória Baú, Monitor de Arquivos Editados e muito mais.
+- **Agente Local em Python:** Comunicação bidirecional via WebSocket para recursos do sistema operacional (captura de tela, área de transferência, indexação de arquivos, monitoramento). O Agente Python serve apenas para os widgets (aplicativos) que dependem de recursos do sistema operacional. Caso não queira usá-los, não precisa iniciá-lo.
+- **Temas e Personalização:** Suporte a modo Claro/Escuro, densidade de grid (Confortável/Compacto) e cores de acento personalizadas por instância de widget - quando você usa múltiplas instâncias do widget `Lista de Tarefas`, por exemplo, você pode mudar a cor de cada lista, ou ainda, mudar o título da lista, para que assim você possa localizar facilmente lista de tarefas distintas.
 
 ## 💾 Onde as informações ficam armazenadas
 
@@ -98,6 +102,20 @@ A importação valida o formato e solicita confirmação antes de substituir o c
 
 ## ⚙️ Como Executar
 
+### Início rápido
+
+Depois da primeira instalação (passos 1 e 2 abaixo), um único script inicia o agente e o frontend:
+
+```bash
+# Windows (PowerShell)
+./start-dashboard.ps1
+
+# Linux
+./start-dashboard.sh
+```
+
+O agente é iniciado em segundo plano somente se o ambiente `agent/.venv` existir. Sem ele, apenas o frontend é iniciado. Ao encerrar o frontend (`Ctrl+C`), o agente iniciado pelo script também é encerrado.
+
 ### 1. Iniciar o Frontend (`/app`)
 
 Abra o diretório do projeto e abra o terminal. Execute os seguintes comandos:
@@ -124,9 +142,11 @@ source .venv/bin/activate
 pip install -r requirements.txt
 python -m src.main
 ```
-O servidor do agente estará ativo em `ws://localhost:8000/ws`.
+O servidor do agente estará ativo em `ws://127.0.0.1:5137/ws` (HTTP em `http://127.0.0.1:5137`). Para recarregar o agente automaticamente ao editar o código, defina `DASHBOARD_AGENT_DEV=1` antes de iniciá-lo.
 
-Como explicado anteriormente, o Agente Python serve apenas para que os widgets que dependam de recursos do sistema operacional, possam realizar sua função. Como por exemplo, o `Bau de Lembranças`, que atua como uma **área de transferência** (Win + V, do windows) e precisa ter acesso ao conteúdo que você copiou recentemente. O aplicativo ainda está em desenvolvimento, mas já é capaz de armazenar o conteúdo em um diretório específico `C:\Users\.dashboard-agent`
+Como explicado anteriormente, o Agente Python serve apenas para que os widgets que dependam de recursos do sistema operacional, possam realizar sua função. Como por exemplo, o `Bau de Lembranças`, que atua como uma **área de transferência** (Win + V, do windows) e precisa ter acesso ao conteúdo que você copiou recentemente. O aplicativo ainda está em desenvolvimento, mas já é capaz de armazenar o conteúdo em `~/.dashboard-agent/bau` (no Windows, `C:\Users\<usuário>\.dashboard-agent\bau`).
+
+No Linux, o Baú depende de `wl-clipboard` (Wayland) ou `xclip` (X11) para ler a área de transferência.
 
 ---
 

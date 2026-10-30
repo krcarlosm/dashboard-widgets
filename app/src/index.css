@@ -22,7 +22,13 @@ select {
   color-scheme: inherit;
 }
 
-/* Barras de rolagem customizadas. Ajuste cores e largura aqui. */
+/* Barras de rolagem customizadas. Ajuste cores e largura aqui.
+   Propriedades padrão: Firefox/Zen e Chromium 121+. Pseudo-elementos webkit: Chromium antigo. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(51, 65, 85, 0.6) rgba(15, 23, 42, 0.5);
+}
+
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;
@@ -41,23 +47,15 @@ select {
   background: rgba(71, 85, 105, 0.8);
 }
 
-/* Custom Scrollbars */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+/* Ícone girando enquanto uma ação está em andamento (ex.: captura de tela). */
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
-::-webkit-scrollbar-track {
-  background: rgba(15, 23, 42, 0.5);
-}
-
-::-webkit-scrollbar-thumb {
-  background: rgba(51, 65, 85, 0.6);
-  border-radius: 4px;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(71, 85, 105, 0.8);
+.spin {
+  animation: spin 1s linear infinite;
 }
 
 /* Grid Layout & Resizable Handle Customizations */

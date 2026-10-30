@@ -226,4 +226,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
 
 if __name__ == "__main__":
-    uvicorn.run("src.main:app", host="127.0.0.1", port=5137, reload=True, reload_dirs=["src"])
+    # Recarregamento automático apenas em desenvolvimento: DASHBOARD_AGENT_DEV=1
+    dev_mode = os.environ.get("DASHBOARD_AGENT_DEV") == "1"
+    uvicorn.run("src.main:app", host="127.0.0.1", port=5137, reload=dev_mode, reload_dirs=["src"] if dev_mode else None)

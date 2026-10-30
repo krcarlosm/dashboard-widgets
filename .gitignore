@@ -11,11 +11,10 @@ app/yarn-error.log*
 # Python / Local Agent
 agent/.venv/
 agent/venv/
-agent/__pycache__/
-agent/*.pyc
-agent/*.pyo
-agent/*.pyd
+__pycache__/
+*.py[cod]
 agent/.pytest_cache/
+agent/*.log
 agent/build/
 agent/dist/
 agent/*.egg-info/
