@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { Plus, Check, Trash2, Calendar, CheckSquare, ListFilter, AlertCircle, Pencil } from 'lucide-react';
+import { Plus, Check, Trash2, CheckSquare, AlertCircle, Pencil, GripVertical } from 'lucide-react';
 
 interface TodoItem {
   id: string;
@@ -15,6 +15,17 @@ interface EditingState {
   text: string;
 }
 
+interface DropTarget {
+  id: string;
+  position: 'before' | 'after';
+}
+
+// Pendentes primeiro, concluídas no fim; a ordem relativa de cada grupo é preservada.
+const orderItems = (list: TodoItem[]): TodoItem[] => [
+  ...list.filter((item) => !item.done),
+  ...list.filter((item) => item.done),
+];
+
 const getTodayString = (): string => {
   const d = new Date();
   const month = String(d.getMonth() + 1).padStart(2, '0');
@@ -28,6 +39,8 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [newText, setNewText] = useState<string>('');
   const [pendingRollover, setPendingRollover] = useState<TodoItem[]>([]);
   const [editingState, setEditingState] = useState<EditingState | null>(null);
+  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
 
   // Load tasks on mount
   useEffect(() => {
@@ -46,15 +59,16 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         }
       }
 
-      setItems(loaded);
+      setItems(orderItems(loaded));
       context.storage.set('lastOpenedDate', today);
     }
     loadData();
   }, [context.storage]);
 
   const saveItems = async (updated: TodoItem[]) => {
-    setItems(updated);
-    await context.storage.set('items', updated);
+    const ordered = orderItems(updated);
+    setItems(ordered);
+    await context.storage.set('items', ordered);
   };
 
   const handleAddItem = (e?: React.FormEvent) => {
@@ -73,11 +87,51 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     setNewText('');
   };
 
+  // Ao concluir, a tarefa vai para o fim da fila; ao reabrir, volta para o fim das pendentes.
   const handleToggle = (id: string) => {
-    const updated = items.map((item) =>
-      item.id === id ? { ...item, done: !item.done } : item
-    );
-    saveItems(updated);
+    const target = items.find((item) => item.id === id);
+    if (!target) return;
+    const toggled = { ...target, done: !target.done };
+    saveItems([...items.filter((item) => item.id !== id), toggled]);
+  };
+
+  const handleDragStart = (event: React.DragEvent<HTMLDivElement>, id: string) => {
+    // O Firefox (Zen) só inicia o arraste quando há dados no dataTransfer.
+    event.dataTransfer.setData('text/plain', id);
+    event.dataTransfer.effectAllowed = 'move';
+    setDraggingId(id);
+  };
+
+  const handleDragOver = (event: React.DragEvent<HTMLDivElement>, target: TodoItem) => {
+    const source = items.find((item) => item.id === draggingId);
+    // Reordena apenas dentro do mesmo grupo (pendentes ou concluídas).
+    if (!source || source.id === target.id || source.done !== target.done) return;
+
+    event.preventDefault();
+    event.dataTransfer.dropEffect = 'move';
+    const rect = event.currentTarget.getBoundingClientRect();
+    const position = event.clientY < rect.top + rect.height / 2 ? 'before' : 'after';
+    if (dropTarget?.id !== target.id || dropTarget.position !== position) {
+      setDropTarget({ id: target.id, position });
+    }
+  };
+
+  const handleDragEnd = () => {
+    setDraggingId(null);
+    setDropTarget(null);
+  };
+
+  const handleDrop = (event: React.DragEvent<HTMLDivElement>) => {
+    event.preventDefault();
+    const source = items.find((item) => item.id === draggingId);
+    if (source && dropTarget) {
+      const remaining = items.filter((item) => item.id !== source.id);
+      const targetIndex = remaining.findIndex((item) => item.id === dropTarget.id);
+      const insertAt = dropTarget.position === 'before' ? targetIndex : targetIndex + 1;
+      remaining.splice(insertAt, 0, source);
+      saveItems(remaining);
+    }
+    handleDragEnd();
   };
 
   const startEditing = (item: TodoItem) => {
@@ -258,6 +312,11 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           filteredItems.map((item) => (
             <div
               key={item.id}
+              draggable={editingState?.id !== item.id}
+              onDragStart={(event) => handleDragStart(event, item.id)}
+              onDragOver={(event) => handleDragOver(event, item)}
+              onDrop={handleDrop}
+              onDragEnd={handleDragEnd}
               style={{
                 display: 'flex',
                 alignItems: 'center',
@@ -265,10 +324,20 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 background: 'var(--app-surface-elevated)',
                 border: '1px solid rgba(51, 65, 85, 0.5)',
                 borderRadius: '6px',
-                padding: '6px 10px',
+                padding: '6px 10px 6px 4px',
                 gap: '8px',
+                opacity: draggingId === item.id ? 0.4 : 1,
+                boxShadow: dropTarget?.id === item.id
+                  ? `inset 0 ${dropTarget.position === 'before' ? '2px' : '-2px'} 0 var(--app-accent)`
+                  : 'none',
               }}
             >
+              <GripVertical
+                size={13}
+                color="var(--app-muted)"
+                style={{ flexShrink: 0, cursor: 'grab' }}
+                aria-label="Arrastar para reordenar"
+              />
               <div
                 onClick={() => handleToggle(item.id)}
                 style={{
@@ -380,8 +449,8 @@ export const todoWidget: WidgetDefinition = {
   manifest: {
     id: 'todo',
     name: 'Lista de Tarefas',
-    version: '1.0.0',
-    description: 'To-do List com visualização por dia/semana e rotativo de tarefas pendentes.',
+    version: '1.1.0',
+    description: 'To-do List com visualização por dia/semana, reordenação por arraste e rotativo de tarefas pendentes.',
     icon: 'CheckSquare',
     author: 'Dashboard Core',
     status: 'stable',

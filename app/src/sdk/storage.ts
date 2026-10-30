@@ -69,12 +69,16 @@ export async function restoreDashboardBackup(backup: DashboardBackup): Promise<v
 
   const records = backup.records;
 
-  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(backup.profile));
-
+  // Dados primeiro, em transação: se a gravação falhar, nada é apagado
+  // e o perfil atual permanece intacto.
   if (backup.scope === 'canvas-and-data') {
-    await db.kvStore.clear();
-    await db.kvStore.bulkPut(records!);
+    await db.transaction('rw', db.kvStore, async () => {
+      await db.kvStore.clear();
+      await db.kvStore.bulkPut(records!);
+    });
   }
+
+  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(backup.profile));
 }
 
 export class ScopedWidgetStorage implements WidgetStorage {

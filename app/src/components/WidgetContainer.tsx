@@ -148,8 +148,8 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
   }, []);
 
   const WidgetComponent = widgetDef.component;
+  // O status é apenas informativo (selo na barra de título); não bloqueia a interação.
   const status = widgetDef.manifest.status || 'stable';
-  const isInactive = status === 'in_development' || status === 'needs_improvement';
 
   return (
     <div
@@ -224,7 +224,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
 
           {status === 'in_development' && (
             <span
-              title="Este widget está em desenvolvimento e desativado para interação."
+              title="Este widget está em desenvolvimento e pode apresentar limitações."
               style={{
                 display: 'inline-flex',
                 alignItems: 'center',
@@ -399,8 +399,6 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
           overflow: 'auto',
           boxSizing: 'border-box',
           position: 'relative',
-          opacity: isInactive ? 0.6 : 1,
-          pointerEvents: isInactive ? 'none' : 'auto',
         }}
       >
         <WidgetComponent context={context} />

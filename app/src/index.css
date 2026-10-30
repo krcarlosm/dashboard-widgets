@@ -58,6 +58,25 @@ select {
   animation: spin 1s linear infinite;
 }
 
+/* Widget de Notas: texto de exemplo do editor Rich (não faz parte do conteúdo) e imagens. */
+.notes-rich:empty::before {
+  content: attr(data-placeholder);
+  color: var(--app-muted);
+  font-style: italic;
+  pointer-events: none;
+}
+
+.notes-rich,
+.notes-markdown {
+  user-select: text;
+}
+
+.notes-rich img,
+.notes-markdown img {
+  max-width: 100%;
+  border-radius: 6px;
+}
+
 /* Grid Layout & Resizable Handle Customizations */
 .react-grid-item {
   transition: left 200ms ease, top 200ms ease, width 200ms ease, height 200ms ease;

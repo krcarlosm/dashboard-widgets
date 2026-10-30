@@ -13,6 +13,7 @@ interface DashboardState {
   density: ProfileAppearance['density'];
   accentColor: ProfileAppearance['accentColor'];
   canvasPreset: ProfileAppearance['canvasPreset'];
+  profileCreatedAt: string;
 
   registerWidget: (widget: WidgetDefinition) => void;
   loadProfile: () => void;
@@ -136,6 +137,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   density: DEFAULT_APPEARANCE.density,
   accentColor: DEFAULT_APPEARANCE.accentColor,
   canvasPreset: DEFAULT_APPEARANCE.canvasPreset,
+  profileCreatedAt: new Date().toISOString(),
 
   registerWidget: (widget) => {
     set((state) => {
@@ -158,6 +160,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
           density: appearance.density,
           accentColor: appearance.accentColor,
           canvasPreset: appearance.canvasPreset,
+          profileCreatedAt: manifest.createdAt || new Date().toISOString(),
         });
         return;
       }
@@ -168,11 +171,11 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
   },
 
   saveProfile: () => {
-    const { activeInstances, theme, density, accentColor, canvasPreset } = get();
+    const { activeInstances, theme, density, accentColor, canvasPreset, profileCreatedAt } = get();
     const manifest: ProfileManifest = {
       schemaVersion: 1,
       name: 'Meu Dashboard',
-      createdAt: new Date().toISOString(),
+      createdAt: profileCreatedAt,
       updatedAt: new Date().toISOString(),
       appearance: { theme, density, accentColor, canvasPreset },
       widgets: activeInstances,
@@ -322,6 +325,7 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       density: DEFAULT_APPEARANCE.density,
       accentColor: DEFAULT_APPEARANCE.accentColor,
       canvasPreset: DEFAULT_APPEARANCE.canvasPreset,
+      profileCreatedAt: new Date().toISOString(),
     });
     get().saveProfile();
 

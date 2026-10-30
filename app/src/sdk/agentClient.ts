@@ -172,23 +172,17 @@ export class LocalAgentClient implements AgentClientProtocol {
     }
 
     return await new Promise<boolean>((resolve) => {
-      const ackUnsubscribe = this.subscribe('handshake:ack', () => {
+      // Resolve uma única vez: com o ack, com a rejeição ou após 2 s sem resposta.
+      const finish = (result: boolean) => {
+        window.clearTimeout(timeout);
         ackUnsubscribe();
         rejectUnsubscribe();
-        resolve(true);
-      });
+        resolve(result);
+      };
 
-      const rejectUnsubscribe = this.subscribe('handshake:rejected', () => {
-        ackUnsubscribe();
-        rejectUnsubscribe();
-        resolve(false);
-      });
-
-      const timeout = window.setTimeout(() => {
-        ackUnsubscribe();
-        rejectUnsubscribe();
-        resolve(false);
-      }, 2000);
+      const ackUnsubscribe = this.subscribe('handshake:ack', () => finish(true));
+      const rejectUnsubscribe = this.subscribe('handshake:rejected', () => finish(false));
+      const timeout = window.setTimeout(() => finish(false), 2000);
 
       this.send({
         type: 'handshake',
@@ -198,8 +192,6 @@ export class LocalAgentClient implements AgentClientProtocol {
           token,
         },
       });
-
-      window.setTimeout(() => window.clearTimeout(timeout), 0);
     });
   }
 
