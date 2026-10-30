@@ -11,10 +11,55 @@ O projeto consiste em um dashboard customizável, onde o usuário pode adicionar
 
 ## 🚀 Visão Geral e Recursos Principais
 
-- **Canvas Modular Responsivo:** Layout flexível com persistência local via `IndexedDB` e `localStorage`.
-- **Coleção de Widgets Integrados:** Notas Rápidas, Pomodoro Multiferramenta, Lista de Tarefas, Gerador de Ruído, Snippets, Conversores de Unidades, Calculadora de Datas, Regra de Três, Memória Baú, Monitor de Arquivos Editados e muito mais.
-- **Agente Local em Python:** Comunicação bidirecional via WebSocket para recursos do sistema operacional (captura de tela, área de transferência, indexação de arquivos, monitoramento). O Agente Python serve apenas para os widgets (aplicativos) que dependem de recursos do sistema operacional. Caso não queira usá-los, não precisa iniciá-lo.
-- **Temas e Personalização:** Suporte a modo Claro/Escuro, densidade de grid (Confortável/Compacto) e cores de acento personalizadas por instância de widget - quando você usa múltiplas instâncias do widget `Lista de Tarefas`, por exemplo, você pode mudar a cor de cada lista, ou ainda, mudar o título da lista, para que assim você possa localizar facilmente lista de tarefas distintas.
+
+## 💾 Onde as informações ficam armazenadas
+
+O dashboard utiliza dois mecanismos de persistência no navegador. Nenhum desses dados é enviado para um servidor externo pelo frontend.
+
+### Perfil e composição do canvas
+
+O perfil do dashboard é salvo no `localStorage` do navegador, na chave `dashboard_profile_v1`. Esse registro contém o manifesto do canvas, incluindo:
+
+- quais widgets estão ativos e a identificação de cada instância (`instanceId`);
+- o tipo de cada widget (`widgetId`);
+- a posição no grid (`x` e `y`), o tamanho (`w` e `h`) e o identificador usado pelo `react-grid-layout` (`i`);
+- o estado de bloqueio, a cor individual e as configurações leves de cada instância;
+- aparência global, como tema, densidade, cor de acento e plano de fundo do canvas;
+- versão do schema e datas de criação e atualização do perfil.
+
+Em resumo, o `localStorage` define a composição do canvas: quais blocos aparecem, onde ficam e qual é o seu tamanho. O grid possui 12 colunas; a altura é calculada conforme as linhas ocupadas pelos widgets.
+
+### Conteúdo dos widgets
+
+Os dados maiores ou específicos de cada widget são armazenados em um banco IndexedDB chamado `DashboardWidgetsDB`, usando a tabela `kvStore`. O armazenamento é isolado por instância: cada registro usa o formato `${instanceId}:${key}`. Assim, duas instâncias do mesmo widget não misturam seus conteúdos.
+
+Atualmente, os principais dados ficam nestas chaves:
+
+| Widget | Chaves armazenadas | Conteúdo |
+| --- | --- | --- |
+| Notas Rápidas | `content`, `updatedAt`, `mode` | Texto da anotação, horário da última gravação e modo de edição |
+| Lista de Tarefas | `items`, `lastOpenedDate` | Tarefas, status, datas e controle da última abertura |
+| Kanban | `kanban_items` | Cartões, texto, status da coluna e data de criação |
+| Snippets | `snippets` | Título, conteúdo, linguagem, categoria, favoritos e data de criação |
+
+O conteúdo desses widgets não fica dentro do manifesto do `localStorage`. Essa separação permite que o layout seja alterado sem regravar listas, notas ou históricos inteiros. Outros widgets que utilizam `context.storage` seguem o mesmo modelo de armazenamento isolado; widgets legados que usam `localStorage` diretamente podem ter uma chave própria documentada no respectivo código.
+
+### Backup e recuperação
+
+O menu de perfil agora oferece duas opções de exportação:
+
+- **Somente Canvas**: salva o perfil, layout, aparência e configurações dos widgets.
+- **Canvas + Anotações**: inclui também todos os registros do IndexedDB, incluindo registros antigos que ficaram órfãos após a recriação de uma instância.
+
+Quando o Agente Local está ativo, o arquivo é gravado automaticamente em:
+
+```text
+C:\Users\<usuário>\Documents\Dashboard Backups
+```
+
+Os arquivos usam o nome `dashboard-backup-AAAA-MM-DD_HH-MM-SS.json`. O botão **Abrir pasta de backups** abre esse diretório no Explorer. Se o agente não estiver disponível, a exportação usa o download do navegador como fallback.
+
+A importação valida o formato e solicita confirmação antes de substituir o canvas. Backups completos também restauram os dados do IndexedDB. Recomenda-se gerar um backup completo antes de resetar, remover ou recriar widgets.
 
 ---
 

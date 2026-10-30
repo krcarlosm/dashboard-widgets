@@ -1,5 +1,6 @@
 import Dexie, { Table } from 'dexie';
 import { WidgetStorage } from './types';
+import type { ProfileManifest } from '../types/profile';
 
 export interface StorageRecord {
   id: string; // `${instanceId}:${key}`
@@ -8,6 +9,19 @@ export interface StorageRecord {
   value: any;
   updatedAt: number;
 }
+
+export type BackupScope = 'canvas' | 'canvas-and-data';
+
+export interface DashboardBackup {
+  format: 'dashboard-backup';
+  version: 1;
+  scope: BackupScope;
+  exportedAt: string;
+  profile: ProfileManifest;
+  records?: StorageRecord[];
+}
+
+export const PROFILE_STORAGE_KEY = 'dashboard_profile_v1';
 
 class DashboardDatabase extends Dexie {
   kvStore!: Table<StorageRecord, string>;
@@ -21,6 +35,47 @@ class DashboardDatabase extends Dexie {
 }
 
 export const db = new DashboardDatabase();
+
+export async function createDashboardBackup(scope: BackupScope): Promise<DashboardBackup> {
+  const rawProfile = localStorage.getItem(PROFILE_STORAGE_KEY);
+  if (!rawProfile) {
+    throw new Error('Nenhum perfil do dashboard foi encontrado.');
+  }
+
+  const profile = JSON.parse(rawProfile) as ProfileManifest;
+  const backup: DashboardBackup = {
+    format: 'dashboard-backup',
+    version: 1,
+    scope,
+    exportedAt: new Date().toISOString(),
+    profile,
+  };
+
+  if (scope === 'canvas-and-data') {
+    backup.records = await db.kvStore.toArray();
+  }
+
+  return backup;
+}
+
+export async function restoreDashboardBackup(backup: DashboardBackup): Promise<void> {
+  if (backup.format !== 'dashboard-backup' || backup.version !== 1 || !backup.profile || !Array.isArray(backup.profile.widgets)) {
+    throw new Error('Arquivo de recuperação inválido ou incompatível.');
+  }
+
+  if (backup.scope === 'canvas-and-data' && !Array.isArray(backup.records)) {
+    throw new Error('O arquivo completo não contém os dados dos widgets.');
+  }
+
+  const records = backup.records;
+
+  localStorage.setItem(PROFILE_STORAGE_KEY, JSON.stringify(backup.profile));
+
+  if (backup.scope === 'canvas-and-data') {
+    await db.kvStore.clear();
+    await db.kvStore.bulkPut(records!);
+  }
+}
 
 export class ScopedWidgetStorage implements WidgetStorage {
   private instanceId: string;

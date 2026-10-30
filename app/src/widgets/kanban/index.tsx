@@ -91,7 +91,7 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   };
 
   const columns: { id: KanbanStatus; label: string; icon: React.ReactNode; color: string; badgeBg: string }[] = [
-    { id: 'todo', label: 'À Fazer', icon: <CircleDot size={12} color="#94a3b8" />, color: '#94a3b8', badgeBg: 'rgba(148, 163, 184, 0.15)' },
+    { id: 'todo', label: 'À Fazer', icon: <CircleDot size={12} color="var(--app-accent)" />, color: '#94a3b8', badgeBg: 'rgba(148, 163, 184, 0.15)' },
     { id: 'in_progress', label: 'Em Andamento', icon: <Clock size={12} color="var(--app-accent)" />, color: 'var(--app-accent)', badgeBg: 'var(--app-accent-soft)' },
     { id: 'done', label: 'Concluído', icon: <CheckCircle2 size={12} color="#34d399" />, color: '#34d399', badgeBg: 'rgba(52, 211, 153, 0.15)' },
   ];

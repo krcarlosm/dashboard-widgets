@@ -203,6 +203,34 @@ export class LocalAgentClient implements AgentClientProtocol {
     });
   }
 
+  private async httpRequest<T>(path: string, options: RequestInit = {}): Promise<T> {
+    const token = await this.loadToken();
+    if (!token) throw new Error('Agente local não autenticado.');
+
+    const response = await fetch(`${DEFAULT_AGENT_HTTP_URL}${path}`, {
+      ...options,
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json',
+        'X-Dashboard-Agent-Token': token,
+        ...(options.headers || {}),
+      },
+    });
+    const payload = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(typeof payload?.detail === 'string' ? payload.detail : `Agente local retornou HTTP ${response.status}.`);
+    }
+    return payload as T;
+  }
+
+  public async saveBackup(backup: unknown): Promise<{ path: string; directory: string }> {
+    return this.httpRequest('/backups', { method: 'POST', body: JSON.stringify(backup) });
+  }
+
+  public async openBackupDirectory(): Promise<{ directory: string }> {
+    return this.httpRequest('/backups/open-directory', { method: 'POST' });
+  }
+
   public subscribe(eventType: string, callback: EventCallback): () => void {
     if (!this.subscribers.has(eventType)) {
       this.subscribers.set(eventType, new Set());

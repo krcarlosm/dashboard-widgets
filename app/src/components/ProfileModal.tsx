@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
 import { X, User, HardDrive, Cpu, Download, Upload, ShieldCheck, MoonStar, SunMedium, Sparkles, RotateCcw } from 'lucide-react';
-import { db } from '../sdk/storage';
+import { BackupScope, createDashboardBackup, db, restoreDashboardBackup } from '../sdk/storage';
+import { defaultAgentClient } from '../sdk/agentClient';
 import { backgroundMap, CanvasPreset } from './themeGradients';
 
 const canvasPresetLabels: Record<CanvasPreset, string> = {
@@ -60,6 +61,58 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
 
   const [storageCount, setStorageCount] = useState<number>(0);
   const [estimatedSizeKb, setEstimatedSizeKb] = useState<number>(0);
+  const [backupScope, setBackupScope] = useState<BackupScope>('canvas-and-data');
+  const [backupMessage, setBackupMessage] = useState<string>('');
+
+  const handleExport = async () => {
+    try {
+      const backup = await createDashboardBackup(backupScope);
+      if (defaultAgentClient.saveBackup) {
+        try {
+          const saved = await defaultAgentClient.saveBackup(backup);
+          setBackupMessage(`Backup salvo em ${saved.path}`);
+          return;
+        } catch (agentError) {
+          console.warn('[ProfileModal] Agente indisponível; usando download do navegador:', agentError);
+        }
+      }
+      const file = new Blob([JSON.stringify(backup, null, 2)], { type: 'application/json' });
+      const url = URL.createObjectURL(file);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `dashboard-backup-${new Date().toISOString().slice(0, 10)}.json`;
+      link.click();
+      URL.revokeObjectURL(url);
+      setBackupMessage('Arquivo de recuperação exportado.');
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? error.message : 'Não foi possível exportar o backup.');
+    }
+  };
+
+  const handleOpenBackupDirectory = async () => {
+    try {
+      if (!defaultAgentClient.openBackupDirectory) throw new Error('Agente local indisponível.');
+      const result = await defaultAgentClient.openBackupDirectory();
+      setBackupMessage(`Pasta de backups aberta: ${result.directory}`);
+    } catch {
+      setBackupMessage('Inicie o agente local para abrir a pasta Dashboard Backups.');
+    }
+  };
+
+  const handleImport = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    event.target.value = '';
+    if (!file) return;
+
+    try {
+      const backup = JSON.parse(await file.text());
+      if (!window.confirm('A importação substituirá o canvas atual e, se incluídos, os dados dos widgets. Continuar?')) return;
+      await restoreDashboardBackup(backup);
+      window.location.reload();
+    } catch (error) {
+      setBackupMessage(error instanceof Error ? error.message : 'Não foi possível importar o arquivo.');
+    }
+  };
 
   useEffect(() => {
     if (!isOpen) return;
@@ -324,14 +377,22 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
             </button>
           </div>
 
-          {/* Seção Import / Export (Placeholder Fase 5) */}
+          {/* Portabilidade e recuperação local */}
           <div style={{ borderTop: '1px solid var(--app-border)', paddingTop: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <span style={{ fontSize: '11px', fontWeight: 600, color: '#64748b', textTransform: 'uppercase' }}>
-              Portabilidade do Perfil (Fase 5)
+              Backup e recuperação
             </span>
-            <div style={{ display: 'flex', gap: '10px' }}>
+            <select
+              value={backupScope}
+              onChange={(event) => setBackupScope(event.target.value as BackupScope)}
+              style={{ background: 'var(--app-surface-elevated)', color: 'var(--app-text)', border: '1px solid var(--app-accent-border)', borderRadius: '6px', padding: '7px 9px', fontSize: '12px' }}
+            >
+              <option value="canvas">Somente Canvas</option>
+              <option value="canvas-and-data">Canvas + Anotações</option>
+            </select>
+            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
               <button
-                disabled
+                onClick={handleExport}
                 style={{
                   flex: 1,
                   background: 'var(--app-surface-elevated)',
@@ -345,8 +406,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
-                  cursor: 'not-allowed',
-                  opacity: 0.7,
+                  cursor: 'pointer',
                 }}
               >
                 <Download size={14} />
@@ -354,7 +414,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
               </button>
 
               <button
-                disabled
+                onClick={() => document.getElementById('dashboard-backup-input')?.click()}
                 style={{
                   flex: 1,
                   background: 'var(--app-surface-elevated)',
@@ -368,14 +428,36 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: '6px',
-                  cursor: 'not-allowed',
-                  opacity: 0.7,
+                  cursor: 'pointer',
                 }}
               >
                 <Upload size={14} />
                 <span>Importar Perfil</span>
               </button>
+              <button
+                onClick={handleOpenBackupDirectory}
+                style={{
+                  flex: '1 1 100%',
+                  background: 'var(--app-accent-soft)',
+                  color: 'var(--app-accent)',
+                  border: '1px solid var(--app-accent-border)',
+                  borderRadius: '6px',
+                  padding: '8px',
+                  fontSize: '12px',
+                  fontWeight: 500,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '6px',
+                  cursor: 'pointer',
+                }}
+              >
+                <HardDrive size={14} />
+                <span>Abrir pasta de backups</span>
+              </button>
+              <input id="dashboard-backup-input" type="file" accept="application/json,.json" onChange={handleImport} style={{ display: 'none' }} />
             </div>
+            {backupMessage && <span style={{ fontSize: '11px', color: 'var(--app-muted)' }}>{backupMessage}</span>}
           </div>
         </div>
 

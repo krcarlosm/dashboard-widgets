@@ -3,6 +3,8 @@ import json
 import logging
 import os
 import secrets
+import subprocess
+import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException
@@ -31,6 +33,14 @@ index_store = EditIndexStore(AGENT_HOME)
 clipboard_monitor = ClipboardMonitor(storage_dir=storage_dir, broadcast_fn=lambda payload: None)
 purge_service = PurgeService(storage_dir=storage_dir)
 screenshot_capture = ScreenshotCapture(storage_dir=storage_dir)
+backup_dir = Path.home() / "Documents" / "Dashboard Backups"
+backup_dir.mkdir(parents=True, exist_ok=True)
+
+
+def validate_http_token(request: Request) -> None:
+    token = request.headers.get("x-dashboard-agent-token")
+    if not auth.validate_token(token):
+        raise HTTPException(status_code=401, detail="Token do agente inválido")
 
 
 @asynccontextmanager
@@ -93,6 +103,34 @@ async def get_auth_token(request: Request):
     if origin and origin not in ALLOWED_ORIGINS:
         raise HTTPException(status_code=403, detail="Origem não autorizada")
     return {"token": TOKEN}
+
+
+@app.post("/backups")
+async def save_backup(request: Request):
+    validate_http_token(request)
+    payload = await request.json()
+    if not isinstance(payload, dict) or payload.get("format") != "dashboard-backup":
+        raise HTTPException(status_code=400, detail="Formato de backup inválido")
+
+    from datetime import datetime
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    backup_path = backup_dir / f"dashboard-backup-{timestamp}.json"
+    temporary_path = backup_path.with_suffix(".tmp")
+    temporary_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    temporary_path.replace(backup_path)
+    return {"path": str(backup_path), "directory": str(backup_dir)}
+
+
+@app.post("/backups/open-directory")
+async def open_backup_directory(request: Request):
+    validate_http_token(request)
+    if sys.platform == "win32":
+        os.startfile(str(backup_dir))
+    elif sys.platform == "darwin":
+        subprocess.Popen(["open", str(backup_dir)])
+    else:
+        subprocess.Popen(["xdg-open", str(backup_dir)])
+    return {"directory": str(backup_dir)}
 
 
 @app.websocket("/ws")

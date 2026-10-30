@@ -19,16 +19,16 @@ import { X, GripHorizontal, Wrench, AlertTriangle, Lock, Unlock, Palette, Pencil
 //   Não é necessário alterar nenhum outro arquivo.
 // ─────────────────────────────────────────────────────────────────────────────
 export const COLOR_PRESETS: Record<string, { label: string; bg: string; border: string; accent: string }> = {
-  default:  { label: 'Padrão Slate',      bg: 'rgba(30, 41, 59, 0.6)',    border: 'rgba(51, 65, 85, 0.7)',    accent: '#64748b' },
-  sky:      { label: 'Azul Sky',          bg: 'rgba(2, 132, 199, 0.18)',  border: 'rgba(56, 189, 248, 0.5)',  accent: '#38bdf8' },
-  emerald:  { label: 'Verde Esmeralda',   bg: 'rgba(5, 150, 105, 0.18)',  border: 'rgba(52, 211, 153, 0.5)',  accent: '#34d399' },
-  violet:   { label: 'Roxo Violeta',      bg: 'rgba(124, 58, 237, 0.18)', border: 'rgba(167, 139, 250, 0.5)', accent: '#a78bfa' },
-  amber:    { label: 'Âmbar Dourado',     bg: 'rgba(217, 119, 6, 0.18)',  border: 'rgba(251, 191, 36, 0.5)',  accent: '#fbbf24' },
-  rose:     { label: 'Rosa Rose',         bg: 'rgba(225, 29, 72, 0.18)',  border: 'rgba(251, 113, 133, 0.5)', accent: '#fb7185' },
-  indigo:   { label: 'Índigo Azul',       bg: 'rgba(79, 70, 229, 0.18)',  border: 'rgba(129, 140, 248, 0.5)', accent: '#818cf8' },
-  teal:     { label: 'Verde Teal',        bg: 'rgba(13, 148, 136, 0.18)', border: 'rgba(45, 212, 191, 0.5)',  accent: '#2dd4bf' },
-  fuchsia:  { label: 'Magenta Fuchsia',   bg: 'rgba(192, 38, 211, 0.18)', border: 'rgba(232, 121, 249, 0.5)', accent: '#e879f9' },
-  orange:   { label: 'Laranja Sunset',    bg: 'rgba(234, 88, 12, 0.18)',  border: 'rgba(251, 146, 60, 0.5)',  accent: '#fb923c' },
+  default:  { label: 'Padrão Slate',      bg: 'rgba(30, 41, 59, 0.1)',    border: 'rgba(51, 65, 85, 0.7)',    accent: '#64748b' },
+  sky:      { label: 'Azul Sky',          bg: 'rgba(2, 132, 199, 0.22)',  border: 'rgba(56, 189, 248, 0.5)',  accent: '#38bdf8' },
+  emerald:  { label: 'Verde Esmeralda',   bg: 'rgba(5, 150, 105, 0.22)',  border: 'rgba(52, 211, 153, 0.5)',  accent: '#34d399' },
+  violet:   { label: 'Roxo Violeta',      bg: 'rgba(124, 58, 237, 0.22)', border: 'rgba(167, 139, 250, 0.5)', accent: '#a78bfa' },
+  amber:    { label: 'Âmbar Dourado',     bg: 'rgba(217, 119, 6, 0.22)',  border: 'rgba(251, 191, 36, 0.5)',  accent: '#fbbf24' },
+  rose:     { label: 'Rosa Rose',         bg: 'rgba(225, 29, 72, 0.22)',  border: 'rgba(251, 113, 133, 0.5)', accent: '#fb7185' },
+  indigo:   { label: 'Índigo Azul',       bg: 'rgba(79, 70, 229, 0.22)',  border: 'rgba(129, 140, 248, 0.5)', accent: '#818cf8' },
+  teal:     { label: 'Verde Teal',        bg: 'rgba(13, 148, 136, 0.22)', border: 'rgba(45, 212, 191, 0.5)',  accent: '#2dd4bf' },
+  fuchsia:  { label: 'Magenta Fuchsia',   bg: 'rgba(192, 38, 211, 0.22)', border: 'rgba(232, 121, 249, 0.5)', accent: '#e879f9' },
+  orange:   { label: 'Laranja Sunset',    bg: 'rgba(234, 88, 12, 0.22)',  border: 'rgba(251, 146, 60, 0.5)',  accent: '#fb923c' },
 };
 
 interface WidgetContainerProps {
@@ -69,8 +69,8 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
 
   // Fundo do card inteiro: ligeiramente diferente quando há preset de cor ativo.
   const containerBg = colorPreset !== 'default'
-    ? (isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.85)')
-    : (isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(15, 23, 42, 0.85)');
+    ? (isLight ? '#ffffff' : 'rgba(15, 23, 42, 0.35)')
+    : (isLight ? 'rgba(255, 255, 255, 0.94)' : 'rgba(15, 23, 42, 0.55)');
 
   // CORREÇÃO DE BUG: a barra de título usa SEMPRE o colorPreset do usuário,
   // independente de isLocked. Antes, quando isLocked=true, o fundo da barra

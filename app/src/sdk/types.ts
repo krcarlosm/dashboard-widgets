@@ -36,7 +36,10 @@ export interface AgentClientProtocol {
   disconnect(): void;
   send(message: AgentMessage): void;
   subscribe(eventType: string, callback: (payload: any) => void): () => void;
+  onStatusChange(listener: (connected: boolean) => void): () => void;
   checkHealth(): Promise<boolean>;
+  saveBackup?(backup: unknown): Promise<{ path: string; directory: string }>;
+  openBackupDirectory?(): Promise<{ directory: string }>;
 }
 
 export interface WidgetContext<TConfig = Record<string, any>> {

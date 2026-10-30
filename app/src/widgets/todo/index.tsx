@@ -17,7 +17,9 @@ interface EditingState {
 
 const getTodayString = (): string => {
   const d = new Date();
-  return d.toISOString().split('T')[0];
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${month}-${day}`;
 };
 
 const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
