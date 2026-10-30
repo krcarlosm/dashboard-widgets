@@ -17,7 +17,10 @@ from src.bau.api import create_bau_router
 from src.bau.settings import BauSettings
 from src.bau.store import BauStore
 from src.clipboard.monitor import ClipboardMonitor
-from src.indexing.file_watcher import EditIndexStore
+from src.files.api import create_files_router
+from src.files.service import FileActivityService
+from src.files.store import ActivityStore
+from src.files.watcher import FolderSettings
 from src.protocol import AgentMessage
 from src.retention.purge import PurgeService
 from src.screenshot.capture import ScreenshotCapture
@@ -73,7 +76,6 @@ def require_token(request: Request) -> None:
 
 bau_store = BauStore(AGENT_HOME / "bau")
 bau_settings = BauSettings(AGENT_HOME)
-index_store = EditIndexStore(AGENT_HOME)
 clipboard_monitor = ClipboardMonitor(store=bau_store, broadcast_fn=broadcast)
 purge_service = PurgeService(
     store=bau_store,
@@ -83,20 +85,30 @@ purge_service = PurgeService(
 screenshot_capture = ScreenshotCapture(store=bau_store)
 backup_store = BackupStore(resolve_backup_dir())
 backup_settings = BackupSettings(AGENT_HOME)
+activity_store = ActivityStore(AGENT_HOME)
+file_activity = FileActivityService(
+    store=activity_store,
+    folder_settings=FolderSettings(AGENT_HOME),
+    broadcast=broadcast,
+    # Arquivos do próprio agente (Baú, backups) não são atividade do usuário.
+    excluded_roots=[AGENT_HOME, backup_store.directory],
+)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     await clipboard_monitor.start()
     await purge_service.start()
+    await file_activity.start()
     logger.info("Agent iniciado com monitor de clipboard e expurgo ativo")
     yield
     await clipboard_monitor.stop()
     await purge_service.stop()
+    await file_activity.stop()
     logger.info("Agent encerrado")
 
 
-app = FastAPI(title="Dashboard Local Agent", version="0.3.0", lifespan=lifespan)
+app = FastAPI(title="Dashboard Local Agent", version="0.4.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -116,6 +128,7 @@ app.include_router(
         require_token=require_token,
     )
 )
+app.include_router(create_files_router(store=activity_store, service=file_activity, require_token=require_token))
 app.include_router(
     create_backup_router(
         store=backup_store,
@@ -229,12 +242,6 @@ async def websocket_endpoint(websocket: WebSocket):
 
                 elif msg.type == "clipboard:status":
                     await send(websocket, "clipboard:status", {"paused": clipboard_monitor.is_paused()})
-
-                elif msg.type == "watcher:configure":
-                    payload = msg.payload or {}
-                    folders = payload.get("folders", []) if isinstance(payload, dict) else []
-                    index_store.save_watched_folders([str(folder) for folder in folders])
-                    await send(websocket, "watcher:configured", {"folders": index_store.load_watched_folders()})
 
             except Exception as parse_err:
                 logger.error(f"Erro ao processar mensagem JSON: {parse_err}")

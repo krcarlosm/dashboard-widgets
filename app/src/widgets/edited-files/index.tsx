@@ -1,65 +1,310 @@
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { FolderOpen, Clock3, AlertCircle } from 'lucide-react';
+import { AlertCircle, FolderOpen, FolderPlus, RefreshCw, Settings2, X } from 'lucide-react';
 
-interface EditedFileItem {
+// ─────────────────────────────────────────────────────────────────────────────
+// Top 10 Arquivos da Semana — arquivos mais abertos e editados nos últimos 7 dias.
+//
+// O agente registra:
+//  • [Aberto]: aberturas lidas dos "recentes" do sistema (Windows: pasta Recent;
+//    Linux: recently-used.xbel), a cada 2 minutos.
+//  • [Editado]: mudanças na data de modificação desses arquivos e, se houver,
+//    gravações nas pastas monitoradas (configuradas aqui). Salvamentos
+//    automáticos em sequência contam como uma edição (janela de 5 min).
+// Clicar no nome abre o arquivo no aplicativo padrão; o ícone de pasta mostra
+// o arquivo no Explorer/gerenciador de arquivos.
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface TopFile {
   path: string;
-  modifiedAt: number;
+  name: string;
+  folder: string;
+  opened: number;
+  edited: number;
+  total: number;
+  lastOpened: number | null;
+  lastEdited: number | null;
+  lastAccess: number;
 }
 
-const EditedFilesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
-  const [items, setItems] = useState<EditedFileItem[]>([]);
-  const [isAgentReady, setIsAgentReady] = useState(context.agentClient.isConnected);
+interface TopResponse {
+  items: TopFile[];
+  windowDays: number;
+  folders: string[];
+}
 
-  useEffect(() => {
-    const unsubscribe = context.agentClient.subscribe('handshake:ack', () => setIsAgentReady(true));
-    return unsubscribe;
-  }, [context.agentClient]);
+type FileFilter = 'all' | 'opened' | 'edited';
 
+interface TopFilesConfig {
+  filter?: FileFilter;
+}
+
+const REFRESH_DEBOUNCE_MS = 500;
+
+const FILTERS: { id: FileFilter; label: string }[] = [
+  { id: 'all', label: 'Todos' },
+  { id: 'opened', label: 'Abertos' },
+  { id: 'edited', label: 'Editados' },
+];
+
+const formatRelative = (timestamp: number): string => {
+  const diffMinutes = Math.floor((Date.now() - timestamp) / 60000);
+  if (diffMinutes < 1) return 'agora';
+  if (diffMinutes < 60) return `há ${diffMinutes} min`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `há ${diffHours} h`;
+  const diffDays = Math.floor(diffHours / 24);
+  return diffDays === 1 ? 'ontem' : `há ${diffDays} dias`;
+};
+
+const tagStyle = (kind: 'opened' | 'edited'): React.CSSProperties => ({
+  fontSize: '9px',
+  fontWeight: 700,
+  padding: '1px 5px',
+  borderRadius: '4px',
+  flexShrink: 0,
+  background: kind === 'edited' ? 'rgba(251, 191, 36, 0.16)' : 'var(--app-accent-soft)',
+  color: kind === 'edited' ? '#fbbf24' : 'var(--app-accent)',
+  border: `1px solid ${kind === 'edited' ? 'rgba(251, 191, 36, 0.35)' : 'var(--app-accent-border)'}`,
+});
+
+const TopFilesWidget: React.FC<WidgetComponentProps<TopFilesConfig>> = ({ context }) => {
+  const { agentClient, config, updateConfig } = context;
+  const filter = config.filter ?? 'all';
+  const isCompact = context.dimensions.width > 0 && context.dimensions.width < 330;
+
+  const [isAgentReady, setIsAgentReady] = useState(agentClient.isConnected);
+  const [items, setItems] = useState<TopFile[]>([]);
+  const [folders, setFolders] = useState<string[]>([]);
+  const [windowDays, setWindowDays] = useState(7);
+  const [error, setError] = useState<string | null>(null);
+  const [isScanning, setIsScanning] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [newFolder, setNewFolder] = useState('');
+  const [hasLoaded, setHasLoaded] = useState(false);
+  const refreshTimerRef = useRef<any>(null);
+
+  // A versão anterior guardava uma lista local que nunca era preenchida.
   useEffect(() => {
-    const saved = localStorage.getItem(`widget:${context.instanceId}:edited-files`);
-    if (saved) {
-      try {
-        setItems(JSON.parse(saved));
-      } catch {
-        // ignore
-      }
-    }
+    localStorage.removeItem(`widget:${context.instanceId}:edited-files`);
   }, [context.instanceId]);
 
+  const loadItems = useCallback(async () => {
+    if (!agentClient.isConnected) return;
+    const params = new URLSearchParams({ limit: '10' });
+    if (filter !== 'all') params.set('kind', filter);
+    try {
+      const data = await agentClient.requestJson<TopResponse>(`/files/top?${params}`);
+      setItems(data.items);
+      setFolders(data.folders);
+      setWindowDays(data.windowDays);
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível carregar o Top 10.');
+    } finally {
+      setHasLoaded(true);
+    }
+  }, [agentClient, filter]);
+
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    refreshTimerRef.current = setTimeout(() => void loadItems(), REFRESH_DEBOUNCE_MS);
+  }, [loadItems]);
+
   useEffect(() => {
-    localStorage.setItem(`widget:${context.instanceId}:edited-files`, JSON.stringify(items));
-  }, [context.instanceId, items]);
+    void loadItems();
+  }, [loadItems, isAgentReady]);
+
+  useEffect(() => {
+    const unsubscribers = [agentClient.onStatusChange(setIsAgentReady), agentClient.subscribe('files:updated', scheduleRefresh)];
+    // Os tempos relativos ("há 5 min") envelhecem mesmo sem eventos novos.
+    const interval = setInterval(scheduleRefresh, 5 * 60 * 1000);
+    return () => {
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+      clearInterval(interval);
+      if (refreshTimerRef.current) clearTimeout(refreshTimerRef.current);
+    };
+  }, [agentClient, scheduleRefresh]);
+
+  const handleScan = async () => {
+    setIsScanning(true);
+    try {
+      await agentClient.requestJson('/files/scan', { method: 'POST' });
+      await loadItems();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível atualizar.');
+    } finally {
+      setIsScanning(false);
+    }
+  };
+
+  const handleOpen = async (item: TopFile, action: 'open' | 'reveal') => {
+    try {
+      await agentClient.requestJson(`/files/${action}`, { method: 'POST', body: JSON.stringify({ path: item.path }) });
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível abrir o arquivo.');
+      scheduleRefresh();
+    }
+  };
+
+  const saveFolders = async (next: string[]) => {
+    try {
+      const data = await agentClient.requestJson<{ folders: string[] }>('/files/folders', { method: 'PUT', body: JSON.stringify({ folders: next }) });
+      setFolders(data.folders);
+      setNewFolder('');
+      setError(null);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Não foi possível salvar as pastas.');
+    }
+  };
+
+  const iconButtonStyle = (active = false): React.CSSProperties => ({
+    background: active ? 'var(--app-accent-soft)' : 'transparent',
+    border: `1px solid ${active ? 'var(--app-accent-border)' : 'var(--app-border)'}`,
+    borderRadius: '6px',
+    color: active ? 'var(--app-accent)' : 'var(--app-muted)',
+    cursor: 'pointer',
+    padding: '4px 6px',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '4px',
+    fontSize: '10px',
+    fontWeight: 600,
+  });
+
+  if (!isAgentReady) {
+    return (
+      <div style={{ height: '100%', display: 'flex', alignItems: 'flex-start', fontSize: '11px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(248, 113, 113, 0.12)', color: '#fda4af', border: '1px solid rgba(248, 113, 113, 0.3)', borderRadius: '8px', padding: '8px 10px' }}>
+          <AlertCircle size={13} />
+          <span>O Agent não está disponível. Inicie o serviço local para ver os arquivos da semana.</span>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--app-text)', fontSize: '12px' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 700 }}>
-        <FolderOpen size={14} color="var(--app-accent)" />
-        <span>Top 10 Arquivos Editados</span>
+      {/* Filtros e ações */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+        <div style={{ display: 'flex', gap: '4px', background: 'var(--app-surface-muted)', padding: '2px', borderRadius: '6px', border: '1px solid var(--app-border)' }}>
+          {FILTERS.map((option) => (
+            <button
+              key={option.id}
+              onClick={() => updateConfig({ filter: option.id })}
+              style={{
+                background: filter === option.id ? 'var(--app-accent-strong)' : 'transparent',
+                color: filter === option.id ? '#ffffff' : 'var(--app-muted)',
+                border: 'none',
+                borderRadius: '4px',
+                padding: '3px 8px',
+                fontSize: '11px',
+                fontWeight: 600,
+                cursor: 'pointer',
+              }}
+            >
+              {isCompact ? option.label.slice(0, 3) : option.label}
+            </button>
+          ))}
+        </div>
+        <div style={{ flex: 1 }} />
+        <button onClick={handleScan} disabled={isScanning} title="Atualizar agora" style={iconButtonStyle()}>
+          <RefreshCw size={12} className={isScanning ? 'spin' : undefined} />
+        </button>
+        <button onClick={() => setShowSettings((value) => !value)} title="Pastas monitoradas" style={iconButtonStyle(showSettings)}>
+          <Settings2 size={12} />
+        </button>
       </div>
 
-      {!isAgentReady && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(248, 113, 113, 0.12)', color: '#fda4af', border: '1px solid rgba(248, 113, 113, 0.3)', borderRadius: '8px', padding: '8px 10px', fontSize: '11px' }}>
-          <AlertCircle size={13} />
-          <span>O Agent não está ativo; o histórico aparecerá quando a indexação estiver disponível.</span>
+      {error && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(248, 113, 113, 0.12)', color: '#fda4af', border: '1px solid rgba(248, 113, 113, 0.3)', borderRadius: '8px', padding: '6px 8px', fontSize: '11px', flexShrink: 0 }}>
+          <AlertCircle size={12} style={{ flexShrink: 0 }} />
+          <span style={{ flex: 1, wordBreak: 'break-word' }}>{error}</span>
+          <button onClick={() => setError(null)} title="Fechar" style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex' }}>
+            <X size={12} />
+          </button>
         </div>
       )}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', overflowY: 'auto' }}>
-        {items.length === 0 ? (
-          <div style={{ fontSize: '11px', color: '#64748b', border: '1px dashed rgba(51, 65, 85, 0.6)', borderRadius: '8px', padding: '10px' }}>
-            Aguardando indexação local do Agent.
+      {showSettings && (
+        <div style={{ background: 'var(--app-surface-muted)', border: '1px solid var(--app-border)', borderRadius: '8px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0, fontSize: '11px' }}>
+          <span style={{ color: 'var(--app-muted)' }}>
+            Arquivos abertos já são detectados automaticamente. Adicione pastas para registrar também edições de arquivos que você não abre pelo Explorer.
+          </span>
+          {folders.map((folder) => (
+            <div key={folder} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+              <FolderOpen size={12} color="var(--app-accent)" style={{ flexShrink: 0 }} />
+              <span title={folder} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{folder}</span>
+              <button
+                onClick={() => void saveFolders(folders.filter((item) => item !== folder))}
+                title="Parar de monitorar"
+                style={{ background: 'transparent', border: 'none', color: 'var(--app-muted)', cursor: 'pointer', padding: 0, display: 'flex' }}
+              >
+                <X size={12} />
+              </button>
+            </div>
+          ))}
+          <form
+            onSubmit={(event) => {
+              event.preventDefault();
+              if (newFolder.trim()) void saveFolders([...folders, newFolder.trim()]);
+            }}
+            style={{ display: 'flex', gap: '6px' }}
+          >
+            <input
+              value={newFolder}
+              onChange={(event) => setNewFolder(event.target.value)}
+              placeholder="Cole o caminho de uma pasta"
+              style={{ flex: 1, minWidth: 0, background: 'var(--app-input)', border: '1px solid var(--app-border)', borderRadius: '6px', color: 'var(--app-text)', fontSize: '11px', padding: '4px 6px' }}
+            />
+            <button type="submit" title="Adicionar pasta" style={iconButtonStyle()}>
+              <FolderPlus size={12} />
+            </button>
+          </form>
+        </div>
+      )}
+
+      {/* Lista */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        {hasLoaded && items.length === 0 && (
+          <div style={{ fontSize: '11px', color: 'var(--app-muted)', border: '1px dashed var(--app-border)', borderRadius: '8px', padding: '10px' }}>
+            Nenhum arquivo {filter === 'opened' ? 'aberto' : filter === 'edited' ? 'editado' : 'aberto ou editado'} nos últimos {windowDays} dias.
           </div>
-        ) : items.slice(0, 10).map((item, index) => (
-          <div key={`${item.path}-${index}`} style={{ background: 'var(--app-surface-muted)', border: '1px solid var(--app-border)', borderRadius: '8px', padding: '8px 9px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <div style={{ minWidth: 0 }}>
-              <div style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{item.path}</div>
-              <div style={{ fontSize: '10px', color: '#94a3b8', marginTop: '3px' }}>
-                <Clock3 size={10} style={{ display: 'inline', marginRight: '4px', verticalAlign: 'middle' }} />
-                {new Date(item.modifiedAt).toLocaleString('pt-BR')}
+        )}
+        {items.map((item, index) => (
+          <div
+            key={item.path}
+            style={{ background: 'var(--app-surface-muted)', border: '1px solid var(--app-border)', borderRadius: '8px', padding: '6px 8px', display: 'flex', alignItems: 'center', gap: '8px' }}
+          >
+            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--app-accent)', width: '18px', textAlign: 'right', flexShrink: 0 }}>{index + 1}</span>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
+                {item.opened > 0 && <span style={tagStyle('opened')}>{isCompact ? 'A' : 'Aberto'}</span>}
+                {item.edited > 0 && <span style={tagStyle('edited')}>{isCompact ? 'E' : 'Editado'}</span>}
+                <a
+                  href="#"
+                  onClick={(event) => {
+                    event.preventDefault();
+                    void handleOpen(item, 'open');
+                  }}
+                  title={`Abrir ${item.path}`}
+                  style={{ color: 'var(--app-text)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', textDecoration: 'none', minWidth: 0 }}
+                  onMouseEnter={(event) => (event.currentTarget.style.textDecoration = 'underline')}
+                  onMouseLeave={(event) => (event.currentTarget.style.textDecoration = 'none')}
+                >
+                  {item.name}
+                </a>
+              </div>
+              <div
+                title={[item.opened ? `Aberto ${item.opened}×` : '', item.edited ? `Editado ${item.edited}×` : ''].filter(Boolean).join(' · ')}
+                style={{ fontSize: '10px', color: 'var(--app-muted)', marginTop: '2px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}
+              >
+                {formatRelative(item.lastAccess)} · {item.total}× · {item.folder}
               </div>
             </div>
-            <span style={{ fontSize: '10px', color: 'var(--app-accent)' }}>#{index + 1}</span>
+            <button onClick={() => void handleOpen(item, 'reveal')} title="Mostrar na pasta" style={{ ...iconButtonStyle(), border: 'none', padding: '2px' }}>
+              <FolderOpen size={13} />
+            </button>
           </div>
         ))}
       </div>
@@ -67,19 +312,22 @@ const EditedFilesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   );
 };
 
-export const editedFilesWidget: WidgetDefinition = {
+export const editedFilesWidget: WidgetDefinition<TopFilesConfig> = {
   manifest: {
     id: 'edited-files',
-    name: 'Top 10 Arquivos Editados',
-    version: '0.1.0',
-    description: 'Mostra um histórico inicial de arquivos alterados pelo Agent local.',
+    name: 'Top 10 Arquivos da Semana',
+    version: '1.0.0',
+    description: 'Os 10 arquivos que você mais abriu e editou nos últimos 7 dias, com link para abrir.',
     icon: 'FolderOpen',
     author: 'Dashboard Core',
-    status: 'in_development',
-    defaultSize: { w: 4, h: 3 },
-    minSize: { w: 3, h: 2 },
-    maxSize: { w: 6, h: 5 },
+    status: 'stable',
+    defaultSize: { w: 4, h: 5 },
+    minSize: { w: 3, h: 3 },
+    maxSize: { w: 8, h: 8 },
     requiresAgent: true,
   },
-  component: EditedFilesWidget,
+  component: TopFilesWidget,
+  lifecycle: {
+    getExportableDefaults: () => ({ filter: 'all' }),
+  },
 };

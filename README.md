@@ -164,6 +164,15 @@ Como explicado anteriormente, o Agente Python serve apenas para que os widgets q
 - Clicar em um item o coloca de volta na área de transferência.
 - No Linux, o Baú depende de `wl-clipboard` (Wayland) ou `xclip` (X11). A captura de tela no Wayland usa `grim`, `gnome-screenshot` ou `spectacle`.
 
+### Top 10 Arquivos da Semana
+
+- Lista os 10 arquivos mais acessados nos **últimos 7 dias**, somando aberturas e edições. As etiquetas **Aberto** e **Editado** indicam o que aconteceu com cada um, e os filtros mostram só um dos tipos.
+- **Aberturas** vêm dos arquivos recentes do próprio sistema, lidos a cada 2 minutos: a pasta *Recent* no Windows e `~/.local/share/recently-used.xbel` no Linux.
+- **Edições** são detectadas quando a data de modificação de um arquivo da lista muda. Para registrar também arquivos que você não abre pelo Explorer, adicione **pastas monitoradas** nas configurações do widget. Gravações seguidas em 5 minutos (salvamento automático) contam como uma edição.
+- Clicar no nome abre o arquivo no aplicativo padrão; o ícone de pasta o mostra no Explorer/gerenciador de arquivos. O agente só abre arquivos do próprio histórico, e scripts/executáveis (`.exe`, `.ps1`, `.bat`…) são apenas mostrados na pasta.
+- Ficam de fora temporários e arquivos de bloqueio (`~$*`, `*.tmp`, `.~lock*`), pastas, pastas ocultas e de ferramentas (`.git`, `node_modules`, `*.egg-info`) e os arquivos do próprio agente (Baú e backups).
+- O histórico fica em `~/.dashboard-agent/file_activity.db` e é mantido por 30 dias. O arquivo antigo `edits_index.db` não é mais usado e pode ser apagado.
+
 ### Segurança do agente
 
 O agente aceita conexões apenas de `127.0.0.1` e das origens do dashboard (`ALLOWED_ORIGINS`). Todo comando via WebSocket e toda rota HTTP de dados exigem o token local salvo em `~/.dashboard-agent/auth.token`; sem o handshake, nenhuma informação da área de transferência é enviada ao cliente.
