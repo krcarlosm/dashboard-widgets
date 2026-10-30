@@ -209,7 +209,7 @@ export const Sidebar: React.FC = () => {
                 <h1 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--app-text)', whiteSpace: 'nowrap' }}>
                   Dashboard
                 </h1>
-                <span style={{ fontSize: '10px', color: '#94a3b8' }}>Widgets Locais v0.3</span>
+                <span style={{ fontSize: '10px', color: '#94a3b8' }}>Widgets Locais v{__APP_VERSION__}</span>
               </div>
             </div>
           )}
@@ -738,10 +738,9 @@ export const Sidebar: React.FC = () => {
                 color: '#64748b',
                 display: 'flex',
                 alignItems: 'center',
-                justifyContent: 'space-between',
+                justifyContent: 'flex-end',
               }}
             >
-              <span>Fase 2 — MVP</span>
               <button
                 onClick={() => setIsProfileOpen(true)}
                 title="Meu Perfil"
