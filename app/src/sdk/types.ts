@@ -42,7 +42,7 @@ export interface AgentClientProtocol {
   requestJson<T = any>(path: string, options?: RequestInit): Promise<T>;
   /** Baixa um arquivo do agente (ex.: imagem); use URL.createObjectURL para exibir. */
   requestBlob(path: string): Promise<Blob>;
-  saveBackup?(backup: unknown): Promise<{ path: string; directory: string }>;
+  saveBackup?(backup: unknown, kind?: 'manual' | 'auto'): Promise<{ path: string; directory: string }>;
   openBackupDirectory?(): Promise<{ directory: string }>;
 }
 

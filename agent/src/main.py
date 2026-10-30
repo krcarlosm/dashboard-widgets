@@ -2,15 +2,17 @@ import asyncio
 import json
 import logging
 import os
-import subprocess
 import sys
 from contextlib import asynccontextmanager
-from datetime import datetime
 from pathlib import Path
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect, Request, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import uvicorn
+from pydantic import BaseModel
 from src.auth import LocalAuth
+from src.backup.api import create_backup_router
+from src.backup.settings import BackupSettings
+from src.backup.store import BackupStore, resolve_backup_dir
 from src.bau.api import create_bau_router
 from src.bau.settings import BauSettings
 from src.bau.store import BauStore
@@ -19,12 +21,21 @@ from src.indexing.file_watcher import EditIndexStore
 from src.protocol import AgentMessage
 from src.retention.purge import PurgeService
 from src.screenshot.capture import ScreenshotCapture
+from src.system import autostart
+
+AGENT_HOME = Path(os.environ.get("DASHBOARD_AGENT_HOME", Path.home() / ".dashboard-agent"))
+AGENT_HOME.mkdir(parents=True, exist_ok=True)
+
+# Iniciado pelo pythonw.exe (início automático no Windows) não há console:
+# sem isso o logging e o uvicorn falham ao escrever em stdout/stderr.
+if sys.stdout is None or sys.stderr is None:
+    _log_file = open(AGENT_HOME / "agent.log", "a", encoding="utf-8", buffering=1)
+    sys.stdout = sys.stdout or _log_file
+    sys.stderr = sys.stderr or _log_file
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("LocalAgent")
 
-AGENT_HOME = Path(os.environ.get("DASHBOARD_AGENT_HOME", Path.home() / ".dashboard-agent"))
-AGENT_HOME.mkdir(parents=True, exist_ok=True)
 AGENT_PORT = int(os.environ.get("DASHBOARD_AGENT_PORT", "5137"))
 
 auth = LocalAuth(AGENT_HOME)
@@ -70,8 +81,8 @@ purge_service = PurgeService(
     on_removed=lambda ids: broadcast({"type": "bau:items-removed", "payload": {"ids": ids}}),
 )
 screenshot_capture = ScreenshotCapture(store=bau_store)
-backup_dir = Path.home() / "Documents" / "Dashboard Backups"
-backup_dir.mkdir(parents=True, exist_ok=True)
+backup_store = BackupStore(resolve_backup_dir())
+backup_settings = BackupSettings(AGENT_HOME)
 
 
 @asynccontextmanager
@@ -85,7 +96,7 @@ async def lifespan(app: FastAPI):
     logger.info("Agent encerrado")
 
 
-app = FastAPI(title="Dashboard Local Agent", version="0.2.0", lifespan=lifespan)
+app = FastAPI(title="Dashboard Local Agent", version="0.3.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -101,6 +112,14 @@ app.include_router(
         settings=bau_settings,
         monitor=clipboard_monitor,
         purge_service=purge_service,
+        broadcast=broadcast,
+        require_token=require_token,
+    )
+)
+app.include_router(
+    create_backup_router(
+        store=backup_store,
+        settings=backup_settings,
         broadcast=broadcast,
         require_token=require_token,
     )
@@ -125,31 +144,24 @@ async def get_auth_token(request: Request):
     return {"token": TOKEN}
 
 
-@app.post("/backups")
-async def save_backup(request: Request):
+class AutostartPayload(BaseModel):
+    enabled: bool
+
+
+@app.get("/system/autostart")
+async def get_autostart(request: Request):
     require_token(request)
-    payload = await request.json()
-    if not isinstance(payload, dict) or payload.get("format") != "dashboard-backup":
-        raise HTTPException(status_code=400, detail="Formato de backup inválido")
-
-    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-    backup_path = backup_dir / f"dashboard-backup-{timestamp}.json"
-    temporary_path = backup_path.with_suffix(".tmp")
-    temporary_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    temporary_path.replace(backup_path)
-    return {"path": str(backup_path), "directory": str(backup_dir)}
+    return autostart.status()
 
 
-@app.post("/backups/open-directory")
-async def open_backup_directory(request: Request):
+@app.put("/system/autostart")
+async def put_autostart(payload: AutostartPayload, request: Request):
     require_token(request)
-    if sys.platform == "win32":
-        os.startfile(str(backup_dir))
-    elif sys.platform == "darwin":
-        subprocess.Popen(["open", str(backup_dir)])
-    else:
-        subprocess.Popen(["xdg-open", str(backup_dir)])
-    return {"directory": str(backup_dir)}
+    try:
+        return await asyncio.to_thread(autostart.set_enabled, payload.enabled)
+    except Exception as exc:
+        logger.exception("Falha ao alterar o início automático")
+        raise HTTPException(status_code=500, detail=f"Não foi possível alterar o início automático: {exc}")
 
 
 async def send(websocket: WebSocket, message_type: str, payload=None) -> None:

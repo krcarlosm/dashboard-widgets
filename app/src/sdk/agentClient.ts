@@ -237,8 +237,8 @@ export class LocalAgentClient implements AgentClientProtocol {
     return response.blob();
   }
 
-  public async saveBackup(backup: unknown): Promise<{ path: string; directory: string }> {
-    return this.httpRequest('/backups', { method: 'POST', body: JSON.stringify(backup) });
+  public async saveBackup(backup: unknown, kind: 'manual' | 'auto' = 'manual'): Promise<{ path: string; directory: string }> {
+    return this.httpRequest(`/backups?kind=${kind}`, { method: 'POST', body: JSON.stringify(backup) });
   }
 
   public async openBackupDirectory(): Promise<{ directory: string }> {

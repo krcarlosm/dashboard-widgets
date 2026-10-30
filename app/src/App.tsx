@@ -15,6 +15,8 @@ import { kanbanWidget } from './widgets/kanban';
 
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
+import { defaultAgentClient } from './sdk/agentClient';
+import { startAutoBackupScheduler } from './sdk/autoBackup';
 
 export const App: React.FC = () => {
   const registerWidget = useDashboardStore((state) => state.registerWidget);
@@ -102,6 +104,9 @@ export const App: React.FC = () => {
     // ── Load saved profile ───────────────────────────────────────────────────
     loadProfile();
   }, [registerWidget, loadProfile]);
+
+  // Backup automático diário (horário configurável no perfil; padrão 16:30).
+  useEffect(() => startAutoBackupScheduler(defaultAgentClient), []);
 
   return (
     <div

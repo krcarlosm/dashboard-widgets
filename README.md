@@ -50,20 +50,30 @@ O conteúdo desses widgets não fica dentro do manifesto do `localStorage`. Essa
 
 ### Backup e recuperação
 
-O menu de perfil agora oferece duas opções de exportação:
+**Backup automático diário.** Com o agente ativo, o dashboard faz um backup completo (canvas + dados) todos os dias no horário configurado no menu de perfil (padrão **16:30**). Se o navegador ou o agente estiverem fechados nesse horário, o backup é feito assim que o dashboard voltar a ficar aberto com o agente conectado — inclusive no dia seguinte. O app verifica ao abrir, a cada minuto e quando o agente reconecta; com várias abas abertas, o agente garante um único backup por horário. Apenas os **10 backups automáticos** mais recentes são mantidos.
+
+**Backup manual.** O menu de perfil oferece duas opções:
 
 - **Somente Canvas**: salva o perfil, layout, aparência e configurações dos widgets.
 - **Canvas + Anotações**: inclui também todos os registros do IndexedDB, incluindo registros antigos que ficaram órfãos após a recriação de uma instância.
 
-Quando o Agente Local está ativo, o arquivo é gravado automaticamente em:
+Os arquivos ficam em:
 
-```text
-C:\Users\<usuário>\Documents\Dashboard Backups
-```
+| Sistema | Pasta |
+|---|---|
+| Windows | `C:\Users\<usuário>\Documents\Dashboard Backups` |
+| Linux | `<pasta Documentos do XDG>/Dashboard Backups` (ou `~/Dashboard Backups`) |
 
-Os arquivos usam o nome `dashboard-backup-AAAA-MM-DD_HH-MM-SS.json`. O botão **Abrir pasta de backups** abre esse diretório no Explorer. Se o agente não estiver disponível, a exportação usa o download do navegador como fallback.
+A variável `DASHBOARD_BACKUP_DIR` substitui a pasta padrão. Nomes:
 
-A importação valida o formato e solicita confirmação antes de substituir o canvas. Backups completos também restauram os dados do IndexedDB. Recomenda-se gerar um backup completo antes de resetar, remover ou recriar widgets.
+- `auto-dashboard-backup-AAAA-MM-DD_HH-MM-SS.json` — automáticos (rodízio de 10).
+- `manual-dashboard-backup-AAAA-MM-DD_HH-MM-SS.json` — manuais, nunca apagados. Arquivos antigos sem prefixo também contam como manuais.
+
+Se o agente não estiver disponível, o backup manual usa o download do navegador como fallback.
+
+**Restauração.** A lista **Backups salvos** mostra os arquivos da pasta; **Restaurar** grava antes um backup manual do estado atual (ponto de segurança) e então substitui o canvas e os dados. **Importar arquivo** restaura um JSON de qualquer local. Ambos pedem confirmação.
+
+**Início automático do agente (opcional).** A opção *Iniciar o agente junto com o sistema*, desligada por padrão, cria um atalho na pasta Inicializar do usuário (Windows, executado com `pythonw.exe` sem janela; log em `~/.dashboard-agent/agent.log`) ou um arquivo `~/.config/autostart/dashboard-agent.desktop` (Linux). Não usa Agendador de Tarefas nem privilégios de administrador; desmarcar remove o atalho.
 
 ---
 
