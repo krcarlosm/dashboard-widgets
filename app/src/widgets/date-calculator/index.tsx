@@ -4,33 +4,40 @@ import { Copy, Check, Calendar } from 'lucide-react';
 
 type ResultUnit = 'days' | 'weeks' | 'months' | 'all';
 
+// Datas "AAAA-MM-DD" tratadas no fuso local. `new Date('2026-02-01')` seria meia-noite
+// UTC — no Brasil, 31/01 às 21h — e deslocaria dias e meses.
+const toLocalIso = (date: Date) =>
+  `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+const parseLocalDate = (value: string): Date | null => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+  if (!match) return null;
+  const date = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+  return isNaN(date.getTime()) ? null : date;
+};
+
+export function dateDifference(dateA: string, dateB: string): { days: number; weeks: number; months: number } | null {
+  const first = parseLocalDate(dateA);
+  const second = parseLocalDate(dateB);
+  if (!first || !second) return null;
+  // A ordem dos campos não importa: conta sempre da data menor para a maior.
+  const [start, end] = first <= second ? [first, second] : [second, first];
+
+  const days = Math.round((end.getTime() - start.getTime()) / 86400000);
+  const weeks = parseFloat((days / 7).toFixed(2));
+  let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+  if (end.getDate() < start.getDate()) months--;
+  return { days, weeks, months };
+}
+
 const DateCalcWidget: React.FC<WidgetComponentProps> = () => {
-  const today = new Date().toISOString().split('T')[0];
+  const today = toLocalIso(new Date());
   const [dateA, setDateA] = useState<string>(today);
   const [dateB, setDateB] = useState<string>(today);
   const [resultUnit, setResultUnit] = useState<ResultUnit>('all');
   const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
-  const diff = (): { days: number; weeks: number; months: number } | null => {
-    if (!dateA || !dateB) return null;
-    const a = new Date(dateA);
-    const b = new Date(dateB);
-    if (isNaN(a.getTime()) || isNaN(b.getTime())) return null;
-
-    const msPerDay = 86400000;
-    const days = Math.round(Math.abs(b.getTime() - a.getTime()) / msPerDay);
-    const weeks = parseFloat((days / 7).toFixed(2));
-
-    const ya = a.getFullYear(), ma = a.getMonth(), da = a.getDate();
-    const yb = b.getFullYear(), mb = b.getMonth(), db = b.getDate();
-    let months = (yb - ya) * 12 + (mb - ma);
-    if (db < da) months--;
-    months = Math.abs(months);
-
-    return { days, weeks, months };
-  };
-
-  const result = diff();
+  const result = dateDifference(dateA, dateB);
 
   const copyValue = async (key: string, value: string) => {
     await navigator.clipboard.writeText(value);
@@ -133,7 +140,8 @@ const DateCalcWidget: React.FC<WidgetComponentProps> = () => {
       </div>
 
       {/* Results */}
-      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'center' }}>
+      {/* 'safe center': centraliza quando cabe e rola (sem cortar o topo) quando não cabe. */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'safe center' }}>
         {!result ? (
           <div style={{ textAlign: 'center', color: '#475569', fontSize: '12px' }}>
             <Calendar size={24} style={{ margin: '0 auto 8px', display: 'block', color: '#334155' }} />
@@ -188,7 +196,7 @@ const DateCalcWidget: React.FC<WidgetComponentProps> = () => {
       {/* Direction label */}
       {result && (
         <div style={{ fontSize: '10px', color: '#475569', textAlign: 'center', flexShrink: 0 }}>
-          {new Date(dateA) <= new Date(dateB)
+          {dateA <= dateB
             ? `${dateA} → ${dateB}`
             : `${dateB} ← ${dateA}`}
         </div>
@@ -206,7 +214,7 @@ export const dateCalculatorWidget: WidgetDefinition = {
     icon: 'Calendar',
     author: 'Dashboard Core',
     status: 'stable',
-    defaultSize: { w: 3, h: 4 },
+    defaultSize: { w: 3, h: 5 },
     minSize: { w: 2, h: 4 },
     maxSize: { w: 6, h: 7 },
     requiresAgent: false,

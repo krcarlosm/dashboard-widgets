@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { Plus, Check, Trash2, CheckSquare, AlertCircle, Pencil, GripVertical } from 'lucide-react';
 
@@ -41,6 +41,13 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [editingState, setEditingState] = useState<EditingState | null>(null);
   const [draggingId, setDraggingId] = useState<string | null>(null);
   const [dropTarget, setDropTarget] = useState<DropTarget | null>(null);
+  // Clique simples no texto conclui a tarefa, mas espera um instante: se vier um
+  // duplo clique (editar), o clique simples é cancelado.
+  const toggleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => {
+    if (toggleTimerRef.current) clearTimeout(toggleTimerRef.current);
+  }, []);
 
   // Load tasks on mount
   useEffect(() => {
@@ -134,7 +141,19 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     handleDragEnd();
   };
 
+  const scheduleToggle = (id: string) => {
+    if (toggleTimerRef.current) clearTimeout(toggleTimerRef.current);
+    toggleTimerRef.current = setTimeout(() => {
+      toggleTimerRef.current = null;
+      handleToggle(id);
+    }, 250);
+  };
+
   const startEditing = (item: TodoItem) => {
+    if (toggleTimerRef.current) {
+      clearTimeout(toggleTimerRef.current);
+      toggleTimerRef.current = null;
+    }
     setEditingState({ id: item.id, text: item.text });
   };
 
@@ -339,7 +358,9 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 aria-label="Arrastar para reordenar"
               />
               <div
-                onClick={() => handleToggle(item.id)}
+                onClick={() => {
+                  if (editingState?.id !== item.id) scheduleToggle(item.id);
+                }}
                 style={{
                   display: 'flex',
                   alignItems: 'center',
@@ -349,6 +370,20 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 }}
               >
                 <div
+                  role="checkbox"
+                  aria-checked={item.done}
+                  aria-label={item.done ? `Reabrir "${item.text}"` : `Concluir "${item.text}"`}
+                  tabIndex={0}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggle(item.id);
+                  }}
+                  onKeyDown={(e) => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                      e.preventDefault();
+                      handleToggle(item.id);
+                    }
+                  }}
                   style={{
                     width: '16px',
                     height: '16px',
@@ -369,7 +404,9 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 {editingState?.id === item.id ? (
                   <input
                     autoFocus
+                    aria-label="Editar texto da tarefa"
                     value={editingState.text}
+                    onClick={(e) => e.stopPropagation()}
                     onChange={(e) => setEditingState({ id: item.id, text: e.target.value })}
                     onBlur={saveEdit}
                     onKeyDown={(e) => {

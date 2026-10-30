@@ -45,6 +45,12 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [stopwatchMs, setStopwatchMs] = useState<number>(0);
   const stopwatchIntervalRef = useRef<any>(null);
 
+  // O tempo é sempre calculado pelo relógio, não pela contagem de "ticks": abas em
+  // segundo plano têm timers estrangulados e o computador pode suspender.
+  const deadlineRef = useRef<number>(0); // Pomodoro/contagem: instante em que chega a zero
+  const stopwatchStartRef = useRef<number>(0); // Cronômetro: instante equivalente ao zero
+  const [isLoaded, setIsLoaded] = useState<boolean>(false);
+
   // Title editing
   const [isEditingTitle, setIsEditingTitle] = useState<boolean>(false);
 
@@ -70,6 +76,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       setCountdownRemaining(savedCdRemaining !== undefined ? savedCdRemaining : 600);
       setCountdownMinutes(Math.floor((savedCdInitial || 600) / 60));
       setCountdownSeconds((savedCdInitial || 600) % 60);
+      setIsLoaded(true);
     }
     loadData();
   }, [context.storage]);
@@ -94,10 +101,11 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
 
     worker.onmessage = (e) => {
       if (e.data === 'tick') {
+        const left = Math.max(0, Math.ceil((deadlineRef.current - Date.now()) / 1000));
         if (mode === 'pomodoro') {
-          setRemainingSeconds((prev) => Math.max(0, prev - 1));
+          setRemainingSeconds(left);
         } else if (mode === 'countdown') {
-          setCountdownRemaining((prev) => Math.max(0, prev - 1));
+          setCountdownRemaining(left);
         }
       }
     };
@@ -113,6 +121,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   useEffect(() => {
     if (mode !== 'stopwatch') {
       if (isRunning) {
+        deadlineRef.current = Date.now() + (mode === 'pomodoro' ? remainingSeconds : countdownRemaining) * 1000;
         workerRef.current?.postMessage('start');
       } else {
         workerRef.current?.postMessage('stop');
@@ -124,9 +133,10 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   useEffect(() => {
     if (mode === 'stopwatch') {
       if (isRunning) {
+        stopwatchStartRef.current = Date.now() - stopwatchMs;
         stopwatchIntervalRef.current = setInterval(() => {
-          setStopwatchMs((prev) => prev + 10);
-        }, 10);
+          setStopwatchMs(Date.now() - stopwatchStartRef.current);
+        }, 50);
       } else {
         clearInterval(stopwatchIntervalRef.current);
       }
@@ -151,15 +161,16 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     }
   }, [countdownRemaining, isRunning, mode]);
 
-  // ── Save state ──
+  // ── Save state ── (só depois de carregar, para não sobrescrever o salvo com os padrões)
   useEffect(() => {
+    if (!isLoaded) return;
     context.storage.set('mode', mode);
     context.storage.set('remainingSeconds', remainingSeconds);
     context.storage.set('phase', phase);
     context.storage.set('completedCycles', completedCycles);
     context.storage.set('countdownInitialSecs', countdownInitialSecs);
     context.storage.set('countdownRemaining', countdownRemaining);
-  }, [mode, remainingSeconds, phase, completedCycles, countdownInitialSecs, countdownRemaining]);
+  }, [isLoaded, mode, remainingSeconds, phase, completedCycles, countdownInitialSecs, countdownRemaining]);
 
   // ── Helpers ──
   const notifyUser = (title: string, body: string) => {
@@ -229,6 +240,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   };
 
   const updateSettings = async (newConfig: PomodoroConfig) => {
+    setIsRunning(false);
     setConfig(newConfig);
     await context.storage.set('config', newConfig);
     setRemainingSeconds(getPhaseDuration(phase, newConfig));

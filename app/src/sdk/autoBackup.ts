@@ -1,4 +1,4 @@
-import { createDashboardBackup } from './storage';
+import { createDashboardBackup, PROFILE_STORAGE_KEY } from './storage';
 import type { AgentClientProtocol } from './types';
 
 // Backup automático diário. Os dados vivem no navegador (IndexedDB + localStorage),
@@ -47,6 +47,8 @@ export function subscribeAutoBackup(listener: (next: AutoBackupState) => void): 
 
 export async function runAutoBackupIfDue(client: AgentClientProtocol): Promise<void> {
   if (state.running || !client.isConnected) return;
+  // Dashboard recém-instalado, sem nada salvo ainda: não há o que copiar.
+  if (!localStorage.getItem(PROFILE_STORAGE_KEY)) return;
 
   let status: BackupStatus;
   try {

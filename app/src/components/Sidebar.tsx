@@ -3,6 +3,7 @@ import { useDashboardStore } from '../store/dashboardStore';
 import { defaultAgentClient } from '../sdk/agentClient';
 import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu, FileText, CheckSquare, Clock3, Radio, Calculator, Code2, ArrowRightLeft, Divide, CalendarRange, Sparkles as SparklesIcon, RotateCcw, Bot, CheckCircle2, AlertCircle } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
+import { confirmAndResetDashboard } from '../sdk/safeReset';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Sidebar — Barra lateral de navegação e adição de widgets.
@@ -405,7 +406,7 @@ export const Sidebar: React.FC = () => {
             {/* Profile button at bottom in compact mode */}
             <div style={{ marginTop: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
               <button
-                onClick={() => resetDashboard()}
+                onClick={() => void confirmAndResetDashboard(resetDashboard, defaultAgentClient)}
                 title="Reset global"
                 style={{
                   width: '40px',
@@ -580,7 +581,7 @@ export const Sidebar: React.FC = () => {
             {/* Widget List Section */}
             <div style={{ flex: 1, padding: '10px 14px', overflowY: 'auto' }}>
               <button
-                onClick={() => resetDashboard()}
+                onClick={() => void confirmAndResetDashboard(resetDashboard, defaultAgentClient)}
                 style={{
                   width: '100%',
                   background: 'rgba(248, 113, 113, 0.12)',

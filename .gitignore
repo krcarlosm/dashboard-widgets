@@ -7,6 +7,9 @@ app/.pnpm-debug.log*
 app/npm-debug.log*
 app/yarn-debug.log*
 app/yarn-error.log*
+app/test-results/
+app/playwright-report/
+app/coverage/
 
 # Python / Local Agent
 agent/.venv/

@@ -22,4 +22,5 @@ class LocalAuth:
         return token
 
     def validate_token(self, token: str | None) -> bool:
-        return bool(token) and token == self.get_or_create_token()
+        # compare_digest: o tempo da comparação não revela quantos caracteres batem.
+        return isinstance(token, str) and bool(token) and secrets.compare_digest(token.encode(), self.get_or_create_token().encode())

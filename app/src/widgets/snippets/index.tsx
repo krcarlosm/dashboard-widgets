@@ -60,7 +60,8 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     const snippet: Snippet = {
       id: `snip-${Date.now()}`,
       title: newTitle.trim() || 'Sem título',
-      content: newContent.trim(),
+      // Remove só linhas em branco do início e espaços do fim: a indentação do código fica.
+      content: newContent.replace(/^([ \t]*\r?\n)+/, '').trimEnd(),
       language: newLanguage,
       category: CATEGORY_BY_LANGUAGE[newLanguage] || 'Other',
       favorite: false,
@@ -99,7 +100,8 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     const normalizedCategory = s.category || CATEGORY_BY_LANGUAGE[s.language] || 'Other';
     const matchesText = s.title.toLowerCase().includes(term) || s.content.toLowerCase().includes(term) || s.language.toLowerCase().includes(term) || normalizedCategory.toLowerCase().includes(term);
     const matchesFilter = filterMode === 'favorites' ? s.favorite : true;
-    const matchesCategory = selectedCategory === 'all' || normalizedCategory === selectedCategory;
+    // A categoria só filtra enquanto o seletor de categorias está visível.
+    const matchesCategory = filterMode !== 'categories' || selectedCategory === 'all' || normalizedCategory === selectedCategory;
     return matchesText && matchesFilter && matchesCategory;
   });
 

@@ -18,13 +18,8 @@ const HelloWorldWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     loadData();
   }, [context.storage]);
 
-  // Monitorar estado do Agent Python
-  useEffect(() => {
-    const unsubscribe = context.agentClient.subscribe('handshake:ack', () => {
-      setIsAgentOnline(true);
-    });
-    return unsubscribe;
-  }, [context.agentClient]);
+  // Monitorar estado do Agent Python (online e offline)
+  useEffect(() => context.agentClient.onStatusChange(setIsAgentOnline), [context.agentClient]);
 
   const handleIncrement = async () => {
     const next = clickCount + 1;

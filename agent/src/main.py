@@ -97,7 +97,11 @@ file_activity = FileActivityService(
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    await clipboard_monitor.start()
+    # DASHBOARD_AGENT_CLIPBOARD=0 desliga o monitor (o Baú continua com capturas de tela).
+    if os.environ.get("DASHBOARD_AGENT_CLIPBOARD", "1") != "0":
+        await clipboard_monitor.start()
+    else:
+        logger.info("Monitor da área de transferência desativado (DASHBOARD_AGENT_CLIPBOARD=0)")
     await purge_service.start()
     await file_activity.start()
     logger.info("Agent iniciado com monitor de clipboard e expurgo ativo")

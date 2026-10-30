@@ -22,6 +22,7 @@ class ActivityStore:
     """Eventos de acesso a arquivos (aberto/editado) em SQLite, usados pelo Top 10 da semana."""
 
     def __init__(self, agent_home: Path):
+        agent_home.mkdir(parents=True, exist_ok=True)
         self.db_path = agent_home / "file_activity.db"
         self._lock = threading.Lock()
         with self._connect() as conn:

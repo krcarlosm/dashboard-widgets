@@ -3,6 +3,8 @@ import { useDashboardStore } from '../store/dashboardStore';
 import { X, User, HardDrive, Cpu, ShieldCheck, MoonStar, SunMedium, Sparkles, RotateCcw } from 'lucide-react';
 import { db } from '../sdk/storage';
 import { BackupSection } from './BackupSection';
+import { defaultAgentClient } from '../sdk/agentClient';
+import { confirmAndResetDashboard } from '../sdk/safeReset';
 import { backgroundMap, CanvasPreset } from './themeGradients';
 
 const canvasPresetLabels: Record<CanvasPreset, string> = {
@@ -306,9 +308,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
 
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
             <button
-              onClick={() => {
-                resetDashboard();
-                onClose();
+              onClick={async () => {
+                if (await confirmAndResetDashboard(resetDashboard, defaultAgentClient)) onClose();
               }}
               style={{
                 flex: 1,

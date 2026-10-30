@@ -21,7 +21,7 @@ const UNITS: Record<Category, Record<string, Unit>> = {
     in: { label: 'Polegada (in)', toBase: (v) => v * 0.0254, fromBase: (v) => v / 0.0254 },
     ft: { label: 'Pé (ft)', toBase: (v) => v * 0.3048, fromBase: (v) => v / 0.3048 },
     yd: { label: 'Jarda (yd)', toBase: (v) => v * 0.9144, fromBase: (v) => v / 0.9144 },
-    mi: { label: 'Milha (mi)', toBase: (v) => v * 1609.34, fromBase: (v) => v / 1609.34 },
+    mi: { label: 'Milha (mi)', toBase: (v) => v * 1609.344, fromBase: (v) => v / 1609.344 },
   },
   temperature: {
     C: { label: 'Celsius (°C)', toBase: (v) => v, fromBase: (v) => v },
@@ -33,9 +33,9 @@ const UNITS: Record<Category, Record<string, Unit>> = {
     kPa: { label: 'Kilopascal (kPa)', toBase: (v) => v * 1000, fromBase: (v) => v / 1000 },
     MPa: { label: 'Megapascal (MPa)', toBase: (v) => v * 1e6, fromBase: (v) => v / 1e6 },
     bar: { label: 'Bar', toBase: (v) => v * 100000, fromBase: (v) => v / 100000 },
-    psi: { label: 'PSI', toBase: (v) => v * 6894.76, fromBase: (v) => v / 6894.76 },
+    psi: { label: 'PSI', toBase: (v) => v * 6894.757293168, fromBase: (v) => v / 6894.757293168 },
     atm: { label: 'Atmosfera (atm)', toBase: (v) => v * 101325, fromBase: (v) => v / 101325 },
-    mmHg: { label: 'mmHg (Torr)', toBase: (v) => v * 133.322, fromBase: (v) => v / 133.322 },
+    mmHg: { label: 'mmHg (Torr)', toBase: (v) => v * 133.322387415, fromBase: (v) => v / 133.322387415 },
   },
 };
 

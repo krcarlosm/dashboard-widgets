@@ -177,6 +177,22 @@ Como explicado anteriormente, o Agente Python serve apenas para que os widgets q
 
 O agente aceita conexões apenas de `127.0.0.1` e das origens do dashboard (`ALLOWED_ORIGINS`). Todo comando via WebSocket e toda rota HTTP de dados exigem o token local salvo em `~/.dashboard-agent/auth.token`; sem o handshake, nenhuma informação da área de transferência é enviada ao cliente.
 
+Para usar o agente sem monitorar a área de transferência (o Baú continua recebendo capturas de tela), inicie-o com `DASHBOARD_AGENT_CLIPBOARD=0`.
+
+---
+
+## 🧪 Testes
+
+Nenhum teste lê ou altera a área de transferência real, a pasta Inicializar ou os dados do dia a dia: o agente de teste usa pastas temporárias e portas próprias.
+
+| Suíte | Comando | O que cobre |
+|---|---|---|
+| Agente (pytest) | `cd agent` → `pip install -r requirements-dev.txt` → `python -m pytest` | Segurança (token, origem, WebSocket), Baú, backups, autostart, Top 10 (Windows e Linux) |
+| App (Vitest + Testing Library) | `cd app` → `npm test` | Cada widget, store do dashboard, storage, backup e restauração |
+| E2E (Playwright) | `cd app` → `npx playwright install firefox` (uma vez) → `npm run test:e2e` | Fluxos principais no motor Firefox, com agente isolado |
+
+Em máquinas que bloqueiam os navegadores não assinados do Playwright (comum em notebooks corporativos), rode o E2E no Microsoft Edge instalado: `npm run test:e2e:edge`. O roteiro visual opcional `EXPLORE=1 npx playwright test explore` gera capturas de todos os widgets em `app/test-results/explore/`.
+
 ---
 
 ## 📜 Contrato de Componentes e Guia para Novos Widgets
