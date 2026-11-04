@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useRef, useState } from 'react';
+import React, { forwardRef, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { AlertCircle, Info, TriangleAlert, WifiOff, X } from 'lucide-react';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -217,7 +217,11 @@ export interface SegmentOption<T extends string> {
   title?: string;
 }
 
-/** Abas/filtros em pílula. Em modo compacto mostra só ícone (ou abreviação) e contagem. */
+/**
+ * Abas/filtros em pílula. Nunca transborda: se os rótulos não couberem, as opções
+ * com ícone passam a mostrar só o ícone (o nome fica na dica e no leitor de tela)
+ * e os textos restantes ganham reticências. `compact` força o modo só-ícone.
+ */
 export function SegmentedControl<T extends string>({
   options,
   value,
@@ -235,8 +239,36 @@ export function SegmentedControl<T extends string>({
   ariaLabel?: string;
   stretch?: boolean;
 }) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  // Largura que os rótulos completos ocupam (medida enquanto estão visíveis).
+  const fullWidthRef = useRef(0);
+  const [autoCompact, setAutoCompact] = useState(false);
+  const hasIcons = options.some((option) => option.icon);
+  const isCompact = compact || autoCompact;
+
+  useLayoutEffect(() => {
+    const element = containerRef.current;
+    if (!element || compact || !hasIcons || typeof ResizeObserver === 'undefined') return;
+    const measure = () => {
+      if (!autoCompact) {
+        const buttons = Array.from(element.children) as HTMLElement[];
+        fullWidthRef.current = buttons.reduce((sum, button) => sum + button.scrollWidth, 0) + (buttons.length + 1) * 4;
+      }
+      // Largura disponível: a do próprio controle (stretch) ou a do pai.
+      const available = stretch ? element.clientWidth : (element.parentElement?.clientWidth ?? element.clientWidth);
+      const next = fullWidthRef.current > available + 1;
+      if (next !== autoCompact) setAutoCompact(next);
+    };
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(element);
+    if (element.parentElement) observer.observe(element.parentElement);
+    return () => observer.disconnect();
+  }, [compact, hasIcons, autoCompact, stretch, options.length]);
+
   return (
     <div
+      ref={containerRef}
       role="group"
       aria-label={ariaLabel}
       style={{
@@ -246,14 +278,19 @@ export function SegmentedControl<T extends string>({
         padding: '2px',
         borderRadius: 'var(--radius-md)',
         border: '1px solid var(--app-border)',
+        // Nunca encolhe no eixo do pai (em colunas isso achataria a altura);
+        // a largura é limitada por width/maxWidth e os botões encolhem por dentro.
         flexShrink: 0,
         width: stretch ? '100%' : undefined,
+        minWidth: 0,
+        maxWidth: '100%',
+        overflow: 'hidden',
         boxSizing: 'border-box',
       }}
     >
       {options.map((option) => {
         const selected = option.id === value;
-        const showLabel = !compact || !option.icon;
+        const showLabel = !isCompact || !option.icon;
         const text = compact && !option.icon ? option.label.slice(0, 3) : option.label;
         return (
           <button
@@ -265,7 +302,8 @@ export function SegmentedControl<T extends string>({
             disabled={disabled && !selected}
             onClick={() => onChange(option.id)}
             style={{
-              flex: stretch ? 1 : undefined,
+              flex: stretch ? '1 1 0' : '0 1 auto',
+              minWidth: 0,
               background: selected ? ACCENT_STRONG : 'transparent',
               color: selected ? 'var(--app-on-accent)' : 'var(--app-muted)',
               border: 'none',
@@ -280,11 +318,12 @@ export function SegmentedControl<T extends string>({
               justifyContent: 'center',
               gap: '4px',
               whiteSpace: 'nowrap',
+              overflow: 'hidden',
             }}
           >
-            {option.icon}
-            {showLabel && text}
-            {option.count !== undefined && <span style={{ opacity: 0.75 }}>{option.count}</span>}
+            {option.icon && <span style={{ display: 'inline-flex', flexShrink: 0 }}>{option.icon}</span>}
+            {showLabel && <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', minWidth: 0 }}>{text}</span>}
+            {option.count !== undefined && <span style={{ opacity: 0.75, flexShrink: 0 }}>{option.count}</span>}
           </button>
         );
       })}

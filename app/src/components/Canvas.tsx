@@ -1,4 +1,4 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import RGL, { WidthProvider } from 'react-grid-layout';
 import 'react-grid-layout/css/styles.css';
 import 'react-resizable/css/styles.css';
@@ -45,6 +45,9 @@ export const Canvas: React.FC = () => {
 	// 'indigo'
 	// 'fearOfTheDark'
 	// -----------------------------------
+  // Card em foco (último clicado ou com foco do teclado) fica acima dos vizinhos,
+  // para que conteúdo que transborde ou se sobreponha não atrapalhe a edição.
+  const [activeInstanceId, setActiveInstanceId] = useState<string | null>(null);
   const densityTokens = DENSITY[density];
   const rowHeight = densityTokens.rowHeight;
   const gridMargin: [number, number] = [densityTokens.margin, densityTokens.margin];
@@ -172,6 +175,10 @@ export const Canvas: React.FC = () => {
               <div
                 key={instance.instanceId}
                 data-widget-instance-id={instance.instanceId}
+                data-active={activeInstanceId === instance.instanceId || undefined}
+                onMouseDownCapture={() => setActiveInstanceId(instance.instanceId)}
+                onFocusCapture={() => setActiveInstanceId(instance.instanceId)}
+                style={{ zIndex: activeInstanceId === instance.instanceId ? 20 : 1 }}
                 data-grid={{
                   x: instance.layout.x,
                   y: instance.layout.y,

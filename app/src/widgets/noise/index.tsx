@@ -258,10 +258,10 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
   };
 
-  const noiseLabels: Record<NoiseType, string> = {
-    white: '⬜ White',
-    brown: '🟫 Brown',
-    pink: '🌸 Pink',
+  const noiseLabels: Record<NoiseType, { emoji: string; label: string }> = {
+    white: { emoji: '⬜', label: 'White' },
+    brown: { emoji: '🟫', label: 'Brown' },
+    pink: { emoji: '🌸', label: 'Pink' },
   };
 
   return (
@@ -287,7 +287,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             ariaLabel="Tipo de ruído"
             value={noiseType}
             onChange={(type) => void handleTypeChange(type)}
-            options={(['white', 'brown', 'pink'] as NoiseType[]).map((type) => ({ id: type, label: noiseLabels[type] }))}
+            options={(['white', 'brown', 'pink'] as NoiseType[]).map((type) => ({ id: type, label: noiseLabels[type].label, icon: <span aria-hidden>{noiseLabels[type].emoji}</span> }))}
           />
         </div>
 

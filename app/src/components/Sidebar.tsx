@@ -184,6 +184,9 @@ export const Sidebar: React.FC = () => {
             padding: sidebarState === 'compact' ? '12px 8px' : '14px 14px',
             borderBottom: '1px solid var(--app-border)',
             display: 'flex',
+            // Na barra compacta (62 px) logo e botão não cabem lado a lado: empilha.
+            flexDirection: sidebarState === 'compact' ? 'column' : 'row',
+            gap: sidebarState === 'compact' ? '8px' : undefined,
             alignItems: 'center',
             justifyContent: sidebarState === 'compact' ? 'center' : 'space-between',
             flexShrink: 0,
@@ -221,6 +224,7 @@ export const Sidebar: React.FC = () => {
                 background: 'linear-gradient(135deg, var(--app-accent-strong), var(--app-accent))',
                 width: '30px',
                 height: '30px',
+                flexShrink: 0,
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',

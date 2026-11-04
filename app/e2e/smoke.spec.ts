@@ -116,3 +116,43 @@ test('sem agente, os widgets que dependem dele avisam', async ({ page }) => {
   await page.getByPlaceholder('C', { exact: true }).fill('5');
   await expect(page.getByTitle('Clique para copiar')).toHaveText('25');
 });
+
+test('seletores não transbordam em widgets estreitos', async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 900 });
+  await openApp(page);
+  for (const name of ['Gerador de Ruído', 'Timer Multiferramenta', 'Anotações Rápidas', 'Lista de Tarefas']) await addWidget(page, name);
+  await page.waitForTimeout(500);
+  const overflowing = await page.locator('[role="group"]').evaluateAll((groups) =>
+    groups
+      // Transborda na largura ou foi achatado na altura (botões com menos de 18 px).
+      .filter((group) => group.scrollWidth > group.clientWidth + 1 || group.getBoundingClientRect().height < 18)
+      .map((group) => group.getAttribute('aria-label')),
+  );
+  expect(overflowing).toEqual([]);
+  // Rótulo escondido continua acessível pelo nome do botão.
+  await expect(page.getByRole('button', { name: 'Pink' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'Crono' })).toBeVisible();
+});
+
+test('barra lateral compacta mantém o logo inteiro', async ({ page }) => {
+  await openApp(page);
+  await page.getByTitle('Modo compacto').click();
+  const logo = page.getByTitle('Recolher sidebar').locator('xpath=preceding-sibling::div[1]');
+  await expect(logo).toBeVisible();
+  const box = await logo.boundingBox();
+  expect(Math.round(box!.width)).toBe(30);
+  expect(Math.round(box!.height)).toBe(30);
+});
+
+test('card clicado fica por cima dos vizinhos', async ({ page }) => {
+  await openApp(page);
+  await addWidget(page, 'Regra de Três');
+  await addWidget(page, 'Calculadora de Datas');
+  const items = page.locator('[data-widget-instance-id]');
+  await items.nth(0).click({ position: { x: 40, y: 60 } });
+  await expect(items.nth(0)).toHaveCSS('z-index', '20');
+  await expect(items.nth(1)).toHaveCSS('z-index', '1');
+  await items.nth(1).click({ position: { x: 40, y: 60 } });
+  await expect(items.nth(1)).toHaveCSS('z-index', '20');
+  await expect(items.nth(0)).toHaveCSS('z-index', '1');
+});
