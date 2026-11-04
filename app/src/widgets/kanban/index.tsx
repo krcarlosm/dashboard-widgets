@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { Plus, Trash2, CheckCircle2, Clock, CircleDot } from 'lucide-react';
+import { Button, ConfirmButton, Input, Toolbar } from '../../ui';
+import { alpha } from '../../theme/tokens';
 
 export type KanbanStatus = 'todo' | 'in_progress' | 'done';
 
@@ -62,15 +64,6 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     await saveItems(updated);
   };
 
-  const cycleStatus = async (id: string, currentStatus: KanbanStatus) => {
-    const nextStatus: Record<KanbanStatus, KanbanStatus> = {
-      todo: 'in_progress',
-      in_progress: 'done',
-      done: 'todo',
-    };
-    await setItemStatus(id, nextStatus[currentStatus]);
-  };
-
   // Drag & Drop handlers
   const handleDragStart = (e: React.DragEvent, id: string) => {
     setDraggedItemId(id);
@@ -91,9 +84,9 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   };
 
   const columns: { id: KanbanStatus; label: string; icon: React.ReactNode; color: string; badgeBg: string }[] = [
-    { id: 'todo', label: 'À Fazer', icon: <CircleDot size={12} color="var(--app-accent)" />, color: '#94a3b8', badgeBg: 'rgba(148, 163, 184, 0.15)' },
-    { id: 'in_progress', label: 'Em Andamento', icon: <Clock size={12} color="var(--app-accent)" />, color: 'var(--app-accent)', badgeBg: 'var(--app-accent-soft)' },
-    { id: 'done', label: 'Concluído', icon: <CheckCircle2 size={12} color="#34d399" />, color: '#34d399', badgeBg: 'rgba(52, 211, 153, 0.15)' },
+    { id: 'todo', label: 'À Fazer', icon: <CircleDot size={12} color="var(--widget-accent)" />, color: 'var(--app-muted)', badgeBg: 'var(--app-surface-elevated)' },
+    { id: 'in_progress', label: 'Em Andamento', icon: <Clock size={12} color="var(--widget-accent)" />, color: 'var(--widget-accent)', badgeBg: 'var(--widget-accent-soft)' },
+    { id: 'done', label: 'Concluído', icon: <CheckCircle2 size={12} color="var(--app-success)" />, color: 'var(--app-success)', badgeBg: 'var(--app-success-soft)' },
   ];
 
   const statusIcons: Record<KanbanStatus, { emoji: string; title: string }> = {
@@ -116,21 +109,11 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       }}
     >
       {/* Task Input Box */}
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            background: 'var(--app-surface-muted)',
-            border: '1px solid var(--app-border)',
-            borderRadius: '6px',
-            padding: '4px 8px',
-            gap: '6px',
-          }}
-        >
-          <input
+      <Toolbar>
+        <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex' }}>
+          <Input
             type="text"
+            aria-label="Nova tarefa do Kanban"
             maxLength={MAX_CHAR_COUNT}
             value={newTaskText}
             onChange={(e) => setNewTaskText(e.target.value)}
@@ -138,41 +121,16 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               if (e.key === 'Enter') addItem();
             }}
             placeholder="Nova tarefa (max 50 caracteres)..."
-            style={{
-              flex: 1,
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--app-text)',
-              fontSize: '11px',
-              outline: 'none',
-            }}
+            style={{ flex: 1, paddingRight: '40px', fontSize: 'var(--font-sm)' }}
           />
-          <span style={{ fontSize: '9px', color: 'var(--app-muted)' }}>
+          <span style={{ position: 'absolute', right: '8px', top: '50%', transform: 'translateY(-50%)', fontSize: '9px', color: 'var(--app-muted)' }}>
             {newTaskText.length}/{MAX_CHAR_COUNT}
           </span>
         </div>
-
-        <button
-          onClick={addItem}
-          title="Adicionar Tarefa"
-          style={{
-            background: 'var(--app-accent-strong)',
-            border: 'none',
-            color: '#ffffff',
-            borderRadius: '6px',
-            padding: '6px 10px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            fontSize: '11px',
-            fontWeight: 600,
-            flexShrink: 0,
-          }}
-        >
-          <Plus size={13} /> Add
-        </button>
-      </div>
+        <Button variant="primary" onClick={addItem} title="Adicionar Tarefa" icon={<Plus size={13} />}>
+          Add
+        </Button>
+      </Toolbar>
 
       {/* Kanban Board Columns */}
       <div
@@ -214,7 +172,7 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                   padding: '4px 6px',
                   background: col.badgeBg,
                   borderRadius: '6px',
-                  border: `1px solid ${col.color}30`,
+                  border: `1px solid ${alpha(col.color, 20)}`,
                 }}
               >
                 <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
@@ -228,7 +186,7 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                     fontSize: '9px',
                     fontWeight: 700,
                     color: col.color,
-                    background: `${col.color}20`,
+                    background: alpha(col.color, 12),
                     padding: '0 5px',
                     borderRadius: '8px',
                   }}
@@ -293,9 +251,11 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                               key={st}
                               onClick={() => setItemStatus(item.id, st)}
                               title={`Mudar para: ${statusIcons[st].title}`}
+                              aria-label={`Mudar para: ${statusIcons[st].title}`}
+                              aria-pressed={item.status === st}
                               style={{
-                                background: item.status === st ? 'var(--app-accent-soft)' : 'transparent',
-                                border: `1px solid ${item.status === st ? 'var(--app-accent)' : 'transparent'}`,
+                                background: item.status === st ? 'var(--widget-accent-soft)' : 'transparent',
+                                border: `1px solid ${item.status === st ? 'var(--widget-accent)' : 'transparent'}`,
                                 borderRadius: '4px',
                                 padding: '1px 3px',
                                 cursor: 'pointer',
@@ -308,24 +268,8 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                           ))}
                         </div>
 
-                        {/* Delete Button */}
-                        <button
-                          onClick={() => removeItem(item.id)}
-                          title="Excluir card"
-                          style={{
-                            background: 'transparent',
-                            border: 'none',
-                            color: '#64748b',
-                            cursor: 'pointer',
-                            padding: '2px',
-                            borderRadius: '3px',
-                            display: 'flex',
-                          }}
-                          onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
-                          onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
-                        >
-                          <Trash2 size={11} />
-                        </button>
+                        {/* Excluir: pede confirmação no segundo clique */}
+                        <ConfirmButton label="Excluir card" confirmLabel="Excluir?" icon={<Trash2 size={11} />} iconOnly onConfirm={() => removeItem(item.id)} />
                       </div>
                     </div>
                   ))

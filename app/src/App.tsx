@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useDashboardStore } from './store/dashboardStore';
 import { helloWorldWidget } from './widgets/hello-world';
 import { notesWidget } from './widgets/notes';
@@ -17,6 +17,7 @@ import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
 import { defaultAgentClient } from './sdk/agentClient';
 import { startAutoBackupScheduler } from './sdk/autoBackup';
+import { buildAppearanceStyle } from './theme/tokens';
 
 export const App: React.FC = () => {
   const registerWidget = useDashboardStore((state) => state.registerWidget);
@@ -25,63 +26,8 @@ export const App: React.FC = () => {
   const density = useDashboardStore((state) => state.density);
   const accentColor = useDashboardStore((state) => state.accentColor);
 
-  // Mapa de cores de destaque principais. Ajuste aqui para alterar o tema de acento do aplicativo.
-  const accentMap = {
-    sky: { 
-      base: '#38bdf8', 
-      strong: '#0284c7', 
-      soft: 'rgba(56, 189, 248, 0.14)', 
-      border: 'rgba(56, 189, 248, 0.4)' },
-    violet: { 
-      base: '#8b5cf6', 
-      strong: '#7c3aed', 
-      soft: 'rgba(139, 92, 246, 0.14)', 
-      border: 'rgba(139, 92, 246, 0.4)' },
-    emerald: { 
-      base: '#34d399', 
-      strong: '#059669', 
-      soft: 'rgba(52, 211, 153, 0.14)', 
-      border: 'rgba(52, 211, 153, 0.4)' },
-
-      // Novas adições
-    rose: { 
-      base: '#fb7185', 
-      strong: '#e11d48', 
-      soft: 'rgba(251, 113, 133, 0.14)', 
-      border: 'rgba(251, 113, 133, 0.4)' 
-    },
-    amber: { 
-      base: '#fbbf24', 
-      strong: '#d97706', 
-      soft: 'rgba(251, 191, 36, 0.14)', 
-      border: 'rgba(251, 191, 36, 0.4)' 
-    },
-    indigo: { 
-      base: '#818cf8', 
-      strong: '#4f46e5', 
-      soft: 'rgba(129, 140, 248, 0.14)', 
-      border: 'rgba(129, 140, 248, 0.4)' 
-    }
-  } as const;
-  const accent = accentMap[accentColor];
-
-  // Variáveis CSS base usadas em todo o app. Aqui você define superfície, bordas e cores de texto.
-  // Cada valor muda automaticamente entre o modo claro e escuro.
-  const appearanceStyle = {
-    ['--app-accent' as string]: accent.base,
-    ['--app-accent-strong' as string]: accent.strong,
-    ['--app-accent-soft' as string]: accent.soft,
-    ['--app-accent-border' as string]: accent.border,
-    ['--app-surface' as string]: theme === 'light' ? '#ffffff' : '#0f172a',
-    ['--app-surface-muted' as string]: theme === 'light' ? '#f1f5f9' : '#111827',
-    ['--app-surface-elevated' as string]: theme === 'light' ? '#f8fafc' : '#1e293b',
-    ['--app-input' as string]: theme === 'light' ? '#ffffff' : '#0f172a',
-    ['--app-border' as string]: theme === 'light' ? '#cbd5e1' : '#334155',
-    ['--app-text' as string]: theme === 'light' ? '#0f172a' : '#f8fafc',
-    ['--app-text-strong' as string]: theme === 'light' ? '#1e293b' : '#f8fafc',
-    ['--app-muted' as string]: theme === 'light' ? '#475569' : '#94a3b8',
-    ['--app-muted-strong' as string]: theme === 'light' ? '#64748b' : '#94a3b8',
-  } as React.CSSProperties;
+  // Cores, tamanhos e densidade vêm dos tokens (src/theme/tokens.ts).
+  const appearanceStyle = useMemo(() => buildAppearanceStyle({ theme, density, accentColor }), [theme, density, accentColor]);
 
   useEffect(() => {
     
@@ -105,6 +51,14 @@ export const App: React.FC = () => {
     loadProfile();
   }, [registerWidget, loadProfile]);
 
+  // Os tokens também ficam no <html>: diálogos e portais renderizados fora
+  // desta árvore (ex.: confirmDialog) usam as mesmas cores.
+  useEffect(() => {
+    const root = document.documentElement;
+    Object.entries(appearanceStyle).forEach(([name, value]) => root.style.setProperty(name, String(value)));
+    root.style.colorScheme = theme;
+  }, [appearanceStyle, theme]);
+
   // Backup automático diário (horário configurável no perfil; padrão 16:30).
   useEffect(() => startAutoBackupScheduler(defaultAgentClient), []);
 
@@ -115,7 +69,7 @@ export const App: React.FC = () => {
         width: '100vw',
         height: '100vh',
         overflow: 'hidden',
-        background: theme === 'light' ? '#f8fafc' : 'radial-gradient(circle at top, #1e293b 0%, #0f172a 100%)',
+        background: theme === 'light' ? 'var(--app-bg)' : 'radial-gradient(circle at top, #1e293b 0%, #0f172a 100%)',
         color: 'var(--app-text)',
         colorScheme: theme,
         ...appearanceStyle,

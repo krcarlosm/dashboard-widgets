@@ -99,7 +99,9 @@ describe('Gerenciador de Snippets', () => {
     await user.click(screen.getByTitle('Ocultar conteúdo'));
     expect(screen.queryByTitle('Clique para copiar')).not.toBeInTheDocument();
 
-    await user.click(screen.getByTitle('Excluir snippet'));
+    await user.click(screen.getByRole('button', { name: 'Excluir snippet' }));
+    expect(screen.getByText('Docker')).toBeInTheDocument(); // primeiro clique só arma
+    await user.click(screen.getByRole('button', { name: 'Excluir? (Excluir snippet)' }));
     expect(screen.getByText('Nenhum snippet ainda.')).toBeInTheDocument();
   });
 

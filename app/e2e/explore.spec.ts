@@ -41,4 +41,15 @@ test('todos os widgets em escuro, claro e compacto', async ({ page }) => {
   await setAppearance(page, 'Compacto');
   await page.waitForTimeout(500);
   await page.screenshot({ path: 'test-results/explore/3-claro-compacto.png', fullPage: true });
+
+  // Cor da instância (--widget-accent) aplicada dentro do widget.
+  await setAppearance(page, 'Escuro');
+  await setAppearance(page, 'Confortável');
+  for (const [widget, color] of [['Top 10 Arquivos da Semana', 'Rosa Rose'], ['Mini-Kanban', 'Verde Esmeralda']]) {
+    const card = page.locator('.react-grid-item').filter({ has: page.getByText(widget, { exact: true }) });
+    await card.getByTitle('Escolher cor da instância').click();
+    await card.getByTitle(color).click();
+  }
+  await page.waitForTimeout(500);
+  await page.screenshot({ path: 'test-results/explore/4-cores-por-instancia.png', fullPage: true });
 });

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { Activity, Wifi, WifiOff } from 'lucide-react';
+import { Badge, Button, FieldLabel, Input, Spacer, Toolbar } from '../../ui';
 
 const HelloWorldWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [clickCount, setClickCount] = useState<number>(0);
@@ -34,70 +35,42 @@ const HelloWorldWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   };
 
   return (
-    <div style={{
-      height: '100%',
-      display: 'flex',
-      flexDirection: 'column',
-      gap: '12px',
-      fontSize: '13px',
-      color: '#e2e8f0',
-    }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid #334155', paddingBottom: '6px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-          <Activity size={16} color="var(--app-accent)" />
-          <span>Status do SDK</span>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '11px', color: isAgentOnline ? '#4ade80' : '#94a3b8' }}>
-          {isAgentOnline ? <Wifi size={13} /> : <WifiOff size={13} />}
-          <span>{isAgentOnline ? 'Agent Ativo' : 'Agent Offline'}</span>
-        </div>
-      </div>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 'var(--space-4)', fontSize: 'var(--font-md)', color: 'var(--app-text)' }}>
+      <Toolbar style={{ borderBottom: '1px solid var(--app-border)', paddingBottom: '6px' }}>
+        <Activity size={16} color="var(--widget-accent)" />
+        <span style={{ fontWeight: 600 }}>Status do SDK</span>
+        <Spacer />
+        <Badge tone={isAgentOnline ? 'success' : 'neutral'}>
+          <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+            {isAgentOnline ? <Wifi size={11} /> : <WifiOff size={11} />}
+            {isAgentOnline ? 'Agent Ativo' : 'Agent Offline'}
+          </span>
+        </Badge>
+      </Toolbar>
 
-      <div style={{ background: 'var(--app-surface-elevated)', padding: '8px 12px', borderRadius: '6px' }}>
-        <div style={{ fontSize: '11px', color: '#94a3b8', marginBottom: '4px' }}>Dimensões Atuais (px):</div>
-        <code style={{ color: 'var(--app-accent)', fontWeight: 'bold' }}>
+      <div style={{ background: 'var(--app-surface-muted)', border: '1px solid var(--app-border)', padding: '8px 12px', borderRadius: 'var(--radius-md)' }}>
+        <div style={{ fontSize: 'var(--font-sm)', color: 'var(--app-muted)', marginBottom: '4px' }}>Dimensões Atuais (px):</div>
+        <code style={{ color: 'var(--widget-accent)', fontWeight: 'bold' }}>
           {context.dimensions.width}px × {context.dimensions.height}px
         </code>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-        <label style={{ fontSize: '11px', color: '#94a3b8' }}>Persistência Local (Dexie IDB):</label>
-        <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-          <button
-            onClick={handleIncrement}
-            style={{
-              background: 'var(--app-accent-strong)',
-              color: '#ffffff',
-              border: 'none',
-              borderRadius: '4px',
-              padding: '6px 12px',
-              cursor: 'pointer',
-              fontWeight: 500,
-              fontSize: '12px',
-              transition: 'background 0.2s',
-            }}
-          >
-            Contador: {clickCount}
-          </button>
-        </div>
+      <div>
+        <div style={{ fontSize: 'var(--font-sm)', color: 'var(--app-muted)', marginBottom: '6px' }}>Persistência Local (Dexie IDB):</div>
+        <Button variant="primary" size="md" onClick={handleIncrement}>
+          Contador: {clickCount}
+        </Button>
       </div>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-        <label style={{ fontSize: '11px', color: '#94a3b8' }}>Nota Salva no Storage:</label>
-        <input
+      <div>
+        <FieldLabel htmlFor={`${context.instanceId}-nota`}>Nota Salva no Storage:</FieldLabel>
+        <Input
+          id={`${context.instanceId}-nota`}
           type="text"
           value={customNote}
           onChange={handleNoteChange}
           placeholder="Digite algo para salvar..."
-          style={{
-            background: 'var(--app-input)',
-            border: '1px solid #334155',
-            borderRadius: '4px',
-            padding: '6px 8px',
-            color: 'var(--app-text)',
-            fontSize: '12px',
-            outline: 'none',
-          }}
+          style={{ width: '100%' }}
         />
       </div>
     </div>
@@ -112,7 +85,7 @@ export const helloWorldWidget: WidgetDefinition = {
     description: 'Widget de validação do contrato do SDK, storage isolado e redimensionamento.',
     icon: 'Activity',
     author: 'Dashboard Core',
-	status: 'stable',
+    status: 'stable',
     defaultSize: { w: 4, h: 3 },
     minSize: { w: 3, h: 2 },
     maxSize: { w: 6, h: 5 },

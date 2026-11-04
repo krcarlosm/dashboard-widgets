@@ -76,7 +76,9 @@ describe('Mini-Kanban', () => {
     const user = userEvent.setup();
     const storage = await seeded([{ id: 'a', text: 'Apagar', status: 'done' }]);
     renderWidget(kanbanWidget, { storage });
-    await user.click(await screen.findByTitle('Excluir card'));
+    await user.click(await screen.findByRole('button', { name: 'Excluir card' }));
+    expect(screen.getByText('Apagar')).toBeInTheDocument(); // primeiro clique só arma
+    await user.click(screen.getByRole('button', { name: 'Excluir? (Excluir card)' }));
     expect(screen.queryByText('Apagar')).not.toBeInTheDocument();
     expect(await storage.get('kanban_items')).toEqual([]);
   });

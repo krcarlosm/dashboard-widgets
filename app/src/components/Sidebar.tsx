@@ -204,13 +204,13 @@ export const Sidebar: React.FC = () => {
                   flexShrink: 0,
                 }}
               >
-                <LayoutGrid size={16} color="#ffffff" />
+                <LayoutGrid size={16} color="var(--app-on-accent)" />
               </div>
               <div style={{ minWidth: 0 }}>
                 <h1 style={{ margin: 0, fontSize: '13px', fontWeight: 700, color: 'var(--app-text)', whiteSpace: 'nowrap' }}>
                   Dashboard
                 </h1>
-                <span style={{ fontSize: '10px', color: '#94a3b8' }}>Widgets Locais v{__APP_VERSION__}</span>
+                <span style={{ fontSize: '10px', color: 'var(--app-muted)' }}>Widgets Locais v{__APP_VERSION__}</span>
               </div>
             </div>
           )}
@@ -227,7 +227,7 @@ export const Sidebar: React.FC = () => {
                 justifyContent: 'center',
               }}
             >
-              <LayoutGrid size={16} color="#ffffff" />
+              <LayoutGrid size={16} color="var(--app-on-accent)" />
             </div>
           )}
 
@@ -242,10 +242,10 @@ export const Sidebar: React.FC = () => {
                 : 'Expandir sidebar'
             }
             style={{
-              background: 'rgba(51, 65, 85, 0.4)',
+              background: 'var(--app-surface-elevated)',
               border: 'none',
               borderRadius: '6px',
-              color: '#64748b',
+              color: 'var(--app-muted-strong)',
               width: '26px',
               height: '26px',
               cursor: 'pointer',
@@ -260,8 +260,8 @@ export const Sidebar: React.FC = () => {
               e.currentTarget.style.background = 'var(--app-accent-soft)';
             }}
             onMouseLeave={(e) => {
-              e.currentTarget.style.color = '#64748b';
-              e.currentTarget.style.background = 'rgba(51, 65, 85, 0.4)';
+              e.currentTarget.style.color = 'var(--app-muted-strong)';
+              e.currentTarget.style.background = 'var(--app-surface-elevated)';
             }}
           >
             {sidebarState === 'expanded' ? (
@@ -273,7 +273,7 @@ export const Sidebar: React.FC = () => {
         </div>
 
         {sidebarState === 'expanded' && (
-          <div style={{ display: 'flex', gap: '8px', padding: '10px 14px', borderBottom: '1px solid rgba(51, 65, 85, 0.4)' }}>
+          <div style={{ display: 'flex', gap: '8px', padding: '10px 14px', borderBottom: '1px solid var(--app-border)' }}>
             <button
               onClick={handleReorganize}
               style={{
@@ -296,7 +296,7 @@ export const Sidebar: React.FC = () => {
                 flex: 1,
                 background: 'var(--app-surface)',
                 color: 'var(--app-text)',
-                border: '1px solid rgba(51, 65, 85, 0.5)',
+                border: '1px solid var(--app-border)',
                 borderRadius: '8px',
                 padding: '7px 10px',
                 cursor: 'pointer',
@@ -328,15 +328,15 @@ export const Sidebar: React.FC = () => {
               style={{
                 width: '36px',
                 height: '24px',
-                background: totalActiveWidgets > 0 ? 'var(--app-accent-soft)' : 'rgba(51, 65, 85, 0.3)',
-                border: `1px solid ${totalActiveWidgets > 0 ? 'var(--app-accent-border)' : 'rgba(51, 65, 85, 0.3)'}`,
+                background: totalActiveWidgets > 0 ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
+                border: `1px solid ${totalActiveWidgets > 0 ? 'var(--app-accent-border)' : 'var(--app-surface-elevated)'}`,
                 borderRadius: '12px',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 fontSize: '10px',
                 fontWeight: 700,
-                color: totalActiveWidgets > 0 ? 'var(--app-accent)' : '#64748b',
+                color: totalActiveWidgets > 0 ? 'var(--app-accent)' : 'var(--app-muted-strong)',
                 marginBottom: '4px',
               }}
             >
@@ -355,9 +355,9 @@ export const Sidebar: React.FC = () => {
                       width: '40px',
                       height: '40px',
                       background: count > 0 ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
-                      border: `1px solid ${count > 0 ? 'rgba(2, 132, 199, 0.4)' : 'rgba(51, 65, 85, 0.5)'}`,
+                      border: `1px solid ${count > 0 ? 'var(--app-accent-border)' : 'var(--app-surface-elevated)'}`,
                       borderRadius: '8px',
-                      color: status === 'in_development' ? 'var(--app-accent)' : count > 0 ? 'var(--app-accent-strong)' : '#94a3b8',
+                      color: status === 'in_development' ? 'var(--app-accent)' : count > 0 ? 'var(--app-accent-strong)' : 'var(--app-muted)',
                       cursor: 'pointer',
                       display: 'flex',
                       alignItems: 'center',
@@ -370,7 +370,7 @@ export const Sidebar: React.FC = () => {
                       e.currentTarget.style.background = 'var(--app-accent-soft)';
                     }}
                     onMouseLeave={(e) => {
-                      e.currentTarget.style.borderColor = count > 0 ? 'rgba(2, 132, 199, 0.4)' : 'rgba(51, 65, 85, 0.5)';
+                      e.currentTarget.style.borderColor = count > 0 ? 'var(--app-accent-border)' : 'var(--app-border)';
                       e.currentTarget.style.background = count > 0 ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)';
                     }}
                       >
@@ -385,7 +385,7 @@ export const Sidebar: React.FC = () => {
                         top: '-5px',
                         right: '-5px',
                         background: 'var(--app-accent-strong)',
-                        color: '#fff',
+                        color: 'var(--app-on-accent)',
                         fontSize: '9px',
                         fontWeight: 700,
                         width: '16px',
@@ -411,10 +411,10 @@ export const Sidebar: React.FC = () => {
                 style={{
                   width: '40px',
                   height: '40px',
-                  background: 'rgba(248, 113, 113, 0.12)',
-                  border: '1px solid rgba(248, 113, 113, 0.28)',
+                  background: 'var(--app-danger-soft)',
+                  border: '1px solid var(--app-danger)',
                   borderRadius: '8px',
-                  color: '#f87171',
+                  color: 'var(--app-danger)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -430,10 +430,10 @@ export const Sidebar: React.FC = () => {
                 style={{
                   width: '40px',
                   height: '40px',
-                  background: 'rgba(51, 65, 85, 0.4)',
-                  border: '1px solid rgba(51, 65, 85, 0.5)',
+                  background: 'var(--app-surface-elevated)',
+                  border: '1px solid var(--app-border)',
                   borderRadius: '8px',
-                  color: '#64748b',
+                  color: 'var(--app-muted-strong)',
                   cursor: 'pointer',
                   display: 'flex',
                   alignItems: 'center',
@@ -445,8 +445,8 @@ export const Sidebar: React.FC = () => {
                   e.currentTarget.style.background = 'var(--app-accent-soft)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = '#64748b';
-                  e.currentTarget.style.background = 'rgba(51, 65, 85, 0.4)';
+                  e.currentTarget.style.color = 'var(--app-muted-strong)';
+                  e.currentTarget.style.background = 'var(--app-surface-elevated)';
                 }}
               >
                 <User size={16} />
@@ -464,11 +464,11 @@ export const Sidebar: React.FC = () => {
                 margin: '10px 14px 0 14px',
                 padding: '8px 10px',
                 background: agentStatus === 'online'
-                  ? 'rgba(34, 197, 94, 0.1)'
+                  ? 'var(--app-success-soft)'
                   : agentStatus === 'checking'
                     ? 'var(--app-accent-soft)'
-                    : 'rgba(248, 113, 113, 0.12)',
-                border: `1px solid ${agentStatus === 'online' ? 'rgba(34, 197, 94, 0.3)' : agentStatus === 'checking' ? 'var(--app-accent-border)' : 'rgba(248, 113, 113, 0.3)'}`,
+                    : 'var(--app-danger-soft)',
+                border: `1px solid ${agentStatus === 'online' ? 'var(--app-success)' : agentStatus === 'checking' ? 'var(--app-accent-border)' : 'var(--app-danger-soft)'}`,
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
@@ -478,7 +478,7 @@ export const Sidebar: React.FC = () => {
               }}
             >
               <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {agentStatus === 'online' ? <CheckCircle2 size={13} color="#4ade80" /> : agentStatus === 'checking' ? <Bot size={13} color="var(--app-accent)" /> : <AlertCircle size={13} color="#fda4af" />}
+                {agentStatus === 'online' ? <CheckCircle2 size={13} color="var(--app-success)" /> : agentStatus === 'checking' ? <Bot size={13} color="var(--app-accent)" /> : <AlertCircle size={13} color="var(--app-danger)" />}
                 <span style={{ color: 'var(--app-text)' }}>{agentMessage}</span>
               </div>
               
@@ -497,10 +497,10 @@ export const Sidebar: React.FC = () => {
                   }}
                   title="Pausar / Retomar Agente"
                   style={{
-                    background: 'rgba(51, 65, 85, 0.4)',
-                    border: '1px solid rgba(51, 65, 85, 0.5)',
+                    background: 'var(--app-surface-elevated)',
+                    border: '1px solid var(--app-border)',
                     borderRadius: '4px',
-                    color: '#e2e8f0',
+                    color: 'var(--app-text)',
                     cursor: 'pointer',
                     padding: '2px 6px',
                     display: 'flex',
@@ -523,7 +523,7 @@ export const Sidebar: React.FC = () => {
                 background: totalActiveWidgets > 0
                   ? 'var(--app-accent-soft)'
                   : 'var(--app-surface-elevated)',
-                border: `1px solid ${totalActiveWidgets > 0 ? 'var(--app-accent-border)' : 'rgba(51, 65, 85, 0.3)'}`,
+                border: `1px solid ${totalActiveWidgets > 0 ? 'var(--app-accent-border)' : 'var(--app-surface-elevated)'}`,
                 borderRadius: '8px',
                 display: 'flex',
                 alignItems: 'center',
@@ -531,11 +531,11 @@ export const Sidebar: React.FC = () => {
                 fontSize: '11px',
               }}
             >
-              <span style={{ color: '#94a3b8' }}>Widgets no canvas</span>
+              <span style={{ color: 'var(--app-muted)' }}>Widgets no canvas</span>
               <span
                 style={{
                   fontWeight: 700,
-                  color: totalActiveWidgets > 0 ? 'var(--app-accent)' : '#64748b',
+                  color: totalActiveWidgets > 0 ? 'var(--app-accent)' : 'var(--app-muted-strong)',
                   background: totalActiveWidgets > 0 ? 'var(--app-accent-soft)' : 'transparent',
                   padding: '1px 8px',
                   borderRadius: '10px',
@@ -555,12 +555,12 @@ export const Sidebar: React.FC = () => {
                   alignItems: 'center',
                   gap: '6px',
                   background: 'var(--app-input)',
-                  border: '1px solid #334155',
+                  border: '1px solid var(--app-border)',
                   borderRadius: '6px',
                   padding: '6px 10px',
                 }}
               >
-                <Search size={13} color="#64748b" />
+                <Search size={13} color="var(--app-muted-strong)" />
                 <input
                   type="text"
                   value={searchTerm}
@@ -584,9 +584,9 @@ export const Sidebar: React.FC = () => {
                 onClick={() => void confirmAndResetDashboard(resetDashboard, defaultAgentClient)}
                 style={{
                   width: '100%',
-                  background: 'rgba(248, 113, 113, 0.12)',
-                  color: '#f87171',
-                  border: '1px solid rgba(248, 113, 113, 0.28)',
+                  background: 'var(--app-danger-soft)',
+                  color: 'var(--app-danger)',
+                  border: '1px solid var(--app-danger)',
                   borderRadius: '8px',
                   padding: '7px 10px',
                   cursor: 'pointer',
@@ -605,7 +605,7 @@ export const Sidebar: React.FC = () => {
                 style={{
                   fontSize: '10px',
                   fontWeight: 700,
-                  color: '#64748b',
+                  color: 'var(--app-muted-strong)',
                   textTransform: 'uppercase',
                   letterSpacing: '0.06em',
                   marginBottom: '10px',
@@ -619,7 +619,7 @@ export const Sidebar: React.FC = () => {
               </div>
 
               {filteredWidgets.length === 0 ? (
-                <div style={{ fontSize: '12px', color: '#64748b', textAlign: 'center', marginTop: '20px' }}>
+                <div style={{ fontSize: '12px', color: 'var(--app-muted-strong)', textAlign: 'center', marginTop: '20px' }}>
                   Nenhum widget encontrado.
                 </div>
               ) : (
@@ -632,7 +632,7 @@ export const Sidebar: React.FC = () => {
                       key={item.manifest.id}
                       style={{
                         background: 'var(--app-surface-elevated)',
-                        border: `1px solid ${count > 0 ? 'rgba(2, 132, 199, 0.3)' : 'rgba(51, 65, 85, 0.5)'}`,
+                        border: `1px solid ${count > 0 ? 'var(--app-accent-border)' : 'var(--app-surface-elevated)'}`,
                         borderRadius: '8px',
                         padding: '10px 12px',
                         marginBottom: '10px',
@@ -658,7 +658,7 @@ export const Sidebar: React.FC = () => {
                         {item.manifest.requiresAgent && (
                           <span
                             title="Requer Agent"
-                            style={{ fontSize: '9px', background: 'rgba(34, 197, 94, 0.15)', color: '#4ade80', border: '1px solid rgba(34, 197, 94, 0.3)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
+                            style={{ fontSize: '9px', background: 'var(--app-success-soft)', color: 'var(--app-success)', border: '1px solid var(--app-success)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
                           >
                             Agent
                           </span>
@@ -666,7 +666,7 @@ export const Sidebar: React.FC = () => {
                         {status === 'needs_improvement' && (
                           <span
                             title="Necessita Ajustes"
-                            style={{ fontSize: '9px', background: 'rgba(245, 158, 11, 0.2)', color: '#f59e0b', border: '1px solid rgba(245, 158, 11, 0.4)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
+                            style={{ fontSize: '9px', background: 'var(--app-warning-soft)', color: 'var(--app-warning)', border: '1px solid var(--app-warning)', padding: '0 4px', borderRadius: '3px', flexShrink: 0 }}
                           >
                             <Wrench size={8} style={{ verticalAlign: 'middle' }} /> Fix
                           </span>
@@ -674,7 +674,7 @@ export const Sidebar: React.FC = () => {
                       </div>
 
                       {/* Linha 2: Descrição do app */}
-                      <p style={{ margin: 0, fontSize: '11px', color: '#94a3b8', lineHeight: '1.4' }}>
+                      <p style={{ margin: 0, fontSize: '11px', color: 'var(--app-muted)', lineHeight: '1.4' }}>
                         {item.manifest.description}
                       </p>
 
@@ -688,7 +688,7 @@ export const Sidebar: React.FC = () => {
                             background: 'var(--app-accent-strong)',
                             border: 'none',
                             borderRadius: '6px',
-                            color: '#ffffff',
+                            color: 'var(--app-on-accent)',
                             padding: '5px 10px',
                             cursor: 'pointer',
                             display: 'flex',
@@ -700,7 +700,7 @@ export const Sidebar: React.FC = () => {
                             transition: 'background 0.2s',
                           }}
                           onMouseEnter={(e) => {
-                            e.currentTarget.style.background = '#0369a1';
+                            e.currentTarget.style.background = 'var(--app-accent-strong)';
                           }}
                           onMouseLeave={(e) => {
                             e.currentTarget.style.background = 'var(--app-accent-strong)';
@@ -734,9 +734,9 @@ export const Sidebar: React.FC = () => {
             <div
               style={{
                 padding: '10px 14px',
-                borderTop: '1px solid rgba(51, 65, 85, 0.5)',
+                borderTop: '1px solid var(--app-border)',
                 fontSize: '11px',
-                color: '#64748b',
+                color: 'var(--app-muted-strong)',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'flex-end',
@@ -746,10 +746,10 @@ export const Sidebar: React.FC = () => {
                 onClick={() => setIsProfileOpen(true)}
                 title="Meu Perfil"
                 style={{
-                  background: 'rgba(51, 65, 85, 0.5)',
+                  background: 'var(--app-surface-elevated)',
                   border: 'none',
                   borderRadius: '6px',
-                  color: '#94a3b8',
+                  color: 'var(--app-muted)',
                   width: '28px',
                   height: '28px',
                   cursor: 'pointer',
@@ -763,8 +763,8 @@ export const Sidebar: React.FC = () => {
                   e.currentTarget.style.background = 'var(--app-accent-soft)';
                 }}
                 onMouseLeave={(e) => {
-                  e.currentTarget.style.color = '#94a3b8';
-                  e.currentTarget.style.background = 'rgba(51, 65, 85, 0.5)';
+                  e.currentTarget.style.color = 'var(--app-muted)';
+                  e.currentTarget.style.background = 'var(--app-surface-elevated)';
                 }}
               >
                 <User size={15} />

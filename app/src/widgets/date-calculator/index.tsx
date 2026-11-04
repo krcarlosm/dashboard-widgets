@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { Copy, Check, Calendar } from 'lucide-react';
+import { Button, EmptyState, FieldLabel, Input, ListItem, SegmentedControl } from '../../ui';
 
 type ResultUnit = 'days' | 'weeks' | 'months' | 'all';
 
@@ -30,7 +31,7 @@ export function dateDifference(dateA: string, dateB: string): { days: number; we
   return { days, weeks, months };
 }
 
-const DateCalcWidget: React.FC<WidgetComponentProps> = () => {
+const DateCalcWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const today = toLocalIso(new Date());
   const [dateA, setDateA] = useState<string>(today);
   const [dateB, setDateB] = useState<string>(today);
@@ -56,146 +57,64 @@ const DateCalcWidget: React.FC<WidgetComponentProps> = () => {
   const visibleItems =
     resultUnit === 'all' ? resultItems : resultItems.filter((i) => i.unit === resultUnit);
 
-  const inputStyle: React.CSSProperties = {
-    background: 'var(--app-input)',
-    border: '1px solid var(--app-border)',
-    color: 'var(--app-text)',
-    borderRadius: '6px',
-    padding: '7px 10px',
-    fontSize: '12px',
-    outline: 'none',
-    width: '100%',
-    boxSizing: 'border-box',
-    fontFamily: 'inherit',
-  };
+  const startId = `${context.instanceId}-data-inicial`;
+  const endId = `${context.instanceId}-data-final`;
 
   return (
-    <div
-      style={{
-        height: '80%',
-        display: 'flex',
-        flexDirection: 'column',
-        color: 'var(--app-text)',
-        fontSize: '12px',
-        gap: '10px',
-      }}
-    >
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', color: 'var(--app-text)', fontSize: 'var(--font-md)', gap: '10px' }}>
       {/* Date inputs */}
       <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
         <div>
-          <label style={{ display: 'block', fontSize: '10px', color: '#64748b', marginBottom: '3px' }}>
-            Data Inicial:
-          </label>
-          <input
-            type="date"
-            value={dateA}
-            onChange={(e) => setDateA(e.target.value)}
-            style={inputStyle}
-          />
+          <FieldLabel htmlFor={startId}>Data Inicial:</FieldLabel>
+          <Input id={startId} type="date" value={dateA} onChange={(e) => setDateA(e.target.value)} style={{ width: '100%', fontFamily: 'inherit' }} />
         </div>
         <div>
-          <label style={{ display: 'block', fontSize: '10px', color: '#64748b', marginBottom: '3px' }}>
-            Data Final:
-          </label>
-          <input
-            type="date"
-            value={dateB}
-            onChange={(e) => setDateB(e.target.value)}
-            style={inputStyle}
-          />
+          <FieldLabel htmlFor={endId}>Data Final:</FieldLabel>
+          <Input id={endId} type="date" value={dateB} onChange={(e) => setDateB(e.target.value)} style={{ width: '100%', fontFamily: 'inherit' }} />
         </div>
       </div>
 
-      {/* Unit filter */}
-      <div
-        style={{
-          display: 'flex',
-          background: 'var(--app-input)',
-          border: '1px solid var(--app-border)',
-          borderRadius: '7px',
-          padding: '2px',
-          gap: '2px',
-        }}
-      >
-        {(['all', 'days', 'weeks', 'months'] as ResultUnit[]).map((u) => (
-          <button
-            key={u}
-            onClick={() => setResultUnit(u)}
-            style={{
-              flex: 1,
-              background: resultUnit === u ? 'var(--app-accent-strong)' : 'transparent',
-              border: 'none',
-              color: resultUnit === u ? '#fff' : '#64748b',
-              borderRadius: '5px',
-              padding: '4px 2px',
-              cursor: 'pointer',
-              fontSize: '10px',
-              fontWeight: 600,
-              transition: 'all 0.2s',
-            }}
-          >
-            {u === 'all' ? 'Todos' : u === 'days' ? 'Dias' : u === 'weeks' ? 'Sem.' : 'Meses'}
-          </button>
-        ))}
-      </div>
+      <SegmentedControl
+        stretch
+        ariaLabel="Unidade do resultado"
+        value={resultUnit}
+        onChange={setResultUnit}
+        options={[
+          { id: 'all', label: 'Todos' },
+          { id: 'days', label: 'Dias' },
+          { id: 'weeks', label: 'Sem.', title: 'Semanas' },
+          { id: 'months', label: 'Meses' },
+        ]}
+      />
 
       {/* Results */}
       {/* 'safe center': centraliza quando cabe e rola (sem cortar o topo) quando não cabe. */}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', justifyContent: 'safe center' }}>
         {!result ? (
-          <div style={{ textAlign: 'center', color: '#475569', fontSize: '12px' }}>
-            <Calendar size={24} style={{ margin: '0 auto 8px', display: 'block', color: '#334155' }} />
-            Selecione as datas acima
-          </div>
-        ) : visibleItems.length === 0 ? null : (
+          <EmptyState icon={<Calendar size={24} />} title="Selecione as datas acima" />
+        ) : (
           visibleItems.map((item) => (
-            <div
-              key={item.key}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                background: 'var(--app-surface-muted)',
-                border: '1px solid rgba(51, 65, 85, 0.5)',
-                borderRadius: '8px',
-                padding: '10px 12px',
-              }}
-            >
+            <ListItem key={item.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '10px 12px' }}>
               <div>
-                <div style={{ fontSize: '10px', color: '#64748b' }}>{item.label}</div>
-                <div style={{ fontSize: '20px', fontWeight: 700, color: '#a78bfa', lineHeight: 1.2 }}>
-                  {item.value}
-                </div>
+                <div style={{ fontSize: 'var(--font-xs)', color: 'var(--app-muted)' }}>{item.label}</div>
+                <div style={{ fontSize: 'var(--font-xl)', fontWeight: 700, color: 'var(--widget-accent)', lineHeight: 1.2 }}>{item.value}</div>
               </div>
-              <button
+              <Button
                 onClick={() => copyValue(item.key, String(item.value))}
                 title="Copiar"
-                style={{
-                  background: copiedKey === item.key ? 'rgba(74, 222, 128, 0.15)' : 'rgba(51, 65, 85, 0.4)',
-                  border: `1px solid ${copiedKey === item.key ? 'rgba(74, 222, 128, 0.4)' : 'rgba(51, 65, 85, 0.4)'}`,
-                  color: copiedKey === item.key ? '#4ade80' : '#94a3b8',
-                  borderRadius: '6px',
-                  padding: '4px 8px',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '4px',
-                  fontSize: '10px',
-                  fontWeight: 600,
-                  transition: 'all 0.2s',
-                }}
+                icon={copiedKey === item.key ? <Check size={11} /> : <Copy size={11} />}
+                style={copiedKey === item.key ? { color: 'var(--app-success)', borderColor: 'var(--app-success)' } : undefined}
               >
-                {copiedKey === item.key ? <Check size={11} /> : <Copy size={11} />}
                 {copiedKey === item.key ? 'Ok!' : 'Copiar'}
-              </button>
-            </div>
+              </Button>
+            </ListItem>
           ))
         )}
       </div>
 
       {/* Direction label */}
       {result && (
-        <div style={{ fontSize: '10px', color: '#475569', textAlign: 'center', flexShrink: 0 }}>
+        <div style={{ fontSize: 'var(--font-xs)', color: 'var(--app-muted)', textAlign: 'center', flexShrink: 0 }}>
           {dateA <= dateB
             ? `${dateA} → ${dateB}`
             : `${dateB} ← ${dateA}`}

@@ -1,6 +1,8 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { Play, Pause, RotateCcw, SkipForward, Settings, Bell, CheckCircle, Timer, AlarmClock, Hourglass, Edit2 } from 'lucide-react';
+import { Play, Pause, RotateCcw, SkipForward, Settings, Bell, CheckCircle, AlarmClock, Hourglass, Edit2 } from 'lucide-react';
+import { SegmentedControl } from '../../ui';
+import { alpha } from '../../theme/tokens';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -269,11 +271,11 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   };
 
   const getPhaseColor = (): string => {
-    if (mode === 'stopwatch') return '#f59e0b';
-    if (mode === 'countdown') return '#a78bfa';
-    if (phase === 'focus') return '#ef4444';
-    if (phase === 'short_break') return 'var(--app-accent)';
-    return '#10b981';
+    if (mode === 'stopwatch') return 'var(--app-warning)';
+    if (mode === 'countdown') return 'var(--widget-accent)';
+    if (phase === 'focus') return 'var(--app-danger)';
+    if (phase === 'short_break') return 'var(--widget-accent)';
+    return 'var(--app-success)';
   };
 
   const getPomodoroPhaseLabel = (): string => {
@@ -309,54 +311,23 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       }}
     >
       {/* Mode Tabs */}
-      <div
-        style={{
-          display: 'flex',
-          width: '100%',
-          background: 'var(--app-input)',
-          padding: '3px',
-          borderRadius: '8px',
-          border: '1px solid var(--app-border)',
-          gap: '2px',
-          flexShrink: 0,
+      <SegmentedControl
+        stretch
+        ariaLabel="Modo do timer"
+        disabled={isRunning}
+        value={mode}
+        onChange={(next) => {
+          if (isRunning) return;
+          setMode(next);
+          setIsRunning(false);
+          setShowSettings(false);
         }}
-      >
-        {([
+        options={[
           { id: 'pomodoro', label: 'Pomodoro', icon: <Bell size={11} /> },
           { id: 'countdown', label: 'Contagem', icon: <Hourglass size={11} /> },
           { id: 'stopwatch', label: 'Crono', icon: <AlarmClock size={11} /> },
-        ] as { id: TimerMode; label: string; icon: React.ReactNode }[]).map((tab) => (
-          <button
-            key={tab.id}
-            onClick={() => {
-              if (isRunning) return;
-              setMode(tab.id);
-              setIsRunning(false);
-              setShowSettings(false);
-            }}
-            disabled={isRunning}
-            style={{
-              flex: 1,
-              background: mode === tab.id ? getPhaseColor() + '30' : 'transparent',
-              border: `1px solid ${mode === tab.id ? getPhaseColor() + '60' : 'transparent'}`,
-              color: mode === tab.id ? 'var(--app-text)' : 'var(--app-muted-strong)',
-              borderRadius: '5px',
-              padding: '5px 2px',
-              cursor: isRunning ? 'not-allowed' : 'pointer',
-              fontSize: '10px',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: '3px',
-              transition: 'all 0.2s',
-              opacity: isRunning ? 0.6 : 1,
-            }}
-          >
-            {tab.icon} {tab.label}
-          </button>
-        ))}
-      </div>
+        ]}
+      />
 
       {/* Title + edit */}
       <div style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 }}>
@@ -392,10 +363,10 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             style={{
               fontWeight: 600,
               color: getPhaseColor(),
-              background: `${getPhaseColor()}20`,
+              background: alpha(getPhaseColor(), 14),
               padding: '2px 8px',
               borderRadius: '12px',
-              border: `1px solid ${getPhaseColor()}40`,
+              border: `1px solid ${alpha(getPhaseColor(), 40)}`,
               fontSize: '11px',
               maxWidth: '160px',
               overflow: 'hidden',
@@ -411,14 +382,15 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           <button
             onClick={() => setIsEditingTitle(!isEditingTitle)}
             title="Editar nome do timer"
-            style={{ background: 'transparent', border: 'none', color: '#64748b', cursor: 'pointer', padding: '3px' }}
+            aria-label="Editar nome do timer"
+            style={{ background: 'transparent', border: 'none', color: 'var(--app-muted-strong)', cursor: 'pointer', padding: '3px' }}
           >
             <Edit2 size={12} />
           </button>
           {mode === 'pomodoro' && (
             <button
               onClick={() => setShowSettings(!showSettings)}
-              style={{ background: 'transparent', border: 'none', color: showSettings ? 'var(--app-accent)' : '#64748b', cursor: 'pointer', padding: '3px' }}
+              style={{ background: 'transparent', border: 'none', color: showSettings ? 'var(--widget-accent)' : 'var(--app-muted-strong)', cursor: 'pointer', padding: '3px' }}
               title="Configurações"
             >
               <Settings size={14} />
@@ -468,7 +440,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           </div>
           <button
             onClick={() => updateSettings(config)}
-            style={{ marginTop: 'auto', background: 'var(--app-accent-strong)', color: '#fff', border: 'none', borderRadius: '4px', padding: '6px', cursor: 'pointer', fontWeight: 600 }}
+            style={{ marginTop: 'auto', background: 'var(--widget-accent-strong)', color: 'var(--app-on-accent)', border: 'none', borderRadius: 'var(--radius-sm)', padding: '6px', cursor: 'pointer', fontWeight: 600 }}
           >
             Salvar
           </button>
@@ -482,22 +454,24 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 type="number"
                 min="0"
                 max="999"
+                aria-label="Minutos"
                 value={countdownMinutes}
                 onChange={(e) => setCountdownMinutes(Math.max(0, parseInt(e.target.value) || 0))}
                 style={{ width: '48px', background: 'var(--app-input)', border: '1px solid var(--app-border)', color: 'var(--app-text)', borderRadius: '4px', padding: '4px', textAlign: 'center', fontSize: '13px' }}
               />
-              <span style={{ color: '#64748b', fontWeight: 700 }}>:</span>
+              <span style={{ color: 'var(--app-muted-strong)', fontWeight: 700 }}>:</span>
               <input
                 type="number"
                 min="0"
                 max="59"
+                aria-label="Segundos"
                 value={countdownSeconds}
                 onChange={(e) => setCountdownSeconds(Math.min(59, Math.max(0, parseInt(e.target.value) || 0)))}
                 style={{ width: '48px', background: 'var(--app-input)', border: '1px solid var(--app-border)', color: 'var(--app-text)', borderRadius: '4px', padding: '4px', textAlign: 'center', fontSize: '13px' }}
               />
               <button
                 onClick={applyCountdownInput}
-                style={{ background: 'var(--app-accent-strong)', color: '#fff', border: 'none', borderRadius: '5px', padding: '4px 8px', cursor: 'pointer', fontSize: '10px', fontWeight: 600 }}
+                style={{ background: 'var(--widget-accent-strong)', color: 'var(--app-on-accent)', border: 'none', borderRadius: '5px', padding: '4px 8px', cursor: 'pointer', fontSize: '10px', fontWeight: 600 }}
               >
                 OK
               </button>
@@ -519,7 +493,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           >
             {mode !== 'stopwatch' && (
               <svg width="110" height="110" style={{ transform: 'rotate(-90deg)', position: 'absolute' }}>
-                <circle cx="55" cy="55" r="48" stroke="#334155" strokeWidth="5" fill="transparent" />
+                <circle cx="55" cy="55" r="48" stroke="var(--app-border)" strokeWidth="5" fill="transparent" />
                 <circle
                   cx="55" cy="55" r="48"
                   stroke={getPhaseColor()}
@@ -539,7 +513,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                   <div style={{ fontSize: '20px', fontWeight: 700, letterSpacing: '-0.5px', color: getPhaseColor() }}>
                     {formatStopwatch(stopwatchMs)}
                   </div>
-                  <div style={{ fontSize: '10px', color: '#64748b', marginTop: '2px' }}>cronômetro</div>
+                  <div style={{ fontSize: '10px', color: 'var(--app-muted-strong)', marginTop: '2px' }}>cronômetro</div>
                 </>
               ) : (
                 <span style={{ fontSize: '24px', fontWeight: 700, letterSpacing: '-0.5px' }}>
@@ -554,7 +528,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             <button
               onClick={resetTimer}
               title="Resetar"
-              style={{ background: 'rgba(51, 65, 85, 0.5)', border: 'none', color: '#94a3b8', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              style={{ background: 'var(--app-surface-elevated)', border: 'none', color: 'var(--app-muted)', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
             >
               <RotateCcw size={14} />
             </button>
@@ -562,7 +536,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             <button
               onClick={togglePlay}
               title={isRunning ? 'Pausar' : 'Iniciar'}
-              style={{ background: getPhaseColor(), border: 'none', color: '#ffffff', borderRadius: '50%', width: '44px', height: '44px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 14px ${getPhaseColor()}50`, transition: 'all 0.2s' }}
+              style={{ background: getPhaseColor(), border: 'none', color: 'var(--app-on-accent)', borderRadius: '50%', width: '44px', height: '44px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: `0 4px 14px ${alpha(getPhaseColor(), 35)}`, transition: 'all 0.2s' }}
             >
               {isRunning ? <Pause size={20} /> : <Play size={20} style={{ marginLeft: '2px' }} />}
             </button>
@@ -571,7 +545,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               <button
                 onClick={skipPhase}
                 title="Pular fase"
-                style={{ background: 'rgba(51, 65, 85, 0.5)', border: 'none', color: '#94a3b8', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                style={{ background: 'var(--app-surface-elevated)', border: 'none', color: 'var(--app-muted)', borderRadius: '50%', width: '32px', height: '32px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
               >
                 <SkipForward size={14} />
               </button>
@@ -580,8 +554,8 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
 
           {/* Footer */}
           {mode === 'pomodoro' && (
-            <div style={{ fontSize: '11px', color: '#64748b', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-              <CheckCircle size={12} color="#10b981" />
+            <div style={{ fontSize: '11px', color: 'var(--app-muted-strong)', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+              <CheckCircle size={12} color="var(--app-success)" />
               <span>Ciclos: <strong style={{ color: 'var(--app-text)' }}>{completedCycles}</strong></span>
             </div>
           )}

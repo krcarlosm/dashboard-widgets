@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { Volume2, VolumeX, Play, Pause, Settings, Timer, Clock, Check } from 'lucide-react';
+import { SegmentedControl } from '../../ui';
 
 type NoiseType = 'white' | 'brown' | 'pink';
 
@@ -280,37 +281,14 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     >
       {/* Header Tabs + Settings Icon */}
       <div style={{ display: 'flex', width: '100%', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-        <div
-          style={{
-            display: 'flex',
-            gap: '3px',
-            flex: 1,
-            background: 'var(--app-input)',
-            padding: '3px',
-            borderRadius: '8px',
-            border: '1px solid #334155',
-          }}
-        >
-          {(['white', 'brown', 'pink'] as NoiseType[]).map((type) => (
-            <button
-              key={type}
-              onClick={() => handleTypeChange(type)}
-              style={{
-                flex: 1,
-                background: noiseType === type ? 'var(--app-accent-strong)' : 'transparent',
-                color: noiseType === type ? '#ffffff' : '#94a3b8',
-                border: 'none',
-                borderRadius: '6px',
-                padding: '4px 2px',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                transition: 'all 0.2s',
-              }}
-            >
-              {noiseLabels[type]}
-            </button>
-          ))}
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <SegmentedControl
+            stretch
+            ariaLabel="Tipo de ruído"
+            value={noiseType}
+            onChange={(type) => void handleTypeChange(type)}
+            options={(['white', 'brown', 'pink'] as NoiseType[]).map((type) => ({ id: type, label: noiseLabels[type] }))}
+          />
         </div>
 
         {/* Settings button */}
@@ -318,9 +296,9 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           onClick={() => setShowSettings(!showSettings)}
           title="Configurações de Temporizador"
           style={{
-            background: showSettings ? 'var(--app-accent-soft)' : 'rgba(51, 65, 85, 0.4)',
-            border: `1px solid ${showSettings ? 'var(--app-accent)' : 'rgba(51, 65, 85, 0.6)'}`,
-            color: showSettings ? 'var(--app-accent)' : '#94a3b8',
+            background: showSettings ? 'var(--widget-accent-soft)' : 'var(--app-surface-elevated)',
+            border: `1px solid ${showSettings ? 'var(--widget-accent)' : 'var(--app-surface-elevated)'}`,
+            color: showSettings ? 'var(--widget-accent)' : 'var(--app-muted)',
             borderRadius: '8px',
             width: '32px',
             height: '32px',
@@ -346,7 +324,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             flexDirection: 'column',
             justifyContent: 'space-between',
             background: 'var(--app-surface-elevated)',
-            border: '1px solid #334155',
+            border: '1px solid var(--app-border)',
             borderRadius: '8px',
             padding: '10px',
             gap: '8px',
@@ -356,30 +334,31 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         >
           <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 600, color: 'var(--app-text)' }}>
-                <Timer size={14} color="var(--app-accent)" />
+              <label htmlFor={`${context.instanceId}-timer`} style={{ display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', fontWeight: 600, color: 'var(--app-text)' }}>
+                <Timer size={14} color="var(--widget-accent)" />
                 <span>Temporizador Automático</span>
               </label>
               <input
+                id={`${context.instanceId}-timer`}
                 type="checkbox"
                 checked={isTimerEnabled}
                 onChange={(e) => handleToggleTimer(e.target.checked)}
-                style={{ accentColor: 'var(--app-accent)', cursor: 'pointer', width: '15px', height: '15px' }}
+                style={{ accentColor: 'var(--widget-accent)', cursor: 'pointer', width: '15px', height: '15px' }}
               />
             </div>
 
             {isTimerEnabled ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '4px' }}>
-                <div style={{ fontSize: '10px', color: '#94a3b8' }}>Duração pré-definida:</div>
+                <div style={{ fontSize: '10px', color: 'var(--app-muted)' }}>Duração pré-definida:</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
                   {[5, 15, 30, 60].map((mins) => (
                     <button
                       key={mins}
                       onClick={() => handleSelectMinutes(mins)}
                       style={{
-                        background: selectedMinutes === mins ? 'var(--app-accent-strong)' : 'rgba(51, 65, 85, 0.5)',
-                        color: selectedMinutes === mins ? '#ffffff' : '#94a3b8',
-                        border: `1px solid ${selectedMinutes === mins ? 'var(--app-accent)' : 'rgba(51, 65, 85, 0.6)'}`,
+                        background: selectedMinutes === mins ? 'var(--widget-accent-strong)' : 'var(--app-surface-elevated)',
+                        color: selectedMinutes === mins ? 'var(--app-on-accent)' : 'var(--app-muted)',
+                        border: `1px solid ${selectedMinutes === mins ? 'var(--widget-accent)' : 'var(--app-surface-elevated)'}`,
                         borderRadius: '6px',
                         padding: '5px 0',
                         fontSize: '10px',
@@ -392,10 +371,11 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                   ))}
                 </div>
 
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', fontSize: '11px', color: '#cbd5e1' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginTop: '2px', fontSize: '11px', color: 'var(--app-text)' }}>
                   <span>Customizado:</span>
                   <input
                     type="number"
+                    aria-label="Minutos personalizados"
                     min="1"
                     max="300"
                     value={customMinutesInput}
@@ -403,7 +383,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                     style={{
                       width: '50px',
                       background: 'var(--app-input)',
-                      border: '1px solid #334155',
+                      border: '1px solid var(--app-border)',
                       borderRadius: '4px',
                       color: 'var(--app-text)',
                       padding: '3px 6px',
@@ -415,7 +395,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 </div>
               </div>
             ) : (
-              <div style={{ fontSize: '11px', color: '#64748b', fontStyle: 'italic', paddingTop: '4px' }}>
+              <div style={{ fontSize: '11px', color: 'var(--app-muted-strong)', fontStyle: 'italic', paddingTop: '4px' }}>
                 Modo de reprodução contínua em loop infinito.
               </div>
             )}
@@ -425,8 +405,8 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             onClick={() => setShowSettings(false)}
             style={{
               width: '100%',
-              background: 'var(--app-accent-strong)',
-              color: '#ffffff',
+              background: 'var(--widget-accent-strong)',
+              color: 'var(--app-on-accent)',
               border: 'none',
               borderRadius: '6px',
               padding: '6px',
@@ -449,20 +429,22 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '6px', flex: 1 }}>
             <button
               onClick={togglePlay}
+              aria-label={isPlaying ? 'Pausar ruído' : 'Tocar ruído'}
+              title={isPlaying ? 'Pausar ruído' : 'Tocar ruído'}
               style={{
                 width: '68px',
                 height: '68px',
                 borderRadius: '50%',
                 background: isPlaying
-                  ? 'linear-gradient(135deg, var(--app-accent-strong), var(--app-accent))'
-                  : 'rgba(51, 65, 85, 0.6)',
-                border: 'none',
-                color: '#ffffff',
+                  ? 'linear-gradient(135deg, var(--widget-accent-strong), var(--widget-accent))'
+                  : 'var(--widget-accent-soft)',
+                border: isPlaying ? 'none' : '1px solid var(--widget-accent-border)',
+                color: isPlaying ? 'var(--app-on-accent)' : 'var(--widget-accent)',
                 cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: isPlaying ? '0 0 24px var(--app-accent-border)' : 'none',
+                boxShadow: isPlaying ? '0 0 24px var(--widget-accent-border)' : 'none',
                 transition: 'all 0.3s ease',
               }}
             >
@@ -477,9 +459,9 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                   gap: '4px',
                   fontSize: '11px',
                   fontWeight: 700,
-                  color: 'var(--app-accent)',
-                  background: 'var(--app-accent-soft)',
-                  border: '1px solid var(--app-accent-border)',
+                  color: 'var(--widget-accent)',
+                  background: 'var(--widget-accent-soft)',
+                  border: '1px solid var(--widget-accent-border)',
                   padding: '2px 8px',
                   borderRadius: '12px',
                 }}
@@ -492,20 +474,21 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
 
           {/* Volume Slider */}
           <div style={{ width: '100%', display: 'flex', alignItems: 'center', gap: '8px', flexShrink: 0 }}>
-            {volume === 0 ? <VolumeX size={15} color="#4b84d4" /> : <Volume2 size={15} color="var(--app-accent)" />}
+            {volume === 0 ? <VolumeX size={15} color="var(--app-muted)" /> : <Volume2 size={15} color="var(--widget-accent)" />}
             <input
               type="range"
+              aria-label="Volume"
               min="0"
               max="100"
               value={volume}
               onChange={handleVolumeChange}
               style={{
                 flex: 1,
-                accentColor: 'var(--app-accent)',
+                accentColor: 'var(--widget-accent)',
                 cursor: 'pointer',
               }}
             />
-            <span style={{ width: '28px', textAlign: 'right', fontSize: '11px', color: '#94a3b8' }}>
+            <span style={{ width: '28px', textAlign: 'right', fontSize: '11px', color: 'var(--app-muted)' }}>
               {volume}%
             </span>
           </div>

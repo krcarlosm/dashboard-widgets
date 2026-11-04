@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { Copy, Check, ArrowRightLeft } from 'lucide-react';
+import { Button, FieldLabel, IconButton, Input, SegmentedControl, Select } from '../../ui';
 
 // ─── Unit definitions ─────────────────────────────────────────────────────────
 
@@ -47,7 +48,7 @@ const CATEGORY_LABELS: Record<Category, string> = {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
+const UnitConverterWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [category, setCategory] = useState<Category>('distance');
   const [fromUnit, setFromUnit] = useState<string>('m');
   const [toUnit, setToUnit] = useState<string>('ft');
@@ -94,185 +95,73 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = () => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const selectStyle = {
-    background: 'var(--app-input)',
-    border: '1px solid #334155',
-    color: 'var(--app-text)',
-    borderRadius: '5px',
-    padding: '5px 6px',
-    fontSize: '11px',
-    cursor: 'pointer',
-    outline: 'none',
-    width: '100%',
-  };
+  const fromId = `${context.instanceId}-de`;
+  const toId = `${context.instanceId}-para`;
 
   return (
-    <div
-      style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        color: 'var(--app-text)',
-        fontSize: '12px',
-        gap: '12px',
-      }}
-    >
-      {/* Category selector */}
-      <div
-        style={{
-          display: 'flex',
-          background: 'var(--app-input)',
-          border: '1px solid #334155',
-          borderRadius: '8px',
-          padding: '3px',
-          gap: '2px',
-        }}
-      >
-        {(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => (
-          <button
-            key={cat}
-            onClick={() => handleCategoryChange(cat)}
-            style={{
-              flex: 1,
-              background: category === cat ? 'var(--app-accent-strong)' : 'transparent',
-              border: 'none',
-              color: category === cat ? '#fff' : '#64748b',
-              borderRadius: '5px',
-              padding: '5px 2px',
-              cursor: 'pointer',
-              fontSize: '10px',
-              fontWeight: 600,
-              transition: 'all 0.2s',
-              whiteSpace: 'nowrap',
-            }}
-          >
-            {CATEGORY_LABELS[cat]}
-          </button>
-        ))}
-      </div>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', color: 'var(--app-text)', fontSize: 'var(--font-md)', gap: '12px' }}>
+      <SegmentedControl
+        stretch
+        ariaLabel="Grandeza"
+        value={category}
+        onChange={handleCategoryChange}
+        options={(Object.keys(CATEGORY_LABELS) as Category[]).map((cat) => ({ id: cat, label: CATEGORY_LABELS[cat] }))}
+      />
 
-      {/* From / To */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label style={{ fontSize: '10px', color: '#64748b' }}>De:</label>
-          <select value={fromUnit} onChange={(e) => setFromUnit(e.target.value)} style={selectStyle}>
-            {unitKeys.map((k) => (
-              <option key={k} value={k}>{units[k].label}</option>
-            ))}
-          </select>
+      {/* De / Para */}
+      <div style={{ display: 'flex', alignItems: 'flex-end', gap: '6px' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <FieldLabel htmlFor={fromId}>De:</FieldLabel>
+          <Select id={fromId} value={fromUnit} onChange={(e) => setFromUnit(e.target.value)} style={{ width: '100%' }}>
+            {unitKeys.map((k) => <option key={k} value={k}>{units[k].label}</option>)}
+          </Select>
         </div>
-
-        <button
-          onClick={handleSwap}
-          title="Trocar sentido"
-          style={{
-            background: 'rgba(51, 65, 85, 0.5)',
-            border: '1px solid #334155',
-            borderRadius: '6px',
-            color: '#94a3b8',
-            padding: '5px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            marginTop: '14px',
-            transition: 'all 0.2s',
-          }}
-          onMouseEnter={(e) => {
-            e.currentTarget.style.color = 'var(--app-accent)';
-            e.currentTarget.style.borderColor = 'rgba(56,189,248,0.4)';
-          }}
-          onMouseLeave={(e) => {
-            e.currentTarget.style.color = '#94a3b8';
-            e.currentTarget.style.borderColor = '#334155';
-          }}
-        >
-          <ArrowRightLeft size={14} />
-        </button>
-
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '4px' }}>
-          <label style={{ fontSize: '10px', color: '#64748b' }}>Para:</label>
-          <select value={toUnit} onChange={(e) => setToUnit(e.target.value)} style={selectStyle}>
-            {unitKeys.map((k) => (
-              <option key={k} value={k}>{units[k].label}</option>
-            ))}
-          </select>
+        <IconButton label="Trocar sentido" icon={<ArrowRightLeft size={14} />} bordered onClick={handleSwap} style={{ padding: '5px 7px' }} />
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <FieldLabel htmlFor={toId}>Para:</FieldLabel>
+          <Select id={toId} value={toUnit} onChange={(e) => setToUnit(e.target.value)} style={{ width: '100%' }}>
+            {unitKeys.map((k) => <option key={k} value={k}>{units[k].label}</option>)}
+          </Select>
         </div>
       </div>
 
-      {/* Input */}
-      <input
+      <Input
         type="number"
+        aria-label="Valor a converter"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         placeholder="Digite o valor..."
-        style={{
-          background: 'var(--app-input)',
-          border: '1px solid #334155',
-          color: 'var(--app-text)',
-          borderRadius: '6px',
-          padding: '8px 10px',
-          fontSize: '14px',
-          outline: 'none',
-          width: '100%',
-          boxSizing: 'border-box',
-          textAlign: 'center',
-          fontWeight: 600,
-        }}
+        style={{ width: '100%', padding: '8px 10px', fontSize: 'var(--font-lg)', textAlign: 'center', fontWeight: 600 }}
       />
 
-      {/* Result */}
+      {/* Resultado */}
       <div
         style={{
           flex: 1,
+          minHeight: 0,
           display: 'flex',
           flexDirection: 'column',
           alignItems: 'center',
-          justifyContent: 'center',
-          background: 'var(--app-surface-elevated)',
-          border: '1px solid var(--app-accent-border)',
-          borderRadius: '10px',
+          justifyContent: 'safe center',
+          background: 'var(--app-surface-muted)',
+          border: '1px solid var(--widget-accent-border)',
+          borderRadius: 'var(--radius-xl)',
           padding: '10px',
           gap: '4px',
+          overflowY: 'auto',
         }}
       >
-        <div style={{ fontSize: '10px', color: '#64748b' }}>Resultado</div>
-        <div
-          style={{
-            fontSize: '22px',
-            fontWeight: 700,
-            color: 'var(--app-accent)',
-            wordBreak: 'break-all',
-            textAlign: 'center',
-          }}
-        >
-          {result}
-        </div>
-        <div style={{ fontSize: '11px', color: '#475569' }}>
-          {result !== '—' ? units[toUnit]?.label : ''}
-        </div>
-
-        <button
+        <div style={{ fontSize: 'var(--font-xs)', color: 'var(--app-muted)' }}>Resultado</div>
+        <div style={{ fontSize: '22px', fontWeight: 700, color: 'var(--widget-accent)', wordBreak: 'break-all', textAlign: 'center' }}>{result}</div>
+        <div style={{ fontSize: 'var(--font-sm)', color: 'var(--app-muted)' }}>{result !== '—' ? units[toUnit]?.label : ''}</div>
+        <Button
           onClick={handleCopy}
           disabled={result === '—'}
-          style={{
-            marginTop: '6px',
-            background: copied ? 'rgba(74, 222, 128, 0.15)' : 'var(--app-accent-soft)',
-            border: `1px solid ${copied ? 'rgba(74, 222, 128, 0.4)' : 'var(--app-accent-border)'}`,
-            color: copied ? '#4ade80' : result !== '—' ? 'var(--app-accent)' : '#334155',
-            borderRadius: '6px',
-            padding: '4px 12px',
-            cursor: result !== '—' ? 'pointer' : 'default',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            fontSize: '10px',
-            fontWeight: 600,
-            transition: 'all 0.2s',
-          }}
+          icon={copied ? <Check size={11} /> : <Copy size={11} />}
+          style={{ marginTop: '6px', ...(copied ? { color: 'var(--app-success)', borderColor: 'var(--app-success)' } : {}) }}
         >
-          {copied ? <Check size={11} /> : <Copy size={11} />}
           {copied ? 'Copiado!' : 'Copiar'}
-        </button>
+        </Button>
       </div>
     </div>
   );

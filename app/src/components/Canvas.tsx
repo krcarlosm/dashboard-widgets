@@ -5,6 +5,7 @@ import 'react-resizable/css/styles.css';
 import { useDashboardStore } from '../store/dashboardStore';
 import { WidgetContainer } from './WidgetContainer';
 import { backgroundMap } from './themeGradients'; // Importa o mapa de gradientes
+import { DENSITY } from '../theme/tokens';
 
 const ReactGridLayout = WidthProvider(RGL);
 
@@ -44,8 +45,9 @@ export const Canvas: React.FC = () => {
 	// 'indigo'
 	// 'fearOfTheDark'
 	// -----------------------------------
-  const rowHeight = density === 'compact' ? 60 : 80;
-  const gridMargin: [number, number] = density === 'compact' ? [6, 6] : [12, 12];
+  const densityTokens = DENSITY[density];
+  const rowHeight = densityTokens.rowHeight;
+  const gridMargin: [number, number] = [densityTokens.margin, densityTokens.margin];
 
   useEffect(() => {
     const handleFocusWidget = (event: Event) => {
@@ -84,7 +86,7 @@ export const Canvas: React.FC = () => {
         flex: 1,
         height: '100vh',
         overflowY: 'auto',
-        padding: density === 'compact' ? '5px' : '18px',
+        padding: `${densityTokens.canvasPadding}px`,
         boxSizing: 'border-box',
         background: currentBackground,
         scrollBehavior: 'smooth',
@@ -133,14 +135,14 @@ export const Canvas: React.FC = () => {
             flexDirection: 'column',
             alignItems: 'center',
             justifyContent: 'center',
-            border: `2px dashed ${theme === 'light' ? '#cbd5e1' : 'rgba(51, 65, 85, 0.4)'}`,
+            border: `2px dashed ${theme === 'light' ? 'var(--app-text)' : 'var(--app-surface-elevated)'}`,
             borderRadius: '16px',
-            color: theme === 'light' ? '#64748b' : '#64748b',
+            color: theme === 'light' ? 'var(--app-muted-strong)' : 'var(--app-muted-strong)',
             gap: '8px',
           }}
         >
           <span style={{ fontSize: '15px', fontWeight: 500 }}>Canvas Limpo</span>
-          <span style={{ fontSize: '12px', color: theme === 'light' ? '#64748b' : '#475569' }}>
+          <span style={{ fontSize: '12px', color: theme === 'light' ? 'var(--app-muted-strong)' : 'var(--app-muted-strong)' }}>
             Selecione um widget na barra lateral à esquerda para adicionar ao seu dashboard.
           </span>
         </div>

@@ -108,7 +108,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
           display: 'flex',
           flexDirection: 'column',
           background: 'var(--app-surface)',
-          border: '1px solid #334155',
+          border: '1px solid var(--app-border)',
           borderRadius: '16px',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.5), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
           overflow: 'hidden',
@@ -139,11 +139,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 justifyContent: 'center',
               }}
             >
-              <User size={18} color="#ffffff" />
+              <User size={18} color="var(--app-on-accent)" />
             </div>
             <div>
               <h2 style={{ margin: 0, fontSize: '15px', fontWeight: 600 }}>Meu Perfil</h2>
-              <span style={{ fontSize: '11px', color: '#94a3b8' }}>Configurações & Diagnóstico Local</span>
+              <span style={{ fontSize: '11px', color: 'var(--app-muted)' }}>Configurações & Diagnóstico Local</span>
             </div>
           </div>
 
@@ -152,7 +152,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
             style={{
               background: 'transparent',
               border: 'none',
-              color: '#94a3b8',
+              color: 'var(--app-muted)',
               cursor: 'pointer',
               padding: '4px',
               borderRadius: '4px',
@@ -274,11 +274,11 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
           <div style={{ background: 'var(--app-surface-muted)', borderRadius: '10px', padding: '14px', border: '1px solid var(--app-border)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
               <span style={{ fontSize: '12px', fontWeight: 600, color: 'var(--app-text)' }}>Schema v1.0</span>
-              <span style={{ fontSize: '10px', background: 'var(--app-accent-strong)', color: '#fff', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+              <span style={{ fontSize: '10px', background: 'var(--app-accent-strong)', color: 'var(--app-on-accent)', padding: '2px 6px', borderRadius: '4px', display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
                 <ShieldCheck size={10} /> Local-First
               </span>
             </div>
-            <p style={{ margin: 0, fontSize: '12px', color: '#94a3b8' }}>
+            <p style={{ margin: 0, fontSize: '12px', color: 'var(--app-muted)' }}>
               Seus dados e layouts são armazenados localmente no navegador (IndexedDB + LocalStorage).
             </p>
           </div>
@@ -291,17 +291,17 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
                 <span style={{ fontSize: '11px', fontWeight: 600 }}>Widgets Ativos</span>
               </div>
               <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--app-text)' }}>
-                {activeInstances.length} <span style={{ fontSize: '12px', fontWeight: 400, color: '#64748b' }}>/ {registeredWidgets.size} disponíveis</span>
+                {activeInstances.length} <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--app-muted-strong)' }}>/ {registeredWidgets.size} disponíveis</span>
               </span>
             </div>
 
             <div style={{ background: 'var(--app-input)', padding: '12px', borderRadius: '8px', border: '1px solid var(--app-border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: '#4ade80', marginBottom: '4px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '6px', color: 'var(--app-success)', marginBottom: '4px' }}>
                 <HardDrive size={14} />
                 <span style={{ fontSize: '11px', fontWeight: 600 }}>Uso do Dexie IDB</span>
               </div>
               <span style={{ fontSize: '18px', fontWeight: 700, color: 'var(--app-text)' }}>
-                {estimatedSizeKb} KB <span style={{ fontSize: '12px', fontWeight: 400, color: '#64748b' }}>({storageCount} registros)</span>
+                {estimatedSizeKb} KB <span style={{ fontSize: '12px', fontWeight: 400, color: 'var(--app-muted-strong)' }}>({storageCount} registros)</span>
               </span>
             </div>
           </div>
@@ -313,9 +313,9 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
               }}
               style={{
                 flex: 1,
-                background: 'rgba(248, 113, 113, 0.14)',
-                color: '#f87171',
-                border: '1px solid rgba(248, 113, 113, 0.32)',
+                background: 'var(--app-danger-soft)',
+                color: 'var(--app-danger)',
+                border: '1px solid var(--app-danger)',
                 borderRadius: '8px',
                 padding: '8px 10px',
                 cursor: 'pointer',
@@ -340,7 +340,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
             onClick={onClose}
             style={{
               background: 'var(--app-accent-strong)',
-              color: '#ffffff',
+              color: 'var(--app-on-accent)',
               border: 'none',
               borderRadius: '6px',
               padding: '6px 16px',

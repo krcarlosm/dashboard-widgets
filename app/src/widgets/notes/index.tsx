@@ -1,6 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { FileText, Save, Clock, Copy, Check, Type, PenTool, BookOpen, X } from 'lucide-react';
+import { Button, SegmentedControl } from '../../ui';
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { escapeHtml, htmlToMarkdown, markdownToHtml, migrateLegacyContent, sanitizeHtml } from './markdown';
@@ -217,34 +218,17 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         color: 'var(--app-text)',
       }}
     >
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
-        {([
+      <SegmentedControl
+        ariaLabel="Modo de edição"
+        compact={isCompact}
+        value={mode}
+        onChange={(next) => void handleModeChange(next)}
+        options={[
           { id: 'plain', label: 'Texto', icon: <Type size={11} /> },
           { id: 'rich', label: 'Rich', icon: <PenTool size={11} /> },
           { id: 'markdown', label: 'Markdown', icon: <BookOpen size={11} /> },
-        ] as { id: NotesMode; label: string; icon: React.ReactNode }[]).map((option) => (
-          <button
-            key={option.id}
-            title={option.label}
-            onClick={() => handleModeChange(option.id)}
-            style={{
-              background: mode === option.id ? 'var(--app-accent-strong)' : 'var(--app-surface-muted)',
-              border: mode === option.id ? '1px solid var(--app-accent-strong)' : '1px solid var(--app-border)',
-              color: mode === option.id ? '#ffffff' : 'var(--app-muted)',
-              borderRadius: '6px',
-              padding: '4px 8px',
-              cursor: 'pointer',
-              fontSize: '10px',
-              fontWeight: 600,
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-            }}
-          >
-            {option.icon} {!isCompact && option.label}
-          </button>
-        ))}
-      </div>
+        ]}
+      />
 
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {mode === 'markdown' ? (
@@ -291,7 +275,7 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       >
         {/* Left: char count */}
         <div title={`${content.length} caracteres`} style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-          <FileText size={12} color="var(--app-accent)" />
+          <FileText size={12} color="var(--widget-accent)" />
           <span>{isCompact ? content.length : `${content.length} caracteres`}</span>
         </div>
 
@@ -302,13 +286,13 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         >
           {isSaving ? (
             <>
-              <Save size={12} color="var(--app-accent)" />
-              {!isCompact && <span style={{ color: 'var(--app-accent)' }}>Salvando...</span>}
+              <Save size={12} color="var(--widget-accent)" />
+              {!isCompact && <span style={{ color: 'var(--widget-accent)' }}>Salvando...</span>}
             </>
           ) : (
             lastSaved && (
               <>
-                <Clock size={12} color="#4ade80" />
+                <Clock size={12} color="var(--app-success)" />
                 {!isCompact && <span style={{ color: 'var(--app-muted)' }}>Salvo às {lastSaved}</span>}
               </>
             )
@@ -317,51 +301,25 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
 
         {/* Right: clear + copy buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-          <button
+          <Button
+            variant={confirmClear ? 'danger' : 'ghost'}
             onClick={handleClear}
             title={confirmClear ? 'Clique novamente para apagar a anotação' : 'Apagar anotação'}
             disabled={!content}
-            style={{
-              background: confirmClear ? 'rgba(239, 68, 68, 0.2)' : 'transparent',
-              border: `1px solid ${confirmClear ? 'rgba(239, 68, 68, 0.6)' : content ? 'rgba(239, 68, 68, 0.35)' : 'var(--app-border)'}`,
-              borderRadius: '4px',
-              color: content ? '#ef4444' : 'var(--app-muted)',
-              cursor: content ? 'pointer' : 'default',
-              padding: '2px 7px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '10px',
-              fontWeight: 600,
-              transition: 'all 0.2s',
-            }}
+            icon={<X size={11} />}
+            style={{ padding: '2px 7px', color: confirmClear ? undefined : 'var(--app-danger)' }}
           >
-            <X size={11} />
             {confirmClear ? 'Confirmar?' : !isCompact && 'Apagar'}
-          </button>
-
-          <button
+          </Button>
+          <Button
             onClick={handleCopy}
             title="Copiar texto para a área de transferência"
             disabled={!content}
-            style={{
-              background: copied ? 'rgba(74, 222, 128, 0.15)' : 'rgba(51, 65, 85, 0.5)',
-              border: `1px solid ${copied ? 'rgba(74, 222, 128, 0.4)' : 'rgba(51, 65, 85, 0.5)'}`,
-              borderRadius: '4px',
-              color: copied ? '#4ade80' : content ? '#94a3b8' : '#334155',
-              cursor: content ? 'pointer' : 'default',
-              padding: '2px 7px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              fontSize: '10px',
-              fontWeight: 500,
-              transition: 'all 0.2s',
-            }}
+            icon={copied ? <Check size={11} /> : <Copy size={11} />}
+            style={{ padding: '2px 7px', ...(copied ? { color: 'var(--app-success)', borderColor: 'var(--app-success)' } : {}) }}
           >
-            {copied ? <Check size={11} /> : <Copy size={11} />}
             {!isCompact && (copied ? 'Copiado!' : 'Copiar')}
-          </button>
+          </Button>
         </div>
       </div>
     </div>

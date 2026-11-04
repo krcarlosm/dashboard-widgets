@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { Plus, Check, Trash2, CheckSquare, AlertCircle, Pencil, GripVertical } from 'lucide-react';
+import { Plus, Check, Trash2, CheckSquare, Pencil, GripVertical } from 'lucide-react';
+import { Banner, Button, ConfirmButton, EmptyState, IconButton, Input, SegmentedControl, Spacer, Toolbar } from '../../ui';
 
 interface TodoItem {
   id: string;
@@ -209,124 +210,52 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       }}
     >
       {/* Header controls */}
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: '4px', background: 'var(--app-surface-muted)', padding: '2px', borderRadius: '6px', border: '1px solid var(--app-border)' }}>
-          <button
-            onClick={() => setViewMode('today')}
-            style={{
-              background: viewMode === 'today' ? 'var(--app-accent-strong)' : 'transparent',
-              color: viewMode === 'today' ? '#ffffff' : '#94a3b8',
-              border: 'none',
-              borderRadius: '4px',
-              padding: '3px 8px',
-              fontSize: '11px',
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
-            Hoje
-          </button>
-          <button
-            onClick={() => setViewMode('week')}
-            style={{
-              background: viewMode === 'week' ? 'var(--app-accent-strong)' : 'transparent',
-              color: viewMode === 'week' ? '#ffffff' : '#94a3b8',
-              border: 'none',
-              borderRadius: '4px',
-              padding: '3px 8px',
-              fontSize: '11px',
-              fontWeight: 500,
-              cursor: 'pointer',
-            }}
-          >
-            Todas / Semana
-          </button>
-        </div>
-
-        <span style={{ fontSize: '11px', color: '#64748b' }}>
+      <Toolbar>
+        <SegmentedControl
+          ariaLabel="Período"
+          value={viewMode}
+          onChange={setViewMode}
+          options={[
+            { id: 'today', label: 'Hoje' },
+            { id: 'week', label: 'Todas / Semana' },
+          ]}
+        />
+        <Spacer />
+        <span style={{ fontSize: 'var(--font-sm)', color: 'var(--app-muted)' }}>
           {items.filter((i) => i.done).length} / {items.length} concluídas
         </span>
-      </div>
+      </Toolbar>
 
       {/* Day transition notification banner */}
       {pendingRollover.length > 0 && (
-        <div
-          style={{
-            background: 'rgba(245, 158, 11, 0.15)',
-            border: '1px solid rgba(245, 158, 11, 0.4)',
-            borderRadius: '6px',
-            padding: '8px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            fontSize: '11px',
-            color: '#fef08a',
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontWeight: 600 }}>
-            <AlertCircle size={14} color="#f59e0b" />
-            <span>Você tem {pendingRollover.length} tarefas pendentes de dias anteriores.</span>
+        <Banner tone="warning">
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            <span style={{ fontWeight: 600 }}>Você tem {pendingRollover.length} tarefas pendentes de dias anteriores.</span>
+            <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
+              <Button onClick={handleDismissRollover}>Manter Arquivadas</Button>
+              <Button variant="primary" onClick={handleMoveRolloverToToday}>Mover para Hoje</Button>
+            </div>
           </div>
-          <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-            <button
-              onClick={handleDismissRollover}
-              style={{ background: 'transparent', border: '1px solid #94a3b8', color: '#94a3b8', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', cursor: 'pointer' }}
-            >
-              Manter Arquivadas
-            </button>
-            <button
-              onClick={handleMoveRolloverToToday}
-              style={{ background: '#f59e0b', border: 'none', color: '#0f172a', borderRadius: '4px', padding: '2px 8px', fontSize: '10px', fontWeight: 600, cursor: 'pointer' }}
-            >
-              Mover para Hoje
-            </button>
-          </div>
-        </div>
+        </Banner>
       )}
 
       {/* Add Todo Input */}
       <form onSubmit={handleAddItem} style={{ display: 'flex', gap: '6px' }}>
-        <input
+        <Input
           type="text"
+          aria-label="Nova tarefa"
           value={newText}
           onChange={(e) => setNewText(e.target.value)}
           placeholder="Adicionar nova tarefa..."
-          style={{
-            flex: 1,
-            background: 'var(--app-input)',
-            border: '1px solid var(--app-border)',
-            borderRadius: '6px',
-            padding: '6px 10px',
-            color: 'var(--app-text)',
-            fontSize: '12px',
-            outline: 'none',
-          }}
+          style={{ flex: 1, padding: '6px 10px' }}
         />
-        <button
-          type="submit"
-          style={{
-            background: 'var(--app-accent-strong)',
-            border: 'none',
-            color: '#ffffff',
-            borderRadius: '6px',
-            padding: '6px 12px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <Plus size={16} />
-        </button>
+        <Button type="submit" variant="primary" aria-label="Adicionar tarefa" title="Adicionar tarefa" icon={<Plus size={16} />} style={{ padding: '6px 12px' }} />
       </form>
 
       {/* Task List */}
       <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {filteredItems.length === 0 ? (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100%', color: '#64748b', gap: '4px' }}>
-            <CheckSquare size={24} />
-            <span>Nenhuma tarefa cadastrada.</span>
-          </div>
+          <EmptyState icon={<CheckSquare size={24} />} title="Nenhuma tarefa cadastrada." />
         ) : (
           filteredItems.map((item) => (
             <div
@@ -341,13 +270,13 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 alignItems: 'center',
                 justifyContent: 'space-between',
                 background: 'var(--app-surface-elevated)',
-                border: '1px solid rgba(51, 65, 85, 0.5)',
+                border: '1px solid var(--app-border)',
                 borderRadius: '6px',
                 padding: '6px 10px 6px 4px',
                 gap: '8px',
                 opacity: draggingId === item.id ? 0.4 : 1,
                 boxShadow: dropTarget?.id === item.id
-                  ? `inset 0 ${dropTarget.position === 'before' ? '2px' : '-2px'} 0 var(--app-accent)`
+                  ? `inset 0 ${dropTarget.position === 'before' ? '2px' : '-2px'} 0 var(--widget-accent)`
                   : 'none',
               }}
             >
@@ -391,14 +320,14 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                     minHeight: '16px',
                     flexShrink: 0,
                     borderRadius: '4px',
-                    border: item.done ? 'none' : '1px solid #64748b',
-                    background: item.done ? '#10b981' : 'transparent',
+                    border: item.done ? 'none' : '1px solid var(--app-muted-strong)',
+                    background: item.done ? 'var(--app-success)' : 'transparent',
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
                   }}
                 >
-                  {item.done && <Check size={12} color="#ffffff" />}
+                  {item.done && <Check size={12} color="var(--app-on-accent)" />}
                 </div>
 
                 {editingState?.id === item.id ? (
@@ -440,39 +369,9 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                 )}
               </div>
 
-              <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    startEditing(item);
-                  }}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: 'var(--app-accent)',
-                    cursor: 'pointer',
-                    padding: '2px',
-                  }}
-                  title="Editar tarefa"
-                >
-                  <Pencil size={13} />
-                </button>
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleDelete(item.id);
-                  }}
-                  style={{
-                    background: 'transparent',
-                    border: 'none',
-                    color: '#64748b',
-                    cursor: 'pointer',
-                    padding: '2px',
-                  }}
-                  title="Excluir tarefa"
-                >
-                  <Trash2 size={13} />
-                </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }} onClick={(e) => e.stopPropagation()}>
+                <IconButton label="Editar tarefa" icon={<Pencil size={13} />} onClick={() => startEditing(item)} style={{ color: 'var(--widget-accent)' }} />
+                <ConfirmButton label="Excluir tarefa" confirmLabel="Excluir?" icon={<Trash2 size={13} />} iconOnly onConfirm={() => handleDelete(item.id)} />
               </div>
             </div>
           ))

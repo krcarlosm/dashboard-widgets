@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import {
-  Camera, ImageIcon, FileText, RefreshCw, AlertCircle, Search, Settings2, Trash2, Copy, Check, ExternalLink, ChevronDown, ChevronUp,
+  Camera, ImageIcon, FileText, RefreshCw, Search, Settings2, Trash2, Copy, Check, ExternalLink, ChevronDown, ChevronUp,
 } from 'lucide-react';
+import { AgentOfflineBanner, Banner, ConfirmButton, IconButton, SegmentedControl, Select, Spacer, Toolbar } from '../../ui';
 
 interface BauItem {
   id: string;
@@ -57,7 +58,6 @@ const MemoryBauWidget: React.FC<WidgetComponentProps<BauConfig>> = ({ context })
   const [error, setError] = useState<string | null>(null);
   const [isCapturing, setIsCapturing] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
-  const [confirmClear, setConfirmClear] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [expanded, setExpanded] = useState<Record<string, string>>({});
   const [thumbnails, setThumbnails] = useState<Record<string, string>>({});
@@ -208,12 +208,6 @@ const MemoryBauWidget: React.FC<WidgetComponentProps<BauConfig>> = ({ context })
   };
 
   const handleClear = async () => {
-    if (!confirmClear) {
-      setConfirmClear(true);
-      setTimeout(() => setConfirmClear(false), 4000);
-      return;
-    }
-    setConfirmClear(false);
     try {
       await agentClient.requestJson('/bau/items', { method: 'DELETE' });
       setItems([]);
@@ -225,10 +219,10 @@ const MemoryBauWidget: React.FC<WidgetComponentProps<BauConfig>> = ({ context })
   };
 
   const iconButtonStyle = (active = false): React.CSSProperties => ({
-    background: active ? 'var(--app-accent-soft)' : 'transparent',
-    border: `1px solid ${active ? 'var(--app-accent-border)' : 'var(--app-border)'}`,
+    background: active ? 'var(--widget-accent-soft)' : 'transparent',
+    border: `1px solid ${active ? 'var(--widget-accent-border)' : 'var(--app-border)'}`,
     borderRadius: '6px',
-    color: active ? 'var(--app-accent)' : 'var(--app-muted)',
+    color: active ? 'var(--widget-accent)' : 'var(--app-muted)',
     cursor: 'pointer',
     padding: '4px 6px',
     display: 'flex',
@@ -238,87 +232,46 @@ const MemoryBauWidget: React.FC<WidgetComponentProps<BauConfig>> = ({ context })
     fontWeight: 600,
   });
 
-  const selectStyle: React.CSSProperties = {
-    background: 'var(--app-input)',
-    border: '1px solid var(--app-border)',
-    borderRadius: '6px',
-    color: 'var(--app-text)',
-    fontSize: '11px',
-    padding: '3px 6px',
-  };
-
   if (!isAgentReady) {
-    return (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'flex-start', fontSize: '11px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(248, 113, 113, 0.12)', color: '#fda4af', border: '1px solid rgba(248, 113, 113, 0.3)', borderRadius: '8px', padding: '8px 10px' }}>
-          <AlertCircle size={13} />
-          <span>O Agent não está disponível. Inicie o serviço local para ver o Baú.</span>
-        </div>
-      </div>
-    );
+    return <AgentOfflineBanner what="ver o Baú" />;
   }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--app-text)', fontSize: '12px' }}>
       {/* Abas e ações */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: '4px', background: 'var(--app-surface-muted)', padding: '2px', borderRadius: '6px', border: '1px solid var(--app-border)' }}>
-          {([
+      <Toolbar>
+        <SegmentedControl
+          ariaLabel="Tipo de item"
+          compact={isCompact}
+          value={tab}
+          onChange={setTab}
+          options={[
             { id: 'text', label: 'Texto', icon: <FileText size={11} />, count: counts.text },
             { id: 'image', label: 'Imagens', icon: <ImageIcon size={11} />, count: counts.image },
-          ] as { id: BauTab; label: string; icon: React.ReactNode; count: number }[]).map((option) => (
-            <button
-              key={option.id}
-              title={option.label}
-              onClick={() => setTab(option.id)}
-              style={{
-                background: tab === option.id ? 'var(--app-accent-strong)' : 'transparent',
-                color: tab === option.id ? '#ffffff' : 'var(--app-muted)',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '3px 8px',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '4px',
-              }}
-            >
-              {option.icon} {!isCompact && option.label} <span style={{ opacity: 0.75 }}>{option.count}</span>
-            </button>
-          ))}
-        </div>
-        <div style={{ flex: 1 }} />
-        <button onClick={handleCapture} disabled={isCapturing} title="Capturar a tela inteira" style={iconButtonStyle()}>
-          {isCapturing ? <RefreshCw size={12} className="spin" /> : <Camera size={12} />}
-        </button>
-        <button onClick={() => setShowSettings((value) => !value)} title="Configurações do Baú" style={iconButtonStyle(showSettings)}>
-          <Settings2 size={12} />
-        </button>
-      </div>
+          ]}
+        />
+        <Spacer />
+        <IconButton label="Capturar a tela inteira" bordered onClick={handleCapture} disabled={isCapturing} icon={isCapturing ? <RefreshCw size={12} className="spin" /> : <Camera size={12} />} />
+        <IconButton label="Configurações do Baú" bordered active={showSettings} onClick={() => setShowSettings((value) => !value)} icon={<Settings2 size={12} />} />
+      </Toolbar>
 
       {showSettings && (
         <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: '8px', background: 'var(--app-surface-muted)', border: '1px solid var(--app-border)', borderRadius: '8px', padding: '8px', fontSize: '11px', flexShrink: 0 }}>
           <label style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--app-muted)' }}>
             Guardar por
-            <select value={retentionHours} onChange={(event) => handleRetentionChange(Number(event.target.value))} style={selectStyle}>
+            <Select aria-label="Guardar por" value={retentionHours} onChange={(event) => handleRetentionChange(Number(event.target.value))} style={{ fontSize: 'var(--font-sm)' }}>
               {retentionOptions.map((hours) => <option key={hours} value={hours}>{hours} h</option>)}
-            </select>
+            </Select>
           </label>
           <label style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--app-muted)' }}>
             Exibir
-            <select value={topN} onChange={(event) => updateConfig({ topN: Number(event.target.value) })} style={selectStyle}>
+            <Select aria-label="Exibir" value={topN} onChange={(event) => updateConfig({ topN: Number(event.target.value) })} style={{ fontSize: 'var(--font-sm)' }}>
               {TOP_N_OPTIONS.map((value) => <option key={value} value={value}>{value} itens</option>)}
-            </select>
+            </Select>
           </label>
-          <button
-            onClick={handleClear}
-            title="Apagar todos os textos e imagens do Baú"
-            style={{ ...iconButtonStyle(), marginLeft: 'auto', color: '#ef4444', borderColor: confirmClear ? 'rgba(239, 68, 68, 0.6)' : 'rgba(239, 68, 68, 0.35)', background: confirmClear ? 'rgba(239, 68, 68, 0.15)' : 'transparent' }}
-          >
-            <Trash2 size={11} /> {confirmClear ? 'Confirmar limpeza?' : 'Limpar Baú'}
-          </button>
+          <span style={{ marginLeft: 'auto' }}>
+            <ConfirmButton label="Limpar Baú" confirmLabel="Confirmar limpeza?" icon={<Trash2 size={11} />} onConfirm={() => void handleClear()} style={{ color: 'var(--app-danger)' }} />
+          </span>
         </div>
       )}
 
@@ -335,15 +288,13 @@ const MemoryBauWidget: React.FC<WidgetComponentProps<BauConfig>> = ({ context })
       )}
 
       {error && (
-        <div onClick={() => setError(null)} title="Clique para fechar" style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(248, 113, 113, 0.12)', color: '#fda4af', border: '1px solid rgba(248, 113, 113, 0.3)', borderRadius: '8px', padding: '6px 8px', fontSize: '11px', cursor: 'pointer', flexShrink: 0 }}>
-          <AlertCircle size={12} /> <span>{error}</span>
-        </div>
+        <Banner onClose={() => setError(null)}>{error}</Banner>
       )}
 
       {/* Lista */}
       <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: tab === 'image' ? 'grid' : 'flex', gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', flexDirection: 'column', gap: '6px', alignContent: 'start' }}>
         {items.length === 0 ? (
-          <div style={{ gridColumn: '1 / -1', fontSize: '11px', color: 'var(--app-muted)', border: '1px dashed var(--app-border)', borderRadius: '8px', padding: '10px' }}>
+          <div style={{ gridColumn: '1 / -1', fontSize: 'var(--font-sm)', color: 'var(--app-muted)', border: '1px dashed var(--app-border)', borderRadius: 'var(--radius-lg)', padding: '10px' }}>
             {debouncedQuery
               ? 'Nenhum texto encontrado para essa busca.'
               : tab === 'text'
@@ -378,7 +329,7 @@ const MemoryBauWidget: React.FC<WidgetComponentProps<BauConfig>> = ({ context })
                 key={item.id}
                 onClick={() => handleCopy(item)}
                 title="Clique para copiar a imagem"
-                style={{ background: 'var(--app-surface-muted)', border: `1px solid ${isCopied ? '#4ade80' : 'var(--app-border)'}`, borderRadius: '8px', padding: '6px', cursor: 'copy', display: 'flex', flexDirection: 'column', gap: '4px' }}
+                style={{ background: 'var(--app-surface-muted)', border: `1px solid ${isCopied ? 'var(--app-success)' : 'var(--app-border)'}`, borderRadius: '8px', padding: '6px', cursor: 'copy', display: 'flex', flexDirection: 'column', gap: '4px' }}
               >
                 <div style={{ height: '72px', borderRadius: '6px', background: 'var(--app-surface-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
                   {thumbnails[item.id]
@@ -386,7 +337,7 @@ const MemoryBauWidget: React.FC<WidgetComponentProps<BauConfig>> = ({ context })
                     : <ImageIcon size={18} color="var(--app-muted)" />}
                 </div>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '4px' }}>
-                  {isCopied ? <span style={{ fontSize: '10px', color: '#4ade80' }}>Copiada!</span> : timeLabel}
+                  {isCopied ? <span style={{ fontSize: '10px', color: 'var(--app-success)' }}>Copiada!</span> : timeLabel}
                   {actions}
                 </div>
               </div>
@@ -398,19 +349,19 @@ const MemoryBauWidget: React.FC<WidgetComponentProps<BauConfig>> = ({ context })
               key={item.id}
               onClick={() => handleCopy(item)}
               title="Clique para copiar o texto"
-              style={{ background: 'var(--app-surface-muted)', border: `1px solid ${isCopied ? '#4ade80' : 'var(--app-border)'}`, borderRadius: '8px', padding: '7px 9px', cursor: 'copy', flexShrink: 0 }}
+              style={{ background: 'var(--app-surface-muted)', border: `1px solid ${isCopied ? 'var(--app-success)' : 'var(--app-border)'}`, borderRadius: '8px', padding: '7px 9px', cursor: 'copy', flexShrink: 0 }}
             >
               <div style={{ whiteSpace: 'pre-wrap', overflowWrap: 'anywhere', fontSize: '11.5px', lineHeight: 1.45, maxHeight: fullText !== undefined ? '220px' : undefined, overflowY: fullText !== undefined ? 'auto' : undefined }}>
                 {fullText ?? item.preview}{fullText === undefined && isTruncated ? '…' : ''}
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginTop: '5px' }}>
                 {isCopied
-                  ? <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: '#4ade80' }}><Check size={10} /> Copiado!</span>
+                  ? <span style={{ display: 'flex', alignItems: 'center', gap: '3px', fontSize: '10px', color: 'var(--app-success)' }}><Check size={10} /> Copiado!</span>
                   : timeLabel}
                 {isTruncated && (
                   <button
                     onClick={(event) => { event.stopPropagation(); void handleToggleExpand(item); }}
-                    style={{ ...iconButtonStyle(), border: 'none', padding: '0 2px', color: 'var(--app-accent)' }}
+                    style={{ ...iconButtonStyle(), border: 'none', padding: '0 2px', color: 'var(--widget-accent)' }}
                   >
                     {fullText !== undefined
                       ? <><ChevronUp size={10} /> Recolher</>

@@ -261,14 +261,16 @@ export const meuWidget: WidgetDefinition<MeuWidgetConfig> = {
 2. **Dimensionamento e Layout Responsivo**:
    - Respeite os limites configurados em `minSize` e `maxSize`.
    - O widget deve ocupar `100%` da altura e largura do container fornecido (`h-full w-full overflow-auto`).
-3. **Estilização e Variáveis de Tema**:
-   - Não utilize cores hardcoded estáticas para superfícies de texto e fundo.
-   - Utilize as variáveis CSS globais do app:
-     - `var(--app-surface)`: Cor da superfície principal.
-     - `var(--app-border)`: Cor das bordas.
-     - `var(--app-text)`: Cor primária dos textos (garante contraste claro/escuro).
-     - `var(--app-muted)`: Cor secundária/esmaecida para subtextos.
-     - `var(--app-accent)`: Cor de destaque configurada.
+3. **Design system — tokens e componentes** (`app/src/theme/tokens.ts` e `app/src/ui/`):
+   - **Nunca use cores fixas** (`#334155`, `rgba(51, 65, 85, …)`): elas somem ou viram blocos cinza no tema claro. Use os tokens:
+     - Superfícies: `--app-surface`, `--app-surface-muted`, `--app-surface-elevated`, `--app-input`; bordas: `--app-border`.
+     - Texto: `--app-text`, `--app-muted`; texto sobre fundo de acento: `--app-on-accent`.
+     - Semânticas: `--app-success`, `--app-warning`, `--app-danger` (e `-soft` para fundos).
+     - Escalas: `--radius-sm…xl`, `--space-1…4`, `--font-xs…xl`.
+   - **Dentro do widget, o acento é `--widget-accent`** (e `-strong`, `-soft`, `-border`): segue a cor escolhida para a instância e, sem cor escolhida, a do app.
+   - Para transparência de uma cor, use `alpha(cor, %)` de `tokens.ts` — concatenar `${cor}30` só funciona com hex.
+   - **Prefira os componentes prontos** de `app/src/ui`: `Button`, `IconButton` (exige `label` — vira tooltip e texto do leitor de tela), `ConfirmButton` (ações destrutivas em dois cliques), `Input`, `Select`, `TextArea`, `FieldLabel` (associa rótulo e campo), `SegmentedControl` (abas e filtros), `Toolbar`/`Spacer`, `Badge`, `ListItem`, `EmptyState`, `Banner`, `AgentOfflineBanner` e `confirmDialog()` (no lugar de `window.confirm`).
+   - **Densidade compacta** reduz o widget inteiro (CSS `zoom` 0,85) e a grade usa linhas mais baixas na mesma proporção; não é preciso tratar a densidade dentro do widget. Para layouts estreitos, use `context.dimensions.width`.
 4. **Registro do Widget no Dashboard**:
    - Para registrar seu widget, importe-o em `app/src/App.tsx` e chame `registerWidget(meuWidget)`.
 

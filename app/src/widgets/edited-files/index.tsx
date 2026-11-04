@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { AlertCircle, FolderOpen, FolderPlus, RefreshCw, Settings2, X } from 'lucide-react';
+import { FolderOpen, FolderPlus, RefreshCw, Settings2, X } from 'lucide-react';
+import { AgentOfflineBanner, Badge, Banner, IconButton, Input, SegmentedControl, Spacer, Toolbar } from '../../ui';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Top 10 Arquivos da Semana — arquivos mais abertos e editados nos últimos 7 dias.
@@ -56,17 +57,6 @@ const formatRelative = (timestamp: number): string => {
   const diffDays = Math.floor(diffHours / 24);
   return diffDays === 1 ? 'ontem' : `há ${diffDays} dias`;
 };
-
-const tagStyle = (kind: 'opened' | 'edited'): React.CSSProperties => ({
-  fontSize: '9px',
-  fontWeight: 700,
-  padding: '1px 5px',
-  borderRadius: '4px',
-  flexShrink: 0,
-  background: kind === 'edited' ? 'rgba(251, 191, 36, 0.16)' : 'var(--app-accent-soft)',
-  color: kind === 'edited' ? '#fbbf24' : 'var(--app-accent)',
-  border: `1px solid ${kind === 'edited' ? 'rgba(251, 191, 36, 0.35)' : 'var(--app-accent-border)'}`,
-});
 
 const TopFilesWidget: React.FC<WidgetComponentProps<TopFilesConfig>> = ({ context }) => {
   const { agentClient, config, updateConfig } = context;
@@ -158,73 +148,27 @@ const TopFilesWidget: React.FC<WidgetComponentProps<TopFilesConfig>> = ({ contex
     }
   };
 
-  const iconButtonStyle = (active = false): React.CSSProperties => ({
-    background: active ? 'var(--app-accent-soft)' : 'transparent',
-    border: `1px solid ${active ? 'var(--app-accent-border)' : 'var(--app-border)'}`,
-    borderRadius: '6px',
-    color: active ? 'var(--app-accent)' : 'var(--app-muted)',
-    cursor: 'pointer',
-    padding: '4px 6px',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '4px',
-    fontSize: '10px',
-    fontWeight: 600,
-  });
-
   if (!isAgentReady) {
-    return (
-      <div style={{ height: '100%', display: 'flex', alignItems: 'flex-start', fontSize: '11px' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(248, 113, 113, 0.12)', color: '#fda4af', border: '1px solid rgba(248, 113, 113, 0.3)', borderRadius: '8px', padding: '8px 10px' }}>
-          <AlertCircle size={13} />
-          <span>O Agent não está disponível. Inicie o serviço local para ver os arquivos da semana.</span>
-        </div>
-      </div>
-    );
+    return <AgentOfflineBanner what="ver os arquivos da semana" />;
   }
 
   return (
     <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--app-text)', fontSize: '12px' }}>
       {/* Filtros e ações */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: '4px', background: 'var(--app-surface-muted)', padding: '2px', borderRadius: '6px', border: '1px solid var(--app-border)' }}>
-          {FILTERS.map((option) => (
-            <button
-              key={option.id}
-              onClick={() => updateConfig({ filter: option.id })}
-              style={{
-                background: filter === option.id ? 'var(--app-accent-strong)' : 'transparent',
-                color: filter === option.id ? '#ffffff' : 'var(--app-muted)',
-                border: 'none',
-                borderRadius: '4px',
-                padding: '3px 8px',
-                fontSize: '11px',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
-            >
-              {isCompact ? option.label.slice(0, 3) : option.label}
-            </button>
-          ))}
-        </div>
-        <div style={{ flex: 1 }} />
-        <button onClick={handleScan} disabled={isScanning} title="Atualizar agora" style={iconButtonStyle()}>
-          <RefreshCw size={12} className={isScanning ? 'spin' : undefined} />
-        </button>
-        <button onClick={() => setShowSettings((value) => !value)} title="Pastas monitoradas" style={iconButtonStyle(showSettings)}>
-          <Settings2 size={12} />
-        </button>
-      </div>
+      <Toolbar>
+        <SegmentedControl
+          ariaLabel="Filtro"
+          compact={isCompact}
+          value={filter}
+          onChange={(next) => updateConfig({ filter: next })}
+          options={FILTERS}
+        />
+        <Spacer />
+        <IconButton label="Atualizar agora" bordered onClick={handleScan} disabled={isScanning} icon={<RefreshCw size={12} className={isScanning ? 'spin' : undefined} />} />
+        <IconButton label="Pastas monitoradas" bordered active={showSettings} onClick={() => setShowSettings((value) => !value)} icon={<Settings2 size={12} />} />
+      </Toolbar>
 
-      {error && (
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', background: 'rgba(248, 113, 113, 0.12)', color: '#fda4af', border: '1px solid rgba(248, 113, 113, 0.3)', borderRadius: '8px', padding: '6px 8px', fontSize: '11px', flexShrink: 0 }}>
-          <AlertCircle size={12} style={{ flexShrink: 0 }} />
-          <span style={{ flex: 1, wordBreak: 'break-word' }}>{error}</span>
-          <button onClick={() => setError(null)} title="Fechar" style={{ background: 'transparent', border: 'none', color: 'inherit', cursor: 'pointer', padding: 0, display: 'flex' }}>
-            <X size={12} />
-          </button>
-        </div>
-      )}
+      {error && <Banner onClose={() => setError(null)}>{error}</Banner>}
 
       {showSettings && (
         <div style={{ background: 'var(--app-surface-muted)', border: '1px solid var(--app-border)', borderRadius: '8px', padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0, fontSize: '11px' }}>
@@ -233,15 +177,9 @@ const TopFilesWidget: React.FC<WidgetComponentProps<TopFilesConfig>> = ({ contex
           </span>
           {folders.map((folder) => (
             <div key={folder} style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-              <FolderOpen size={12} color="var(--app-accent)" style={{ flexShrink: 0 }} />
+              <FolderOpen size={12} color="var(--widget-accent)" style={{ flexShrink: 0 }} />
               <span title={folder} style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{folder}</span>
-              <button
-                onClick={() => void saveFolders(folders.filter((item) => item !== folder))}
-                title="Parar de monitorar"
-                style={{ background: 'transparent', border: 'none', color: 'var(--app-muted)', cursor: 'pointer', padding: 0, display: 'flex' }}
-              >
-                <X size={12} />
-              </button>
+              <IconButton label="Parar de monitorar" onClick={() => void saveFolders(folders.filter((item) => item !== folder))} icon={<X size={12} />} style={{ padding: 0 }} />
             </div>
           ))}
           <form
@@ -251,15 +189,14 @@ const TopFilesWidget: React.FC<WidgetComponentProps<TopFilesConfig>> = ({ contex
             }}
             style={{ display: 'flex', gap: '6px' }}
           >
-            <input
+            <Input
+              aria-label="Caminho da pasta"
               value={newFolder}
               onChange={(event) => setNewFolder(event.target.value)}
               placeholder="Cole o caminho de uma pasta"
-              style={{ flex: 1, minWidth: 0, background: 'var(--app-input)', border: '1px solid var(--app-border)', borderRadius: '6px', color: 'var(--app-text)', fontSize: '11px', padding: '4px 6px' }}
+              style={{ flex: 1, fontSize: 'var(--font-sm)', padding: '4px 6px' }}
             />
-            <button type="submit" title="Adicionar pasta" style={iconButtonStyle()}>
-              <FolderPlus size={12} />
-            </button>
+            <IconButton type="submit" label="Adicionar pasta" bordered icon={<FolderPlus size={12} />} />
           </form>
         </div>
       )}
@@ -276,11 +213,11 @@ const TopFilesWidget: React.FC<WidgetComponentProps<TopFilesConfig>> = ({ contex
             key={item.path}
             style={{ background: 'var(--app-surface-muted)', border: '1px solid var(--app-border)', borderRadius: '8px', padding: '6px 8px', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--app-accent)', width: '18px', textAlign: 'right', flexShrink: 0 }}>{index + 1}</span>
+            <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--widget-accent)', width: '18px', textAlign: 'right', flexShrink: 0 }}>{index + 1}</span>
             <div style={{ flex: 1, minWidth: 0 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '4px', minWidth: 0 }}>
-                {item.opened > 0 && <span style={tagStyle('opened')}>{isCompact ? 'A' : 'Aberto'}</span>}
-                {item.edited > 0 && <span style={tagStyle('edited')}>{isCompact ? 'E' : 'Editado'}</span>}
+                {item.opened > 0 && <Badge tone="accent">{isCompact ? 'A' : 'Aberto'}</Badge>}
+                {item.edited > 0 && <Badge tone="warning">{isCompact ? 'E' : 'Editado'}</Badge>}
                 <a
                   href="#"
                   onClick={(event) => {
@@ -302,9 +239,7 @@ const TopFilesWidget: React.FC<WidgetComponentProps<TopFilesConfig>> = ({ contex
                 {formatRelative(item.lastAccess)} · {item.total}× · {item.folder}
               </div>
             </div>
-            <button onClick={() => void handleOpen(item, 'reveal')} title="Mostrar na pasta" style={{ ...iconButtonStyle(), border: 'none', padding: '2px' }}>
-              <FolderOpen size={13} />
-            </button>
+            <IconButton label="Mostrar na pasta" onClick={() => void handleOpen(item, 'reveal')} icon={<FolderOpen size={13} />} style={{ padding: '2px' }} />
           </div>
         ))}
       </div>

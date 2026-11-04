@@ -138,9 +138,9 @@ describe('Baú de Lembranças', () => {
     agent.route('POST', /\/copy$/, () => { throw new Error('Área de transferência ocupada'); });
     renderWidget(memoryBauWidget, { agent });
     await user.click(await screen.findByText('primeiro texto'));
-    const banner = await screen.findByTitle('Clique para fechar');
+    const banner = await screen.findByRole('alert');
     expect(within(banner).getByText('Área de transferência ocupada')).toBeInTheDocument();
-    await user.click(banner);
-    expect(screen.queryByTitle('Clique para fechar')).not.toBeInTheDocument();
+    await user.click(within(banner).getByRole('button', { name: 'Fechar aviso' }));
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
   });
 });

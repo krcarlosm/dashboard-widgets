@@ -33,7 +33,7 @@ afterEach(() => {
 });
 
 const flush = () => act(async () => { await vi.advanceTimersByTimeAsync(0); });
-const playButton = () => screen.getAllByRole('button').find((button) => button.querySelector('svg') && !button.title && !button.textContent)!;
+const playButton = () => screen.getByRole('button', { name: /Tocar ruído|Pausar ruído/ });
 
 describe('Gerador de Ruído', () => {
   it('toca em loop com o volume salvo e para com fade', async () => {

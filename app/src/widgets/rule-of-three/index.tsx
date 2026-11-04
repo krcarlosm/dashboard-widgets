@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { Copy, Check, Divide } from 'lucide-react';
+import { Copy, Check } from 'lucide-react';
+import { Button } from '../../ui';
 
 /**
  * Rule of Three (Regra de Três) — Simple & Compound
@@ -55,7 +56,7 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
 
   const labelStyle: React.CSSProperties = {
     fontSize: '10px',
-    color: '#64748b',
+    color: 'var(--app-muted-strong)',
     textAlign: 'center' as const,
     marginBottom: '3px',
   };
@@ -63,7 +64,7 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
   const dividerStyle: React.CSSProperties = {
     width: '100%',
     height: '1px',
-    background: '#334155',
+    background: 'var(--app-border)',
     margin: '0',
   };
 
@@ -88,10 +89,10 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
         justifyContent: 'center',
       }}
     >
-      <div style={{ fontSize: '11px', color: '#64748b', textAlign: 'center' }}>
+      <div style={{ fontSize: '11px', color: 'var(--app-muted-strong)', textAlign: 'center' }}>
         Se <strong style={{ color: 'var(--app-text)' }}>A</strong> corresponde a <strong style={{ color: 'var(--app-text)' }}>B</strong>,
         <br />
-        então <strong style={{ color: 'var(--app-text)' }}>C</strong> corresponde a <strong style={{ color: 'var(--app-accent)' }}>X</strong>
+        então <strong style={{ color: 'var(--app-text)' }}>C</strong> corresponde a <strong style={{ color: 'var(--widget-accent)' }}>X</strong>
       </div>
 
       {/* A/B = C/X layout */}
@@ -104,7 +105,8 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
             value={a}
             onChange={(e) => setA(e.target.value)}
             placeholder="A"
-            style={{ ...inputStyle, borderColor: a && !isNaN(av) ? 'var(--app-accent-border)' : '#334155' }}
+            aria-label="Valor A"
+            style={{ ...inputStyle, borderColor: a && !isNaN(av) ? 'var(--widget-accent-border)' : 'var(--app-border)' }}
           />
           <div style={dividerStyle} />
           <input
@@ -112,13 +114,14 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
             value={b}
             onChange={(e) => setB(e.target.value)}
             placeholder="B"
-            style={{ ...inputStyle, borderColor: b && !isNaN(bv) ? 'var(--app-accent-border)' : '#334155' }}
+            aria-label="Valor B"
+            style={{ ...inputStyle, borderColor: b && !isNaN(bv) ? 'var(--widget-accent-border)' : 'var(--app-border)' }}
           />
           <div style={labelStyle}>B</div>
         </div>
 
         {/* = */}
-        <div style={{ fontSize: '22px', color: '#475569', fontWeight: 700, flexShrink: 0 }}>=</div>
+        <div style={{ fontSize: '22px', color: 'var(--app-muted-strong)', fontWeight: 700, flexShrink: 0 }}>=</div>
 
         {/* C/X */}
         <div style={fractionStyle}>
@@ -128,16 +131,17 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
             value={c}
             onChange={(e) => setC(e.target.value)}
             placeholder="C"
-            style={{ ...inputStyle, borderColor: c && !isNaN(cv) ? 'var(--app-accent-border)' : '#334155' }}
+            aria-label="Valor C"
+            style={{ ...inputStyle, borderColor: c && !isNaN(cv) ? 'var(--widget-accent-border)' : 'var(--app-border)' }}
           />
           <div style={dividerStyle} />
           {/* X = result */}
           <div
             style={{
               ...inputStyle,
-              background: result !== null ? 'var(--app-accent-soft)' : 'var(--app-input)',
-              border: `1px solid ${result !== null ? 'var(--app-accent-border)' : 'var(--app-border)'}`,
-              color: result !== null ? 'var(--app-accent)' : 'var(--app-muted)',
+              background: result !== null ? 'var(--widget-accent-soft)' : 'var(--app-input)',
+              border: `1px solid ${result !== null ? 'var(--widget-accent-border)' : 'var(--app-border)'}`,
+              color: result !== null ? 'var(--widget-accent)' : 'var(--app-muted)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -151,55 +155,33 @@ const RuleOfThreeWidget: React.FC<WidgetComponentProps> = () => {
           >
             {displayResult}
           </div>
-          <div style={{ ...labelStyle, color: 'var(--app-accent)' }}>X</div>
+          <div style={{ ...labelStyle, color: 'var(--widget-accent)' }}>X</div>
         </div>
       </div>
 
       {/* Formula reminder */}
       {result !== null && (
-        <div style={{ fontSize: '10px', color: '#475569', textAlign: 'center' }}>
+        <div style={{ fontSize: '10px', color: 'var(--app-muted-strong)', textAlign: 'center' }}>
           X = (B × C) / A = ({bv} × {cv}) / {av} = {displayResult}
         </div>
       )}
 
       {/* Copy button */}
-      <button
+      <Button
+        size="md"
         onClick={handleCopy}
         disabled={result === null}
-        style={{
-          background: copied ? 'rgba(74, 222, 128, 0.15)' : result !== null ? 'rgba(167, 139, 250, 0.15)' : 'rgba(30, 41, 59, 0.4)',
-          border: `1px solid ${copied ? 'rgba(74, 222, 128, 0.4)' : result !== null ? 'rgba(167, 139, 250, 0.4)' : '#334155'}`,
-          color: copied ? '#4ade80' : result !== null ? '#a78bfa' : '#334155',
-          borderRadius: '6px',
-          padding: '6px 16px',
-          cursor: result !== null ? 'pointer' : 'default',
-          display: 'flex',
-          alignItems: 'center',
-          gap: '5px',
-          fontSize: '11px',
-          fontWeight: 600,
-          transition: 'all 0.2s',
-        }}
+        icon={copied ? <Check size={12} /> : <Copy size={12} />}
+        style={copied ? { color: 'var(--app-success)', borderColor: 'var(--app-success)' } : undefined}
       >
-        {copied ? <Check size={12} /> : <Copy size={12} />}
         {copied ? 'Copiado!' : 'Copiar resultado'}
-      </button>
+      </Button>
 
       {/* Clear */}
       {(a || b || c) && (
-        <button
-          onClick={() => { setA(''); setB(''); setC(''); }}
-          style={{
-            background: 'transparent',
-            border: 'none',
-            color: '#475569',
-            cursor: 'pointer',
-            fontSize: '10px',
-            textDecoration: 'underline',
-          }}
-        >
+        <Button variant="ghost" onClick={() => { setA(''); setB(''); setC(''); }} style={{ textDecoration: 'underline', fontWeight: 400 }}>
           Limpar campos
-        </button>
+        </Button>
       )}
     </div>
   );

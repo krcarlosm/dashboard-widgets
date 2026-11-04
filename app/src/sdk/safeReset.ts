@@ -1,5 +1,6 @@
 import { createDashboardBackup } from './storage';
 import type { AgentClientProtocol } from './types';
+import { confirmDialog } from '../ui/ConfirmDialog';
 
 export const RESET_CONFIRMATION =
   'O Reset Global remove todos os widgets do canvas e APAGA os dados deles (anotações, tarefas, snippets, kanban…).\n\n' +
@@ -12,9 +13,10 @@ export const RESET_CONFIRMATION =
 export async function confirmAndResetDashboard(
   reset: () => void,
   agent: AgentClientProtocol,
-  confirm: (message: string) => boolean = (message) => window.confirm(message),
+  confirm: (message: string) => boolean | Promise<boolean> = (message) =>
+    confirmDialog({ title: 'Reset Global', message, confirmLabel: 'Apagar tudo' }),
 ): Promise<boolean> {
-  if (!confirm(RESET_CONFIRMATION)) return false;
+  if (!(await confirm(RESET_CONFIRMATION))) return false;
 
   if (agent.isConnected && agent.saveBackup) {
     try {
@@ -23,7 +25,7 @@ export async function confirmAndResetDashboard(
       // Sem perfil salvo não há o que proteger; qualquer outra falha cancela o reset.
       const message = error instanceof Error ? error.message : String(error);
       if (!message.includes('Nenhum perfil')) {
-        if (!confirm(`Não foi possível salvar o backup de segurança (${message}). Resetar mesmo assim?`)) return false;
+        if (!(await confirm(`Não foi possível salvar o backup de segurança (${message}). Resetar mesmo assim?`))) return false;
       }
     }
   }

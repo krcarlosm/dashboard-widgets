@@ -69,12 +69,12 @@ test('Reset Global pede confirmação e salva backup antes de apagar', async ({ 
   await expect(page.getByTitle(/^Salvo às/)).toBeVisible(); // no tamanho padrão o rodapé é compacto
   const manualBefore = backupFiles('manual-').length;
 
-  page.once('dialog', (dialog) => dialog.dismiss());
   await page.getByRole('button', { name: /Reset Global/ }).click();
+  await page.getByRole('alertdialog', { name: 'Reset Global' }).getByRole('button', { name: 'Cancelar' }).click();
   await expect(page.getByPlaceholder('Escreva suas anotações aqui...')).toHaveValue('não pode sumir sem aviso');
 
-  page.once('dialog', (dialog) => dialog.accept());
   await page.getByRole('button', { name: /Reset Global/ }).click();
+  await page.getByRole('alertdialog', { name: 'Reset Global' }).getByRole('button', { name: 'Apagar tudo' }).click();
   await expect(page.getByPlaceholder('Escreva suas anotações aqui...')).toHaveCount(0);
   expect(backupFiles('manual-').length).toBe(manualBefore + 1);
 });

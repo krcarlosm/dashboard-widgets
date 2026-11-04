@@ -93,12 +93,14 @@ describe('Lista de Tarefas', () => {
     expect(screen.getByText('Original')).toBeInTheDocument();
   });
 
-  it('exclui tarefa', async () => {
+  it('exclui tarefa só após confirmar (segundo clique)', async () => {
     const user = userEvent.setup();
     const storage = new MemoryStorage();
     await storage.set('items', [task('a', 'A')]);
     renderWidget(todoWidget, { storage });
-    await user.click(await screen.findByTitle('Excluir tarefa'));
+    await user.click(await screen.findByRole('button', { name: 'Excluir tarefa' }));
+    expect(screen.getByText('A')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Excluir? (Excluir tarefa)' }));
     expect(screen.getByText('Nenhuma tarefa cadastrada.')).toBeInTheDocument();
     expect(await storage.get('items')).toEqual([]);
   });

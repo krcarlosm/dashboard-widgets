@@ -3,6 +3,7 @@ import { Clock, Download, HardDrive, History, Power, RotateCcw, Upload } from 'l
 import { BackupScope, createDashboardBackup, restoreDashboardBackup } from '../sdk/storage';
 import { defaultAgentClient } from '../sdk/agentClient';
 import { AutoBackupState, BackupStatus, getAutoBackupState, subscribeAutoBackup } from '../sdk/autoBackup';
+import { confirmDialog } from '../ui/ConfirmDialog';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // BackupSection — backup automático diário, backup manual, lista de backups
@@ -142,7 +143,7 @@ export const BackupSection: React.FC = () => {
 
     try {
       const backup = JSON.parse(await file.text());
-      if (!window.confirm('A importação substituirá o canvas atual e, se incluídos, os dados dos widgets. Continuar?')) return;
+      if (!(await confirmDialog({ title: 'Importar backup', message: 'A importação substituirá o canvas atual e, se incluídos, os dados dos widgets.', confirmLabel: 'Importar', tone: 'accent' }))) return;
       await restoreDashboardBackup(backup);
       window.location.reload();
     } catch (error) {
@@ -151,7 +152,7 @@ export const BackupSection: React.FC = () => {
   };
 
   const handleRestore = async (file: BackupFile) => {
-    if (!window.confirm(`Restaurar o backup de ${formatDateTime(file.createdAt)}? O estado atual será salvo antes como backup manual.`)) return;
+    if (!(await confirmDialog({ title: 'Restaurar backup', message: `Restaurar o backup de ${formatDateTime(file.createdAt)}? O estado atual será salvo antes como backup manual.`, confirmLabel: 'Restaurar', tone: 'accent' }))) return;
     setRestoring(file.name);
     try {
       const backup = await defaultAgentClient.requestJson(`/backups/files/${encodeURIComponent(file.name)}`);
@@ -212,7 +213,7 @@ export const BackupSection: React.FC = () => {
             <div style={{ fontSize: '11px', color: 'var(--app-muted)', display: 'flex', flexDirection: 'column', gap: '2px' }}>
               <span>Último automático: {formatDateTime(status?.lastAuto ?? null)} · {scheduleLine()}</span>
               <span>Completo (canvas + dados), mantém os {status?.keepAuto ?? 10} mais recentes.</span>
-              {autoState.lastError && <span style={{ color: '#f87171' }}>Falha no último backup automático: {autoState.lastError}</span>}
+              {autoState.lastError && <span style={{ color: 'var(--app-danger)' }}>Falha no último backup automático: {autoState.lastError}</span>}
             </div>
             {autostart?.supported && (
               <label style={labelStyle} title={autostart.path ?? undefined}>
@@ -268,7 +269,7 @@ export const BackupSection: React.FC = () => {
                   fontWeight: 700,
                   padding: '1px 5px',
                   borderRadius: '4px',
-                  background: file.kind === 'auto' ? 'var(--app-accent-soft)' : 'rgba(148, 163, 184, 0.16)',
+                  background: file.kind === 'auto' ? 'var(--app-accent-soft)' : 'var(--app-surface-elevated)',
                   color: file.kind === 'auto' ? 'var(--app-accent)' : 'var(--app-muted)',
                   minWidth: '44px',
                   textAlign: 'center',

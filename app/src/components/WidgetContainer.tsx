@@ -4,6 +4,8 @@ import { ScopedWidgetStorage } from '../sdk/storage';
 import { defaultAgentClient } from '../sdk/agentClient';
 import { useDashboardStore } from '../store/dashboardStore';
 import { X, GripHorizontal, Wrench, AlertTriangle, Lock, Unlock, Palette, Pencil } from 'lucide-react';
+import { ConfirmButton } from '../ui';
+import { widgetAccentStyle } from '../theme/tokens';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // COLOR_PRESETS — Paleta de cores disponíveis para cada instância de widget.
@@ -154,8 +156,12 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
   return (
     <div
       style={{
+        // Densidade compacta: o conteúdo do card é reduzido pelo zoom. Porcentagens
+        // não são afetadas pelo zoom, então o card continua ocupando a célula inteira.
+        zoom: 'var(--density-zoom)' as any,
         width: '100%',
         height: '100%',
+        ...widgetAccentStyle(colorPreset !== 'default' ? colorTheme.accent : undefined),
         display: 'flex',
         flexDirection: 'column',
         background: containerBg,
@@ -166,7 +172,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
         borderRadius: '12px',
         boxShadow: colorPreset !== 'default'
           ? `0 8px 32px 0 rgba(0, 0, 0, 0.4), 0 0 12px ${colorTheme.accent}20`
-          : (isLight ? '0 8px 24px rgba(148, 163, 184, 0.25)' : '0 8px 32px 0 rgba(0, 0, 0, 0.37)'),
+          : 'var(--shadow-card)',
         overflow: 'hidden',
         boxSizing: 'border-box',
         position: 'relative',
@@ -249,9 +255,9 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
                 alignItems: 'center',
                 gap: '3px',
                 fontSize: '10px',
-                background: 'rgba(245, 158, 11, 0.2)',
-                color: '#f59e0b',
-                border: '1px solid rgba(245, 158, 11, 0.4)',
+                background: 'var(--app-warning-soft)',
+                color: 'var(--app-warning)',
+                border: '1px solid var(--app-warning)',
                 padding: '1px 6px',
                 borderRadius: '4px',
               }}
@@ -273,7 +279,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
             onTouchStart={stopPropagation}
             title="Escolher cor da instância"
             style={{
-              background: showColorPicker ? 'rgba(255, 255, 255, 0.15)' : 'transparent',
+              background: showColorPicker ? 'var(--app-surface-elevated)' : 'transparent',
               border: 'none',
               color: colorTheme.accent,
               cursor: 'pointer',
@@ -322,7 +328,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
                     height: '24px',
                     borderRadius: '50%',
                     background: item.accent,
-                    border: colorPreset === key ? '2px solid #ffffff' : '1px solid transparent',
+                    border: colorPreset === key ? '2px solid var(--app-text)' : '1px solid transparent',
                     cursor: 'pointer',
                     boxShadow: colorPreset === key ? '0 0 8px ' + item.accent : 'none',
                     transition: 'transform 0.15s',
@@ -343,7 +349,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
             style={{
               background: 'transparent',
               border: 'none',
-              color: isLocked ? '#6366f1' : '#64748b',
+              color: isLocked ? '#6366f1' : 'var(--app-muted)',
               cursor: 'pointer',
               padding: '3px',
               borderRadius: '4px',
@@ -356,36 +362,11 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
             {isLocked ? <Lock size={13} /> : <Unlock size={13} />}
           </button>
 
-          {/* Close button — hidden when locked */}
+          {/* Remover (oculto quando travado): pede confirmação no segundo clique. */}
           {!isLocked && (
-            <button
-              onClick={onRemove}
-              onMouseDown={stopPropagation}
-              onTouchStart={stopPropagation}
-              title="Remover widget"
-              style={{
-                background: 'transparent',
-                border: 'none',
-                color: '#64748b',
-                cursor: 'pointer',
-                padding: '3px',
-                borderRadius: '4px',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                transition: 'color 0.2s, background 0.2s',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = '#ef4444';
-                e.currentTarget.style.background = 'rgba(239, 68, 68, 0.1)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = '#64748b';
-                e.currentTarget.style.background = 'transparent';
-              }}
-            >
-              <X size={14} />
-            </button>
+            <span onMouseDown={stopPropagation} onTouchStart={stopPropagation} style={{ display: 'flex' }}>
+              <ConfirmButton label="Remover widget" confirmLabel="Remover?" icon={<X size={14} />} iconOnly onConfirm={onRemove} />
+            </span>
           )}
         </div>
       </div>

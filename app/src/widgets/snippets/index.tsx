@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { Plus, Copy, Check, Trash2, Code2, Tag, Search, ChevronDown, ChevronRight } from 'lucide-react';
+import { Button, ConfirmButton, EmptyState, IconButton, Input, ListItem, SegmentedControl, Select, TextArea, Toolbar } from '../../ui';
 
 interface Snippet {
   id: string;
@@ -113,351 +114,165 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     html: '#f87171', docker: '#60a5fa', text: '#64748b', other: '#94a3b8',
   };
 
+  const isCompact = context.dimensions.width > 0 && context.dimensions.width < 330;
+
   return (
-    <div
-      style={{
-        height: '100%',
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '8px',
-        color: 'var(--app-text)',
-        fontSize: '12px',
-      }}
-    >
-      {/* Header bar */}
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
-        <div
-          style={{
-            flex: 1,
-            display: 'flex',
-            alignItems: 'center',
-            gap: '5px',
-            background: 'var(--app-input)',
-            border: '1px solid var(--app-border)',
-            borderRadius: '6px',
-            padding: '5px 8px',
-          }}
-        >
-          <Search size={12} color="var(--app-muted-strong)" />
-          <input
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--app-text)', fontSize: 'var(--font-md)' }}>
+      {/* Busca e novo */}
+      <Toolbar>
+        <div style={{ flex: 1, minWidth: 0, position: 'relative', display: 'flex' }}>
+          <Search size={12} color="var(--app-muted)" style={{ position: 'absolute', left: '8px', top: '50%', transform: 'translateY(-50%)' }} />
+          <Input
             type="text"
+            aria-label="Buscar snippets"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Buscar snippets..."
-            style={{
-              background: 'transparent',
-              border: 'none',
-              color: 'var(--app-text)',
-              fontSize: '11px',
-              outline: 'none',
-              width: '80%',
-            }}
+            style={{ flex: 1, paddingLeft: '26px', fontSize: 'var(--font-sm)' }}
           />
         </div>
-        <button
-          onClick={() => { setIsAdding(!isAdding); }}
-          title="Novo snippet"
-          style={{
-            background: isAdding ? 'var(--app-accent-soft)' : 'var(--app-accent-strong)',
-            border: `1px solid ${isAdding ? 'var(--app-accent-border)' : 'var(--app-accent-strong)'}`,
-            color: '#fff',
-            borderRadius: '6px',
-            padding: '5px 9px',
-            cursor: 'pointer',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '4px',
-            fontSize: '10px',
-            fontWeight: 600,
-            flexShrink: 0,
-            transition: 'all 0.2s',
-          }}
-        >
-          <Plus size={12} /> Novo
-        </button>
-      </div>
+        <Button variant="primary" onClick={() => setIsAdding(!isAdding)} title="Novo snippet" icon={<Plus size={12} />}>
+          Novo
+        </Button>
+      </Toolbar>
 
-      {/* Add / Edit form */}
+      {/* Formulário de novo snippet */}
       {isAdding && (
-        <div
-          style={{
-            background: 'var(--app-surface-elevated)',
-            border: '1px solid var(--app-border)',
-            borderRadius: '8px',
-            padding: '10px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '6px',
-            flexShrink: 0,
-          }}
-        >
+        <div style={{ background: 'var(--app-surface-muted)', border: '1px solid var(--widget-accent-border)', borderRadius: 'var(--radius-lg)', padding: '8px', display: 'flex', flexDirection: 'column', gap: '6px', flexShrink: 0 }}>
           <div style={{ display: 'flex', gap: '6px' }}>
-            <input
-              value={newTitle}
-              onChange={(e) => setNewTitle(e.target.value)}
-              placeholder="Título do snippet..."
-              style={{
-                flex: 1,
-                background: 'var(--app-input)',
-                border: '1px solid var(--app-border)',
-                color: 'var(--app-text)',
-                borderRadius: '4px',
-                padding: '5px 8px',
-                fontSize: '11px',
-                outline: 'none',
-              }}
-            />
-            <select
-              value={newLanguage}
-              onChange={(e) => setNewLanguage(e.target.value)}
-              style={{
-                background: 'var(--app-input)',
-                border: '1px solid var(--app-border)',
-                color: langColor[newLanguage] || 'var(--app-muted)',
-                borderRadius: '4px',
-                padding: '4px 6px',
-                fontSize: '10px',
-                cursor: 'pointer',
-                outline: 'none',
-              }}
-            >
-              {LANGUAGES.map((l) => (
-                <option key={l} value={l} style={{ color: 'var(--app-text)' }}>
-                  {l}
-                </option>
-              ))}
-            </select>
+            <Input value={newTitle} aria-label="Título do snippet" onChange={(e) => setNewTitle(e.target.value)} placeholder="Título do snippet..." style={{ flex: 1, fontSize: 'var(--font-sm)' }} />
+            <Select value={newLanguage} aria-label="Linguagem" onChange={(e) => setNewLanguage(e.target.value)} style={{ fontSize: 'var(--font-sm)' }}>
+              {LANGUAGES.map((l) => <option key={l} value={l}>{l}</option>)}
+            </Select>
           </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px', color: 'var(--app-muted)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--font-xs)', color: 'var(--app-muted)' }}>
             <span>Categoria atribuída:</span>
-            <span style={{ color: 'var(--app-accent)', fontWeight: 600 }}>{CATEGORY_BY_LANGUAGE[newLanguage] || 'Other'}</span>
+            <span style={{ color: 'var(--widget-accent)', fontWeight: 600 }}>{CATEGORY_BY_LANGUAGE[newLanguage] || 'Other'}</span>
           </div>
-          <textarea
+          <TextArea
             value={newContent}
+            aria-label="Conteúdo do snippet"
             onChange={(e) => setNewContent(e.target.value)}
             placeholder="Cole seu código ou comando aqui..."
             rows={4}
-            style={{
-              background: 'var(--app-input)',
-              border: '1px solid var(--app-border)',
-              color: 'var(--app-text)',
-              borderRadius: '4px',
-              padding: '6px 8px',
-              fontSize: '11px',
-              fontFamily: 'monospace',
-              resize: 'none',
-              outline: 'none',
-              lineHeight: '1.5',
-              boxSizing: 'border-box',
-              width: '100%',
-            }}
+            style={{ fontFamily: 'monospace', fontSize: 'var(--font-sm)', resize: 'vertical' }}
           />
           <div style={{ display: 'flex', gap: '6px', justifyContent: 'flex-end' }}>
-            <button
-              onClick={() => setIsAdding(false)}
-              style={{ background: 'transparent', border: '1px solid var(--app-border)', color: 'var(--app-muted-strong)', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '10px' }}
-            >
-              Cancelar
-            </button>
-            <button
-              onClick={addSnippet}
-              style={{ background: 'var(--app-accent-strong)', border: 'none', color: '#fff', borderRadius: '4px', padding: '4px 10px', cursor: 'pointer', fontSize: '10px', fontWeight: 600 }}
-            >
-              Salvar
-            </button>
+            <Button onClick={() => setIsAdding(false)}>Cancelar</Button>
+            <Button variant="primary" onClick={addSnippet}>Salvar</Button>
           </div>
         </div>
       )}
 
-      <div style={{ display: 'flex', gap: '6px', alignItems: 'center', flexShrink: 0 }}>
-        <div style={{ display: 'flex', gap: '4px', background: 'var(--app-surface-muted)', borderRadius: '6px', padding: '2px', border: '1px solid var(--app-border)', flexWrap: 'wrap' }}>
-          <button onClick={() => setFilterMode('all')} style={{ background: filterMode === 'all' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'all' ? '#fff' : 'var(--app-muted)', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Todos</button>
-          <button onClick={() => setFilterMode('favorites')} style={{ background: filterMode === 'favorites' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'favorites' ? '#fff' : 'var(--app-muted)', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Favoritos</button>
-          <button onClick={() => setFilterMode('categories')} style={{ background: filterMode === 'categories' ? 'var(--app-accent-strong)' : 'transparent', color: filterMode === 'categories' ? '#fff' : 'var(--app-muted)', border: 'none', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>Categorias</button>
-          <button onClick={() => setShowAllContents((prev) => !prev)} style={{ background: showAllContents ? '#0ea5e9' : 'transparent', border: `1px solid ${showAllContents ? '#0ea5e9' : '#334155'}`, color: showAllContents ? '#fff' : '#94a3b8', borderRadius: '4px', padding: '3px 8px', cursor: 'pointer', fontSize: '10px' }}>
-            {showAllContents ? 'Mostrar títulos' : 'Mostrar conteúdos'}
-          </button>
-        </div>
+      {/* Filtros */}
+      <Toolbar style={{ flexWrap: 'wrap' }}>
+        <SegmentedControl
+          ariaLabel="Filtro"
+          compact={isCompact}
+          value={filterMode}
+          onChange={setFilterMode}
+          options={[
+            { id: 'all', label: 'Todos' },
+            { id: 'favorites', label: 'Favoritos' },
+            { id: 'categories', label: 'Categorias' },
+          ]}
+        />
         {filterMode === 'categories' && (
-          <select value={selectedCategory} onChange={(e) => setSelectedCategory(e.target.value)} style={{ background: 'var(--app-input)', border: '1px solid var(--app-border)', color: 'var(--app-text)', borderRadius: '4px', padding: '3px 6px', fontSize: '10px', outline: 'none' }}>
+          <Select value={selectedCategory} aria-label="Categoria" onChange={(e) => setSelectedCategory(e.target.value)} style={{ fontSize: 'var(--font-xs)' }}>
             <option value="all">Todas</option>
-            {categories.map((category) => (
-              <option key={category} value={category}>{category}</option>
-            ))}
-          </select>
+            {categories.map((category) => <option key={category} value={category}>{category}</option>)}
+          </Select>
         )}
-      </div>
+        <Button variant={showAllContents ? 'primary' : 'secondary'} aria-pressed={showAllContents} onClick={() => setShowAllContents((prev) => !prev)} style={{ fontSize: 'var(--font-xs)' }}>
+          {showAllContents ? 'Mostrar títulos' : 'Mostrar conteúdos'}
+        </Button>
+      </Toolbar>
 
-      {/* Snippets list */}
-      <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
+      {/* Lista */}
+      <div style={{ flex: 1, minHeight: 0, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '6px' }}>
         {filteredSnippets.length === 0 ? (
-          <div style={{ color: '#475569', textAlign: 'center', marginTop: '20px', fontSize: '12px' }}>
-            {snippets.length === 0 ? (
-              <>
-                <Code2 size={24} style={{ margin: '0 auto 8px', display: 'block', color: '#334155' }} />
-                <div>Nenhum snippet ainda.</div>
-                <div style={{ fontSize: '11px', color: '#334155', marginTop: '4px' }}>Clique em "+ Novo" para criar.</div>
-              </>
-            ) : (
-              'Nenhum snippet encontrado.'
-            )}
-          </div>
+          snippets.length === 0
+            ? <EmptyState icon={<Code2 size={24} />} title="Nenhum snippet ainda." hint='Clique em "+ Novo" para criar.' />
+            : <EmptyState title="Nenhum snippet encontrado." />
         ) : (
           filteredSnippets.map((snippet) => {
             const isExpanded = showAllContents || expandedSnippetIds[snippet.id];
+            const color = langColor[snippet.language] || 'var(--app-muted)';
             return (
-              <div
-                key={snippet.id}
-                style={{
-                  background: 'var(--app-surface-elevated)',
-                  border: '1px solid var(--app-border)',
-                  borderRadius: '8px',
-                  overflow: 'hidden',
-                  flexShrink: 0,
-                }}
-              >
-                {/* Snippet header */}
+              <ListItem key={snippet.id} style={{ padding: 0, overflow: 'hidden' }}>
                 <div
                   style={{
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'space-between',
-                    padding: '6px 10px',
-                    borderBottom: '1px solid rgba(51, 65, 85, 0.3)',
-                    background: 'var(--app-surface-muted)',
+                    padding: '4px 6px',
+                    borderBottom: isExpanded ? '1px solid var(--app-border)' : 'none',
                     gap: '6px',
                   }}
                 >
                   <div style={{ display: 'flex', alignItems: 'center', gap: '5px', minWidth: 0 }}>
-                    <button
+                    <IconButton
+                      label={isExpanded ? 'Ocultar conteúdo' : 'Mostrar conteúdo'}
+                      icon={isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
                       onClick={() => toggleSnippetExpansion(snippet.id)}
-                      title={isExpanded ? 'Ocultar conteúdo' : 'Mostrar conteúdo'}
-                      style={{
-                        background: 'transparent',
-                        border: 'none',
-                        color: 'var(--app-muted)',
-                        cursor: 'pointer',
-                        padding: '2px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        minWidth: '24px',
-                      }}
-                    >
-                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                    </button>
-                    <Tag size={11} color={langColor[snippet.language] || '#64748b'} style={{ flexShrink: 0 }} />
-                    <span
-                      style={{
-                        fontSize: '11px',
-                        fontWeight: 600,
-                        color: 'var(--app-text)',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis',
-                        whiteSpace: 'nowrap',
-                      }}
-                    >
+                      style={{ padding: '2px' }}
+                    />
+                    <Tag size={11} color={color} style={{ flexShrink: 0 }} />
+                    <span style={{ fontSize: 'var(--font-sm)', fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
                       {snippet.title}
                     </span>
-                    <span
-                      style={{
-                        fontSize: '9px',
-                        color: langColor[snippet.language] || '#64748b',
-                        background: `${langColor[snippet.language] || '#64748b'}20`,
-                        border: `1px solid ${langColor[snippet.language] || '#64748b'}40`,
-                        padding: '0 5px',
-                        borderRadius: '4px',
-                        flexShrink: 0,
-                      }}
-                    >
+                    <span style={{ fontSize: '9px', color, border: `1px solid ${color}`, padding: '0 5px', borderRadius: 'var(--radius-sm)', flexShrink: 0 }}>
                       {snippet.language}
                     </span>
                   </div>
 
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-                  <button
-                    onClick={() => toggleFavorite(snippet.id)}
-                    title={snippet.favorite ? 'Remover favorito' : 'Marcar como favorito'}
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: snippet.favorite ? '#f59e0b' : '#64748b',
-                      cursor: 'pointer',
-                      padding: '2px',
-                      borderRadius: '3px',
-                      display: 'flex',
-                    }}
-                  >
-                    {snippet.favorite ? '★' : '☆'}
-                  </button>
-                  <button
-                    onClick={() => copySnippet(snippet.id, snippet.content)}
-                    title="Copiar código"
-                    style={{
-                      background: copiedId === snippet.id ? 'rgba(74, 222, 128, 0.15)' : 'transparent',
-                      border: 'none',
-                      color: copiedId === snippet.id ? '#4ade80' : '#64748b',
-                      cursor: 'pointer',
-                      padding: '2px',
-                      borderRadius: '3px',
-                      display: 'flex',
-                      transition: 'all 0.2s',
-                    }}
-                  >
-                    {copiedId === snippet.id ? <Check size={12} /> : <Copy size={12} />}
-                  </button>
-                  <button
-                    onClick={() => deleteSnippet(snippet.id)}
-                    title="Excluir snippet"
-                    style={{
-                      background: 'transparent',
-                      border: 'none',
-                      color: '#64748b',
-                      cursor: 'pointer',
-                      padding: '2px',
-                      borderRadius: '3px',
-                      display: 'flex',
-                      transition: 'all 0.2s',
-                    }}
-                    onMouseEnter={(e) => (e.currentTarget.style.color = '#ef4444')}
-                    onMouseLeave={(e) => (e.currentTarget.style.color = '#64748b')}
-                  >
-                    <Trash2 size={12} />
-                  </button>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '2px', flexShrink: 0 }}>
+                    <IconButton
+                      label={snippet.favorite ? 'Remover favorito' : 'Marcar como favorito'}
+                      icon={<span style={{ fontSize: '13px', lineHeight: 1 }}>{snippet.favorite ? '★' : '☆'}</span>}
+                      onClick={() => toggleFavorite(snippet.id)}
+                      style={{ color: snippet.favorite ? 'var(--app-warning)' : 'var(--app-muted)', padding: '2px 4px' }}
+                    />
+                    <IconButton
+                      label="Copiar código"
+                      icon={copiedId === snippet.id ? <Check size={12} /> : <Copy size={12} />}
+                      tone={copiedId === snippet.id ? 'success' : undefined}
+                      onClick={() => copySnippet(snippet.id, snippet.content)}
+                      style={{ padding: '2px 4px' }}
+                    />
+                    <ConfirmButton label="Excluir snippet" confirmLabel="Excluir?" icon={<Trash2 size={12} />} iconOnly onConfirm={() => deleteSnippet(snippet.id)} />
+                  </div>
                 </div>
-              </div>
 
-              {/* Snippet code body */}
-              {isExpanded && (
-                <pre
-                  style={{
-                    margin: 0,
-                    padding: '8px 10px',
-                    fontSize: '11px',
-                    fontFamily: 'monospace',
-                    color: 'var(--app-text)',
-                    whiteSpace: 'pre-wrap',
-                    wordBreak: 'break-all',
-                    lineHeight: '1.5',
-                    maxHeight: '120px',
-                    overflow: 'auto',
-                    background: 'transparent',
-                  }}
-                  onClick={() => copySnippet(snippet.id, snippet.content)}
-                  title="Clique para copiar"
-                >
-                  {snippet.content}
-                </pre>
-              )}
-            </div>
-          );
-        })
+                {isExpanded && (
+                  <pre
+                    onClick={() => copySnippet(snippet.id, snippet.content)}
+                    title="Clique para copiar"
+                    style={{
+                      margin: 0,
+                      padding: '8px 10px',
+                      fontSize: 'var(--font-sm)',
+                      fontFamily: 'monospace',
+                      color: 'var(--app-text)',
+                      whiteSpace: 'pre-wrap',
+                      wordBreak: 'break-all',
+                      lineHeight: 1.5,
+                      maxHeight: '120px',
+                      overflow: 'auto',
+                      cursor: 'copy',
+                      userSelect: 'text',
+                    }}
+                  >
+                    {snippet.content}
+                  </pre>
+                )}
+              </ListItem>
+            );
+          })
         )}
       </div>
- 
 
-      {/* Footer count */}
-      <div style={{ flexShrink: 0, fontSize: '10px', color: 'var(--app-muted)', textAlign: 'right' }}>
+      <div style={{ flexShrink: 0, fontSize: 'var(--font-xs)', color: 'var(--app-muted)', textAlign: 'right' }}>
         {filteredSnippets.length} de {snippets.length} snippet(s)
       </div>
     </div>
