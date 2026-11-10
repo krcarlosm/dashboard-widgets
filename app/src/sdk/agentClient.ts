@@ -1,4 +1,4 @@
-import { AgentClientProtocol, AgentMessage } from './types';
+import { AgentClientProtocol, AgentMessage, UploadOptions } from './types';
 
 type EventCallback = (payload: any) => void;
 
@@ -235,6 +235,53 @@ export class LocalAgentClient implements AgentClientProtocol {
   public async requestBlob(path: string): Promise<Blob> {
     const response = await this.authorizedFetch(path);
     return response.blob();
+  }
+
+  /**
+   * Envia um arquivo como corpo bruto (sem base64), com progresso e cancelamento.
+   * Usa XMLHttpRequest porque o fetch não informa o progresso do envio.
+   */
+  public async upload<T = any>(path: string, body: Blob, options: UploadOptions = {}, retried = false): Promise<T> {
+    const token = await this.loadToken();
+    if (!token) throw new Error('Agente local não autenticado.');
+    if (options.signal?.aborted) throw new DOMException('Envio cancelado', 'AbortError');
+
+    const result = await new Promise<{ status: number; payload: any }>((resolve, reject) => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('POST', `${DEFAULT_AGENT_HTTP_URL}${path}`);
+      xhr.setRequestHeader('Accept', 'application/json');
+      xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+      xhr.setRequestHeader('X-Dashboard-Agent-Token', token);
+      const abort = () => xhr.abort();
+      options.signal?.addEventListener('abort', abort);
+      xhr.upload.onprogress = (event) => {
+        if (event.lengthComputable && event.total > 0) options.onProgress?.(event.loaded / event.total);
+      };
+      xhr.onload = () => {
+        let payload: any = {};
+        try {
+          payload = JSON.parse(xhr.responseText || '{}');
+        } catch {
+          payload = {};
+        }
+        resolve({ status: xhr.status, payload });
+      };
+      xhr.onerror = () => reject(new Error('Não foi possível enviar o arquivo ao agente.'));
+      xhr.onabort = () => reject(new DOMException('Envio cancelado', 'AbortError'));
+      xhr.onloadend = () => options.signal?.removeEventListener('abort', abort);
+      xhr.send(body);
+    });
+
+    if (result.status === 401 && !retried) {
+      this.token = null;
+      window.localStorage.removeItem(AGENT_TOKEN_KEY);
+      return this.upload<T>(path, body, options, true);
+    }
+    if (result.status < 200 || result.status >= 300) {
+      const detail = result.payload?.detail;
+      throw new Error(typeof detail === 'string' ? detail : `Agente local retornou HTTP ${result.status}.`);
+    }
+    return result.payload as T;
   }
 
   public async saveBackup(backup: unknown, kind: 'manual' | 'auto' = 'manual'): Promise<{ path: string; directory: string }> {

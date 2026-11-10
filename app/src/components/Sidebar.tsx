@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useDashboardStore } from '../store/dashboardStore';
 import { defaultAgentClient } from '../sdk/agentClient';
-import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu, FileText, CheckSquare, Clock3, Radio, Calculator, Code2, ArrowRightLeft, Divide, CalendarRange, Sparkles as SparklesIcon, RotateCcw, Bot, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, LayoutGrid, Sparkles, Search, User, Wrench, ChevronLeft, PanelLeft, Menu, FileText, CheckSquare, Clock3, Radio, Calculator, Code2, ArrowRightLeft, Divide, CalendarRange, Sparkles as SparklesIcon, RotateCcw, Bot, CheckCircle2, AlertCircle, FileCog, Download } from 'lucide-react';
 import { ProfileModal } from './ProfileModal';
 import { confirmAndResetDashboard } from '../sdk/safeReset';
 
@@ -59,6 +59,8 @@ export const Sidebar: React.FC = () => {
     Kanban: <CheckSquare size={16} />,
     Camera: <Bot size={16} />,
     FolderOpen: <Bot size={16} />,
+    FileCog: <FileCog size={16} />,
+    Download: <Download size={16} />,
   };
 
   // Filtra os widgets pelo termo de busca (nome ou descrição)

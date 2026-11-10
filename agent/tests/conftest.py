@@ -21,6 +21,7 @@ _SANDBOX = Path(tempfile.mkdtemp(prefix="dashboard-agent-tests-"))
 os.environ["DASHBOARD_AGENT_HOME"] = str(_SANDBOX / "home")
 os.environ["DASHBOARD_BACKUP_DIR"] = str(_SANDBOX / "backups")
 os.environ["DASHBOARD_AUTOSTART_DIR"] = str(_SANDBOX / "startup")
+os.environ["DASHBOARD_MEDIA_DIR"] = str(_SANDBOX / "media")
 
 from fastapi.testclient import TestClient  # noqa: E402
 
@@ -80,4 +81,7 @@ def clean_state(agent):
     agent.bau_settings.path.unlink(missing_ok=True)
     with agent.activity_store._connect() as conn:
         conn.executescript("DELETE FROM access_events; DELETE FROM known_files; DELETE FROM recent_seen;")
+    agent.media_jobs.shutdown()
+    agent.media_jobs.clear_finished()
+    agent.media_settings.path.unlink(missing_ok=True)
     yield

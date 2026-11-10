@@ -1,7 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import { vi } from 'vitest';
-import type { AgentClientProtocol, AgentMessage, WidgetContext, WidgetDefinition, WidgetStorage } from '../sdk/types';
+import type { AgentClientProtocol, AgentMessage, UploadOptions, WidgetContext, WidgetDefinition, WidgetStorage } from '../sdk/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Ferramentas para testar widgets isoladamente:
@@ -95,11 +95,42 @@ export class FakeAgentClient implements AgentClientProtocol {
     const method = (options.method || 'GET').toUpperCase();
     const body = typeof options.body === 'string' ? JSON.parse(options.body) : undefined;
     this.requests.push({ path, method, body });
+    return this.respond<T>(method, path, options);
+  }
+
+  private async respond<T>(method: string, path: string, options: RequestInit): Promise<T> {
     const route = [...this.routes].reverse().find(
       (entry) => entry.method === method && (typeof entry.match === 'string' ? path.split('?')[0] === entry.match : entry.match.test(path)),
     );
     if (!route) throw new Error(`Rota não simulada: ${method} ${path}`);
     return structuredClone(await route.handler({ ...options, path }));
+  }
+
+  private uploadHold: Promise<void> | null = null;
+
+  /** Segura os próximos envios em 50% até chamar a função devolvida (para testar progresso e cancelamento). */
+  holdUploads(): () => void {
+    let release = () => {};
+    this.uploadHold = new Promise<void>((resolve) => (release = resolve));
+    return () => {
+      this.uploadHold = null;
+      release();
+    };
+  }
+
+  async upload<T = any>(path: string, body: Blob, options: UploadOptions = {}): Promise<T> {
+    this.requests.push({ path, method: 'POST', body: { file: (body as File).name, size: body.size } });
+    options.onProgress?.(0.5);
+    if (this.uploadHold) {
+      await Promise.race([
+        this.uploadHold,
+        new Promise((_, reject) =>
+          options.signal?.addEventListener('abort', () => reject(new DOMException('Envio cancelado', 'AbortError'))),
+        ),
+      ]);
+    }
+    options.onProgress?.(1);
+    return this.respond<T>('POST', path, { method: 'POST' });
   }
 
   async requestBlob(path: string): Promise<Blob> {

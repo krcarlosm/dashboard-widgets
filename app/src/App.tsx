@@ -12,6 +12,8 @@ import { ruleOfThreeWidget } from './widgets/rule-of-three';
 import { memoryBauWidget } from './widgets/memory-bau';
 import { editedFilesWidget } from './widgets/edited-files';
 import { kanbanWidget } from './widgets/kanban';
+import { fileConverterWidget } from './widgets/file-converter';
+import { mediaDownloaderWidget } from './widgets/media-downloader';
 
 import { Sidebar } from './components/Sidebar';
 import { Canvas } from './components/Canvas';
@@ -46,6 +48,8 @@ export const App: React.FC = () => {
     // Agent-dependent widgets ─────────────────────────────────────
     registerWidget(memoryBauWidget);
     registerWidget(editedFilesWidget);
+    registerWidget(fileConverterWidget);
+    registerWidget(mediaDownloaderWidget);
 
     // ── Load saved profile ───────────────────────────────────────────────────
     loadProfile();

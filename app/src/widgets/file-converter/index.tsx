@@ -1,599 +1,480 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { FileCog, UploadCloud, Copy, Download, X, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
+import { FileCog, FolderOpen, Layers, Minimize2, Repeat, Settings2, UploadCloud, WifiOff, X } from 'lucide-react';
+import type { WidgetComponentProps, WidgetDefinition } from '../../sdk/types';
+import { Banner, Button, FieldLabel, IconButton, SegmentedControl, Select, Spacer, Toolbar } from '../../ui';
+import {
+  InstallHint,
+  MediaCategory,
+  MediaJob,
+  MediaJobList,
+  OutputFolderSetting,
+  ProgressBar,
+  formatBytes,
+  formatDuration,
+  useAgentReady,
+  useMediaJobs,
+  useMediaSettings,
+  useMediaTools,
+} from '../media-common';
 
-// ============================================================================
-// 1. Tipos e constantes do domínio
-// ============================================================================
+// ─────────────────────────────────────────────────────────────────────────────
+// Conversor de Arquivos — imagens, vídeos e áudios.
+//
+// Com o agente: o arquivo é enviado por HTTP em pedaços (sem base64, sem limite
+// de memória) e entra na fila do agente, que converte com Pillow (imagens) ou
+// ffmpeg (vídeo/áudio) e salva na pasta de saída (padrão ~/Downloads/Dashboard).
+// Sem o agente: imagens PNG/JPG/WebP ainda são convertidas no navegador.
+// ─────────────────────────────────────────────────────────────────────────────
 
-interface FileConverterConfig {
-  /** Modo padrão pré-selecionado ao abrir o widget */
-  defaultMode?: 'convert' | 'compress' | 'both';
-  /** Nível de compressão padrão */
-  defaultCompressionLevel?: 'none' | 'low' | 'medium' | 'high';
+type Mode = 'convert' | 'compress' | 'both';
+type Level = 'low' | 'medium' | 'high';
+type Resolution = 'original' | '2160p' | '1440p' | '1080p' | '720p' | '480p' | '360p';
+
+interface ConverterOptions {
+  mode: Mode;
+  level: Level;
+  resolution: Resolution;
+  targets: Partial<Record<MediaCategory, string>>;
 }
 
-type FileCategory = 'image' | 'video' | 'audio' | 'other';
-type ConversionMode = 'convert' | 'compress' | 'both';
-type CompressionLevel = 'none' | 'low' | 'medium' | 'high';
-type WidgetStatus = 'idle' | 'reading' | 'ready' | 'converting' | 'done' | 'error';
+const DEFAULT_OPTIONS: ConverterOptions = {
+  mode: 'convert',
+  level: 'medium',
+  resolution: 'original',
+  targets: { image: 'jpg', video: 'mp4', audio: 'mp3' },
+};
 
-interface FileMetadata {
-  name: string;
-  sizeLabel: string;
-  sizeBytes: number;
-  type: string;
-  lastModified: string;
-  extra: Record<string, string>;
+// Mesma lista do agente; usada antes de /media/tools responder ou sem o agente.
+const FALLBACK_FORMATS: Record<MediaCategory, { inputs: string[]; targets: string[] }> = {
+  image: { inputs: ['bmp', 'gif', 'ico', 'jfif', 'jpeg', 'jpg', 'png', 'tif', 'tiff', 'webp'], targets: ['png', 'jpg', 'webp', 'bmp', 'gif', 'tiff', 'ico'] },
+  video: {
+    inputs: ['3gp', 'avi', 'flv', 'm2ts', 'm4v', 'mkv', 'mov', 'mp4', 'mpeg', 'mpg', 'mts', 'ogv', 'ts', 'webm', 'wmv'],
+    targets: ['mp4', 'mkv', 'webm', 'mov', 'avi', 'mpeg', 'mp3', 'm4a', 'aac', 'ogg', 'opus', 'wav', 'flac'],
+  },
+  audio: { inputs: ['aac', 'aif', 'aiff', 'amr', 'flac', 'm4a', 'mp3', 'oga', 'ogg', 'opus', 'wav', 'wma'], targets: ['mp3', 'm4a', 'aac', 'ogg', 'opus', 'wav', 'flac'] },
+};
+const VIDEO_TARGETS = ['mp4', 'mkv', 'webm', 'mov', 'avi', 'mpeg'];
+const BROWSER_TARGETS = ['png', 'jpg', 'webp'];
+
+const MODES = [
+  { id: 'convert' as const, label: 'Converter', icon: <Repeat size={12} /> },
+  { id: 'compress' as const, label: 'Compactar', icon: <Minimize2 size={12} /> },
+  { id: 'both' as const, label: 'Ambos', icon: <Layers size={12} /> },
+];
+const LEVELS: { id: Level; label: string }[] = [
+  { id: 'low', label: 'Leve (melhor qualidade)' },
+  { id: 'medium', label: 'Média' },
+  { id: 'high', label: 'Alta (menor arquivo)' },
+];
+const RESOLUTIONS: Resolution[] = ['original', '2160p', '1440p', '1080p', '720p', '480p', '360p'];
+const CATEGORY_LABEL: Record<MediaCategory, string> = { image: 'Imagem', video: 'Vídeo', audio: 'Áudio' };
+
+const extensionOf = (name: string) => (name.includes('.') ? name.split('.').pop()!.toLowerCase() : '');
+
+function categoryOf(name: string, formats: Record<MediaCategory, { inputs: string[] }>): MediaCategory | null {
+  const ext = extensionOf(name);
+  return (Object.keys(formats) as MediaCategory[]).find((category) => formats[category].inputs.includes(ext)) ?? null;
 }
 
-interface ConversionResult {
-  fileName: string;
-  sizeLabel?: string;
-  outputPath?: string; // preenchido quando o Agent salva em disco
-  viaAgent: boolean;
-}
-
-const IMAGE_FORMATS = ['png', 'jpeg', 'webp', 'bmp'];
-const VIDEO_FORMATS = ['mp4', 'avi', 'mov', 'mkv', 'webm', '3gp', 'mpeg'];
-const AUDIO_FORMATS = ['mp3', 'wav', 'ogg', 'aac', 'flac', 'm4a'];
-
-const AGENT_SIZE_LIMIT_BYTES = 50 * 1024 * 1024; // 50MB sem acesso a file.path
-
-// ============================================================================
-// 2. Helpers puros (sem dependência de React)
-// ============================================================================
-
-function getCategory(file: File): FileCategory {
-  if (file.type.startsWith('image/')) return 'image';
-  if (file.type.startsWith('video/')) return 'video';
-  if (file.type.startsWith('audio/')) return 'audio';
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? '';
-  if (IMAGE_FORMATS.includes(ext)) return 'image';
-  if (VIDEO_FORMATS.includes(ext)) return 'video';
-  if (AUDIO_FORMATS.includes(ext)) return 'audio';
-  return 'other';
-}
-
-function formatBytes(bytes: number): string {
-  if (bytes === 0) return '0 B';
-  const units = ['B', 'KB', 'MB', 'GB'];
-  const i = Math.floor(Math.log(bytes) / Math.log(1024));
-  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
-}
-
-function baseName(fileName: string): string {
-  const idx = fileName.lastIndexOf('.');
-  return idx === -1 ? fileName : fileName.slice(0, idx);
-}
-
-function makeRequestId(): string {
-  if (typeof crypto !== 'undefined' && 'randomUUID' in crypto) {
-    return crypto.randomUUID();
-  }
-  return `req_${Date.now()}_${Math.random().toString(36).slice(2)}`;
-}
-
-/** Lê dimensões/duração via elementos temporários de mídia (sem custar re-render). */
-function readMediaMetadata(file: File, category: FileCategory): Promise<Record<string, string>> {
+/** Dimensões/duração lidas pelo navegador (desiste em 2 s: alguns formatos ele não abre). */
+function readMediaInfo(file: File, category: MediaCategory): Promise<string[]> {
   return new Promise((resolve) => {
-    if (category !== 'image' && category !== 'video' && category !== 'audio') {
-      resolve({});
-      return;
-    }
     const url = URL.createObjectURL(file);
-    const cleanup = () => URL.revokeObjectURL(url);
-
+    let done = false;
+    const finish = (info: string[]) => {
+      if (done) return;
+      done = true;
+      URL.revokeObjectURL(url);
+      resolve(info);
+    };
+    setTimeout(() => finish([]), 2000);
     if (category === 'image') {
-      const img = new Image();
-      img.onload = () => {
-        resolve({ Dimensões: `${img.naturalWidth} × ${img.naturalHeight}px` });
-        cleanup();
-      };
-      img.onerror = () => {
-        resolve({});
-        cleanup();
-      };
-      img.src = url;
+      const image = new Image();
+      image.onload = () => finish([`${image.naturalWidth} × ${image.naturalHeight}px`]);
+      image.onerror = () => finish([]);
+      image.src = url;
       return;
     }
-
-    const el = document.createElement(category === 'video' ? 'video' : 'audio');
-    el.preload = 'metadata';
-    el.onloadedmetadata = () => {
-      const info: Record<string, string> = {
-        Duração: `${el.duration.toFixed(1)}s`,
-      };
-      if (category === 'video' && el instanceof HTMLVideoElement) {
-        info['Resolução'] = `${el.videoWidth} × ${el.videoHeight}px`;
-      }
-      resolve(info);
-      cleanup();
+    const element = document.createElement(category === 'video' ? 'video' : 'audio');
+    element.preload = 'metadata';
+    element.onloadedmetadata = () => {
+      const info = [formatDuration(element.duration)];
+      if (element instanceof HTMLVideoElement && element.videoWidth) info.push(`${element.videoWidth} × ${element.videoHeight}px`);
+      finish(info.filter(Boolean));
     };
-    el.onerror = () => {
-      resolve({});
-      cleanup();
-    };
-    el.src = url;
+    element.onerror = () => finish([]);
+    element.src = url;
   });
 }
 
-async function extractMetadata(file: File, category: FileCategory): Promise<FileMetadata> {
-  const extra = await readMediaMetadata(file, category);
-  return {
-    name: file.name,
-    sizeLabel: formatBytes(file.size),
-    sizeBytes: file.size,
-    type: file.type || 'desconhecido',
-    lastModified: new Date(file.lastModified).toLocaleString('pt-BR'),
-    extra,
-  };
-}
+const BROWSER_QUALITY: Record<'convert' | Level, number> = { convert: 0.92, low: 0.85, medium: 0.72, high: 0.55 };
 
-function formatsForCategory(category: FileCategory): string[] {
-  if (category === 'image') return IMAGE_FORMATS;
-  if (category === 'video') return VIDEO_FORMATS;
-  if (category === 'audio') return AUDIO_FORMATS;
-  return [];
-}
-
-function qualityForLevel(level: CompressionLevel): number {
-  switch (level) {
-    case 'low': return 0.85;
-    case 'medium': return 0.7;
-    case 'high': return 0.5;
-    default: return 0.92;
-  }
-}
-
-/** Conversão/compressão de imagem 100% client-side via Canvas. Não depende do Agent. */
-async function convertImageClientSide(
-  file: File,
-  targetFormat: string,
-  level: CompressionLevel,
-): Promise<Blob> {
+async function convertImageInBrowser(file: File, target: string, quality: number): Promise<Blob> {
   const url = URL.createObjectURL(file);
   try {
-    const img = await new Promise<HTMLImageElement>((resolve, reject) => {
-      const el = new Image();
-      el.onload = () => resolve(el);
-      el.onerror = reject;
-      el.src = url;
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const element = new Image();
+      element.onload = () => resolve(element);
+      element.onerror = () => reject(new Error('O navegador não conseguiu abrir esta imagem.'));
+      element.src = url;
     });
-
     const canvas = document.createElement('canvas');
-    canvas.width = img.naturalWidth;
-    canvas.height = img.naturalHeight;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) throw new Error('Canvas 2D não suportado neste navegador.');
-    ctx.drawImage(img, 0, 0);
-
-    const mime = `image/${targetFormat === 'jpg' ? 'jpeg' : targetFormat}`;
-    const quality = targetFormat === 'png' ? undefined : qualityForLevel(level);
-
-    return await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (blob) => (blob ? resolve(blob) : reject(new Error('Falha ao gerar arquivo convertido.'))),
-        mime,
-        quality,
-      );
-    });
+    canvas.width = image.naturalWidth;
+    canvas.height = image.naturalHeight;
+    const context = canvas.getContext('2d');
+    if (!context) throw new Error('Canvas indisponível neste navegador.');
+    if (target === 'jpg') {
+      context.fillStyle = '#ffffff';
+      context.fillRect(0, 0, canvas.width, canvas.height);
+    }
+    context.drawImage(image, 0, 0);
+    const mime = `image/${target === 'jpg' ? 'jpeg' : target}`;
+    return await new Promise<Blob>((resolve, reject) =>
+      canvas.toBlob((blob) => (blob ? resolve(blob) : reject(new Error('Falha ao gerar a imagem.'))), mime, target === 'png' ? undefined : quality),
+    );
   } finally {
     URL.revokeObjectURL(url);
   }
 }
 
-function triggerBrowserDownload(blob: Blob, fileName: string) {
+function downloadBlob(blob: Blob, name: string) {
   const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = fileName;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  URL.revokeObjectURL(url);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/** Lê um File como base64 (usado só quando não há acesso a file.path e o arquivo é pequeno). */
-function fileToBase64(file: File): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve((reader.result as string).split(',')[1] ?? '');
-    reader.onerror = reject;
-    reader.readAsDataURL(file);
-  });
-}
+const FileConverterWidget: React.FC<WidgetComponentProps> = ({ context }) => {
+  const { agentClient, storage, dimensions, instanceId } = context;
+  const isCompact = dimensions.width > 0 && dimensions.width < 330;
+  const ready = useAgentReady(agentClient);
+  const { tools } = useMediaTools(agentClient, ready);
+  const jobsApi = useMediaJobs(agentClient, 'convert', ready);
+  const { settings, save, openDirectory } = useMediaSettings(agentClient, ready);
 
-// ============================================================================
-// 3. Componente
-// ============================================================================
-
-const FileConverterComponent: React.FC<WidgetComponentProps<FileConverterConfig>> = ({ context }) => {
-  const { config, agentClient, dimensions } = context;
-
+  const [options, setOptions] = useState<ConverterOptions>(DEFAULT_OPTIONS);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [file, setFile] = useState<File | null>(null);
-  const [category, setCategory] = useState<FileCategory>('other');
-  const [metadata, setMetadata] = useState<FileMetadata | null>(null);
+  const [fileInfo, setFileInfo] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
+  const [uploadFraction, setUploadFraction] = useState<number | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [notice, setNotice] = useState<string | null>(null);
+  const [showSettings, setShowSettings] = useState(false);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const [mode, setMode] = useState<ConversionMode>(config.defaultMode ?? 'convert');
-  const [targetFormat, setTargetFormat] = useState<string>('');
-  const [compressionLevel, setCompressionLevel] = useState<CompressionLevel>(
-    config.defaultCompressionLevel ?? 'medium',
-  );
-  const [resolution, setResolution] = useState<string>('original');
-
-  const [status, setStatus] = useState<WidgetStatus>('idle');
-  const [progress, setProgress] = useState(0);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [result, setResult] = useState<ConversionResult | null>(null);
-  const [copied, setCopied] = useState(false);
-
-  const requestIdRef = useRef<string | null>(null);
-  const compact = dimensions.width < 340;
-
-  // --- Inscrição nos eventos do Agent (por instância, via useEffect) -------
   useEffect(() => {
-    const unsubProgress = agentClient.subscribe('file-converter:progress', (payload) => {
-      if (payload?.requestId !== requestIdRef.current) return;
-      setProgress(payload.percent ?? 0);
+    storage.get<ConverterOptions>('options').then((saved) => {
+      if (saved) setOptions({ ...DEFAULT_OPTIONS, ...saved, targets: { ...DEFAULT_OPTIONS.targets, ...saved.targets } });
+      setIsLoaded(true);
     });
-    const unsubDone = agentClient.subscribe('file-converter:done', (payload) => {
-      if (payload?.requestId !== requestIdRef.current) return;
-      setStatus('done');
-      setProgress(100);
-      setResult({
-        fileName: payload.fileName,
-        sizeLabel: payload.sizeBytes ? formatBytes(payload.sizeBytes) : undefined,
-        outputPath: payload.outputPath,
-        viaAgent: true,
-      });
-    });
-    const unsubError = agentClient.subscribe('file-converter:error', (payload) => {
-      if (payload?.requestId !== requestIdRef.current) return;
-      setStatus('error');
-      setErrorMsg(payload.message ?? 'O Agent retornou um erro desconhecido.');
-    });
+  }, [storage]);
 
-    return () => {
-      unsubProgress();
-      unsubDone();
-      unsubError();
-    };
-  }, [agentClient]);
+  useEffect(() => {
+    if (isLoaded) void storage.set('options', options);
+  }, [isLoaded, options, storage]);
 
-  // --- Seleção de arquivo ---------------------------------------------------
-  const handleFile = useCallback(async (f: File) => {
-    setStatus('reading');
-    setErrorMsg(null);
-    setResult(null);
-    setCopied(false);
-    setProgress(0);
+  useEffect(() => () => abortRef.current?.abort(), []);
 
-    const cat = getCategory(f);
-    setFile(f);
-    setCategory(cat);
+  const formats = tools?.formats ?? FALLBACK_FORMATS;
+  const category = file ? categoryOf(file.name, formats) : null;
+  const browserMode = !ready && category === 'image';
+  const targets = category ? (browserMode ? BROWSER_TARGETS : formats[category].targets) : [];
+  const savedTarget = category ? options.targets[category] : undefined;
+  const target = savedTarget && targets.includes(savedTarget) ? savedTarget : targets[0] ?? '';
+  const ffmpegMissing = ready && !!tools && !tools.ffmpeg.available && (category === 'video' || category === 'audio');
+  const showResolution = category === 'video' && VIDEO_TARGETS.includes(options.mode === 'compress' ? extensionOf(file!.name) : target) && !browserMode;
+  const isUploading = uploadFraction !== null;
+  const canConvert = !!file && !!category && !isUploading && !ffmpegMissing && (ready || browserMode);
 
-    const formats = formatsForCategory(cat);
-    setTargetFormat(formats[0] ?? '');
-    setResolution('original');
+  const update = (patch: Partial<ConverterOptions>) => setOptions((current) => ({ ...current, ...patch }));
 
-    const meta = await extractMetadata(f, cat);
-    setMetadata(meta);
-    setStatus(cat === 'other' ? 'error' : 'ready');
-    if (cat === 'other') {
-      setErrorMsg('Formato não reconhecido para conversão. Você ainda pode consultar os metadados básicos acima.');
-    }
+  const pickFile = useCallback((next: File | null) => {
+    setFile(next);
+    setFileInfo([]);
+    setError(null);
+    setNotice(null);
   }, []);
 
-  const onInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const f = e.target.files?.[0];
-    if (f) handleFile(f);
-  };
+  useEffect(() => {
+    if (!file || !category) return;
+    let active = true;
+    void readMediaInfo(file, category).then((info) => active && setFileInfo(info));
+    return () => {
+      active = false;
+    };
+  }, [file, category]);
 
-  const onDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragActive(false);
-    const f = e.dataTransfer.files?.[0];
-    if (f) handleFile(f);
-  };
+  const convert = async () => {
+    if (!file || !category) return;
+    setError(null);
+    setNotice(null);
+    const outputFormat = options.mode === 'compress' ? extensionOf(file.name).replace('jpeg', 'jpg') : target;
 
-  const reset = () => {
-    setFile(null);
-    setMetadata(null);
-    setStatus('idle');
-    setErrorMsg(null);
-    setResult(null);
-    setProgress(0);
-  };
-
-  // --- Copiar metadados ------------------------------------------------------
-  const copyMetadata = async () => {
-    if (!metadata) return;
-    const text = [
-      `Nome: ${metadata.name}`,
-      `Tamanho: ${metadata.sizeLabel}`,
-      `Tipo: ${metadata.type}`,
-      `Modificado em: ${metadata.lastModified}`,
-      ...Object.entries(metadata.extra).map(([k, v]) => `${k}: ${v}`),
-    ].join('\n');
-    try {
-      await navigator.clipboard.writeText(text);
-      setCopied(true);
-      setTimeout(() => setCopied(false), 2000);
-    } catch {
-      setErrorMsg('Não foi possível acessar a área de transferência.');
-    }
-  };
-
-  // --- Conversão ---------------------------------------------------------
-  const runConversion = async () => {
-    if (!file || !targetFormat) return;
-    setErrorMsg(null);
-    setStatus('converting');
-    setProgress(0);
-
-    try {
-      if (category === 'image') {
-        // 100% client-side, não depende do Agent.
-        const outFormat = mode === 'compress' ? (file.name.split('.').pop() ?? targetFormat) : targetFormat;
-        const blob = await convertImageClientSide(file, outFormat, compressionLevel);
-        const outName = `${baseName(file.name)}_convertido.${outFormat === 'jpeg' ? 'jpg' : outFormat}`;
-        triggerBrowserDownload(blob, outName);
-        setResult({ fileName: outName, sizeLabel: formatBytes(blob.size), viaAgent: false });
-        setStatus('done');
-        setProgress(100);
+    if (browserMode) {
+      if (!BROWSER_TARGETS.includes(outputFormat)) {
+        setError('Sem o agente, só dá para gerar PNG, JPG ou WebP.');
         return;
       }
-
-      // Vídeo/Áudio: delega ao Python Local Agent.
-      if (!agentClient.isConnected) {
-        throw new Error('Agent desconectado. Conversão de vídeo/áudio requer o Agent Python rodando localmente.');
+      try {
+        const blob = await convertImageInBrowser(file, outputFormat, BROWSER_QUALITY[options.mode === 'convert' ? 'convert' : options.level]);
+        const name = `${file.name.replace(/\.[^.]+$/, '')}_${options.mode === 'compress' ? 'compactado' : 'convertido'}.${outputFormat}`;
+        downloadBlob(blob, name);
+        setNotice(`Baixado pelo navegador: ${name} (${formatBytes(blob.size)})`);
+        pickFile(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Falha ao converter no navegador.');
       }
+      return;
+    }
 
-      const requestId = makeRequestId();
-      requestIdRef.current = requestId;
-
-      const path = (file as unknown as { path?: string }).path;
-      const payload: Record<string, unknown> = {
-        requestId,
-        fileName: file.name,
-        category,
-        mode,
-        targetFormat: mode === 'compress' ? (file.name.split('.').pop() ?? '') : targetFormat,
-        compressionLevel,
-        resolution: category === 'video' ? resolution : undefined,
-      };
-
-      if (path) {
-        payload.sourcePath = path;
-      } else if (file.size <= AGENT_SIZE_LIMIT_BYTES) {
-        payload.sourceBase64 = await fileToBase64(file);
-      } else {
-        throw new Error(
-          `Arquivo muito grande (${formatBytes(file.size)}) para enviar sem acesso direto ao disco. ` +
-          `Use o app em modo desktop ou reduza o arquivo para até ${formatBytes(AGENT_SIZE_LIMIT_BYTES)}.`,
-        );
-      }
-
-      agentClient.send({ type: 'file-converter:convert', payload });
-      // O restante do fluxo (progress/done/error) chega pelos listeners do useEffect acima.
+    if (!agentClient.upload) {
+      setError('Este cliente do agente não suporta envio de arquivos.');
+      return;
+    }
+    const params = new URLSearchParams({ fileName: file.name, mode: options.mode, level: options.level, resolution: showResolution ? options.resolution : 'original' });
+    if (options.mode !== 'compress') params.set('targetFormat', target);
+    const controller = new AbortController();
+    abortRef.current = controller;
+    setUploadFraction(0);
+    try {
+      const job = await agentClient.upload<MediaJob>(`/media/convert?${params}`, file, { onProgress: setUploadFraction, signal: controller.signal });
+      jobsApi.add(job);
+      pickFile(null);
     } catch (err) {
-      setStatus('error');
-      setErrorMsg(err instanceof Error ? err.message : 'Erro desconhecido ao converter o arquivo.');
+      if (!(err instanceof DOMException && err.name === 'AbortError')) {
+        setError(err instanceof Error ? err.message : 'Não foi possível enviar o arquivo.');
+      }
+    } finally {
+      abortRef.current = null;
+      setUploadFraction(null);
     }
   };
 
-  const canUseAgentFeature = category === 'image' || agentClient.isConnected;
-  const formats = formatsForCategory(category);
+  const onDrop = (event: React.DragEvent) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setDragActive(false);
+    const dropped = event.dataTransfer.files?.[0];
+    if (dropped) pickFile(dropped);
+  };
 
-  // ==========================================================================
-  // Render
-  // ==========================================================================
+  const actionLabel = options.mode === 'convert' ? 'Converter arquivo' : options.mode === 'compress' ? 'Compactar arquivo' : 'Converter e compactar';
+  const fieldId = (name: string) => `${instanceId}-conv-${name}`;
+
   return (
-    <div className="h-full w-full overflow-auto flex flex-col gap-3 p-3 bg-[var(--app-surface)] text-[var(--app-text)]">
-      <div className="flex items-center justify-between">
-        <h3 className="font-semibold flex items-center gap-2">
-          <FileCog size={16} className="text-[var(--app-accent)]" />
-          {compact ? 'Conversor' : 'Conversor de Arquivos'}
-        </h3>
-        {file && (
-          <button
-            onClick={reset}
-            className="text-[var(--app-muted)] hover:text-[var(--app-text)]"
-            title="Remover arquivo"
-          >
-            <X size={16} />
-          </button>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column', gap: '8px', color: 'var(--app-text)', fontSize: '12px', minHeight: 0 }}>
+      <Toolbar>
+        <span style={{ fontSize: 'var(--font-xs)', color: 'var(--app-muted)', minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} title={settings?.convertDir}>
+          {ready ? (settings ? `Salva em ${settings.convertDir}` : '') : 'Agente offline'}
+        </span>
+        <Spacer />
+        {ready && (
+          <>
+            <IconButton label="Abrir pasta de saída" bordered onClick={() => void openDirectory('convert').catch((err) => setError(err.message))} icon={<FolderOpen size={12} />} />
+            <IconButton label="Configurações do conversor" bordered active={showSettings} onClick={() => setShowSettings((value) => !value)} icon={<Settings2 size={12} />} />
+          </>
         )}
-      </div>
+      </Toolbar>
 
-      {!file && (
-        <div
-          onDragOver={(e) => { e.preventDefault(); setDragActive(true); }}
-          onDragLeave={() => setDragActive(false)}
-          onDrop={onDrop}
-          className={`flex-1 flex flex-col items-center justify-center gap-2 rounded-lg border-2 border-dashed p-4 text-center transition-colors ${
-            dragActive ? 'border-[var(--app-accent)]' : 'border-[var(--app-border)]'
-          }`}
-        >
-          <UploadCloud size={28} className="text-[var(--app-muted)]" />
-          <p className="text-sm text-[var(--app-muted)]">
-            Arraste um arquivo aqui ou
-          </p>
-          <label className="cursor-pointer text-sm px-3 py-1.5 rounded bg-[var(--app-accent)] text-white hover:opacity-90">
-            Selecionar arquivo
-            <input type="file" className="hidden" onChange={onInputChange} />
-          </label>
+      {showSettings && ready && settings && (
+        <div style={{ background: 'var(--app-surface-muted)', border: '1px solid var(--app-border)', borderRadius: 'var(--radius-lg)', padding: '8px', flexShrink: 0 }}>
+          <OutputFolderSetting
+            id={fieldId('folder')}
+            label="Pasta dos arquivos convertidos"
+            value={settings.convertDir}
+            defaultDir={settings.defaultDir}
+            onSave={(next) => save({ convertDir: next })}
+            onOpen={() => openDirectory('convert')}
+          />
         </div>
       )}
 
-      {file && metadata && (
-        <div className="flex flex-col gap-3">
-          {/* Metadados */}
-          <div className="rounded-lg border border-[var(--app-border)] p-2.5 text-sm">
-            <div className="flex items-center justify-between mb-1.5">
-              <span className="font-medium truncate pr-2">{metadata.name}</span>
-              <button
-                onClick={copyMetadata}
-                className="shrink-0 flex items-center gap-1 text-xs text-[var(--app-muted)] hover:text-[var(--app-accent)]"
-                title="Copiar metadados"
-              >
-                <Copy size={13} /> {copied ? 'Copiado!' : 'Copiar'}
-              </button>
+      {error && <Banner onClose={() => setError(null)}>{error}</Banner>}
+      {jobsApi.error && <Banner onClose={() => jobsApi.setError(null)}>{jobsApi.error}</Banner>}
+      {notice && (
+        <Banner tone="success" onClose={() => setNotice(null)}>
+          {notice}
+        </Banner>
+      )}
+      {!ready && (
+        <Banner tone="warning" icon={<WifiOff size={13} />}>
+          Agente offline: só imagens (PNG, JPG, WebP), convertidas no navegador. Inicie o agente para vídeo e áudio.
+        </Banner>
+      )}
+
+      {!file ? (
+        <div
+          data-testid="drop-zone"
+          onDragOver={(event) => {
+            event.preventDefault();
+            setDragActive(true);
+          }}
+          onDragLeave={() => setDragActive(false)}
+          onDrop={onDrop}
+          style={{
+            flexShrink: 0,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: '6px',
+            padding: '14px 8px',
+            textAlign: 'center',
+            borderRadius: 'var(--radius-lg)',
+            border: `2px dashed ${dragActive ? 'var(--widget-accent)' : 'var(--app-border)'}`,
+            background: dragActive ? 'var(--widget-accent-soft)' : 'transparent',
+            color: 'var(--app-muted)',
+          }}
+        >
+          <UploadCloud size={24} />
+          <span>Arraste uma imagem, vídeo ou áudio aqui</span>
+          <Button variant="primary" onClick={() => inputRef.current?.click()}>
+            Selecionar arquivo
+          </Button>
+          <input
+            ref={inputRef}
+            type="file"
+            aria-label="Arquivo para converter"
+            style={{ display: 'none' }}
+            onChange={(event) => {
+              pickFile(event.target.files?.[0] ?? null);
+              event.target.value = '';
+            }}
+          />
+        </div>
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', flexShrink: 0 }}>
+          <div
+            style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'var(--app-surface-muted)', border: '1px solid var(--app-border)', borderRadius: 'var(--radius-lg)', padding: '6px 8px' }}
+          >
+            <FileCog size={16} color="var(--widget-accent)" style={{ flexShrink: 0 }} />
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <div title={file.name} style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {file.name}
+              </div>
+              <div style={{ fontSize: 'var(--font-xs)', color: 'var(--app-muted)' }}>
+                {[category ? CATEGORY_LABEL[category] : 'Formato desconhecido', formatBytes(file.size), ...fileInfo].filter(Boolean).join(' · ')}
+              </div>
             </div>
-            <dl className="grid grid-cols-2 gap-x-2 gap-y-0.5 text-xs text-[var(--app-muted)]">
-              <dt>Tamanho</dt><dd className="text-[var(--app-text)]">{metadata.sizeLabel}</dd>
-              <dt>Tipo</dt><dd className="text-[var(--app-text)]">{metadata.type}</dd>
-              {Object.entries(metadata.extra).map(([k, v]) => (
-                <React.Fragment key={k}>
-                  <dt>{k}</dt><dd className="text-[var(--app-text)]">{v}</dd>
-                </React.Fragment>
-              ))}
-            </dl>
+            <IconButton label="Trocar arquivo" onClick={() => pickFile(null)} disabled={isUploading} icon={<X size={13} />} />
           </div>
 
-          {category !== 'other' && (
+          {!category ? (
+            <Banner tone="warning">Formato .{extensionOf(file.name) || '?'} não suportado. Use imagens, vídeos ou áudios.</Banner>
+          ) : (
             <>
-              {/* Modo */}
-              <div className="flex gap-1.5 text-xs">
-                {(['convert', 'compress', 'both'] as ConversionMode[]).map((m) => (
-                  <button
-                    key={m}
-                    onClick={() => setMode(m)}
-                    className={`flex-1 py-1.5 rounded border ${
-                      mode === m
-                        ? 'border-[var(--app-accent)] bg-[var(--app-accent)]/10 text-[var(--app-accent)]'
-                        : 'border-[var(--app-border)] text-[var(--app-muted)]'
-                    }`}
-                  >
-                    {m === 'convert' ? 'Converter' : m === 'compress' ? 'Compactar' : 'Ambos'}
-                  </button>
-                ))}
+              <SegmentedControl ariaLabel="Modo" stretch compact={isCompact} value={options.mode} onChange={(mode) => update({ mode })} options={MODES} disabled={isUploading} />
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '6px' }}>
+                {options.mode !== 'compress' && (
+                  <div>
+                    <FieldLabel htmlFor={fieldId('format')}>Formato de saída</FieldLabel>
+                    <Select
+                      id={fieldId('format')}
+                      value={target}
+                      disabled={isUploading}
+                      onChange={(event) => update({ targets: { ...options.targets, [category]: event.target.value } })}
+                      style={{ width: '100%' }}
+                    >
+                      {targets.map((format) => (
+                        <option key={format} value={format}>
+                          {format.toUpperCase()}
+                          {category === 'video' && !VIDEO_TARGETS.includes(format) ? ' (só áudio)' : ''}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+                {options.mode !== 'convert' && (
+                  <div>
+                    <FieldLabel htmlFor={fieldId('level')}>Compactação</FieldLabel>
+                    <Select id={fieldId('level')} value={options.level} disabled={isUploading} onChange={(event) => update({ level: event.target.value as Level })} style={{ width: '100%' }}>
+                      {LEVELS.map((level) => (
+                        <option key={level.id} value={level.id}>
+                          {level.label}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
+                {showResolution && (
+                  <div>
+                    <FieldLabel htmlFor={fieldId('resolution')}>Resolução máxima</FieldLabel>
+                    <Select
+                      id={fieldId('resolution')}
+                      value={options.resolution}
+                      disabled={isUploading}
+                      onChange={(event) => update({ resolution: event.target.value as Resolution })}
+                      style={{ width: '100%' }}
+                    >
+                      {RESOLUTIONS.map((resolution) => (
+                        <option key={resolution} value={resolution}>
+                          {resolution === 'original' ? 'Original' : resolution}
+                        </option>
+                      ))}
+                    </Select>
+                  </div>
+                )}
               </div>
 
-              {/* Formato de destino */}
-              {mode !== 'compress' && (
-                <label className="text-xs text-[var(--app-muted)] flex flex-col gap-1">
-                  Formato de destino
-                  <select
-                    value={targetFormat}
-                    onChange={(e) => setTargetFormat(e.target.value)}
-                    className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded px-2 py-1.5 text-[var(--app-text)]"
-                  >
-                    {formats.map((f) => (
-                      <option key={f} value={f}>{f.toUpperCase()}</option>
-                    ))}
-                  </select>
-                </label>
+              {ffmpegMissing && tools && (
+                <InstallHint command={tools.hints.ffmpeg}>ffmpeg não encontrado — necessário para vídeo e áudio. Instale e clique em Converter de novo:</InstallHint>
               )}
 
-              {/* Nível de compressão */}
-              {mode !== 'convert' && (
-                <label className="text-xs text-[var(--app-muted)] flex flex-col gap-1">
-                  Nível de compactação
-                  <select
-                    value={compressionLevel}
-                    onChange={(e) => setCompressionLevel(e.target.value as CompressionLevel)}
-                    className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded px-2 py-1.5 text-[var(--app-text)]"
-                  >
-                    <option value="low">Leve (melhor qualidade)</option>
-                    <option value="medium">Média</option>
-                    <option value="high">Alta (menor tamanho)</option>
-                  </select>
-                </label>
-              )}
-
-              {/* Resolução (só vídeo) */}
-              {category === 'video' && mode !== 'convert' && (
-                <label className="text-xs text-[var(--app-muted)] flex flex-col gap-1">
-                  Resolução de saída
-                  <select
-                    value={resolution}
-                    onChange={(e) => setResolution(e.target.value)}
-                    className="bg-[var(--app-surface)] border border-[var(--app-border)] rounded px-2 py-1.5 text-[var(--app-text)]"
-                  >
-                    <option value="original">Original</option>
-                    <option value="1080p">1080p</option>
-                    <option value="720p">720p</option>
-                    <option value="480p">480p</option>
-                  </select>
-                </label>
-              )}
-
-              {!canUseAgentFeature && (
-                <div className="flex items-center gap-1.5 text-xs text-amber-500">
-                  <AlertTriangle size={13} />
-                  Agent desconectado — conversão de vídeo/áudio indisponível no momento.
+              {isUploading ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: 'var(--font-sm)', color: 'var(--app-muted)' }}>
+                    <span style={{ flex: 1 }}>Enviando ao agente… {Math.floor((uploadFraction ?? 0) * 100)}%</span>
+                    <Button variant="danger" onClick={() => abortRef.current?.abort()}>
+                      Cancelar envio
+                    </Button>
+                  </div>
+                  <ProgressBar value={(uploadFraction ?? 0) * 100} label="Envio do arquivo" />
                 </div>
-              )}
-
-              <button
-                onClick={runConversion}
-                disabled={status === 'converting' || !canUseAgentFeature}
-                className="flex items-center justify-center gap-1.5 py-2 rounded bg-[var(--app-accent)] text-white text-sm hover:opacity-90 disabled:opacity-50"
-              >
-                <Download size={14} />
-                {status === 'converting' ? 'Processando…' : 'Converter e baixar'}
-              </button>
-
-              {status === 'converting' && (
-                <div className="w-full h-1.5 rounded bg-[var(--app-border)] overflow-hidden">
-                  <div
-                    className="h-full bg-[var(--app-accent)] transition-all"
-                    style={{ width: `${progress}%` }}
-                  />
-                </div>
-              )}
-
-              {status === 'done' && result && (
-                <div className="flex items-start gap-1.5 text-xs text-emerald-500">
-                  <CheckCircle2 size={13} className="mt-0.5 shrink-0" />
-                  <span>
-                    {result.viaAgent
-                      ? `Salvo em: ${result.outputPath ?? '~/Downloads/' + result.fileName}`
-                      : `Baixado como ${result.fileName} (${result.sizeLabel})`}
-                  </span>
-                </div>
-              )}
-
-              {status === 'error' && errorMsg && (
-                <div className="flex items-start gap-1.5 text-xs text-red-500">
-                  <AlertTriangle size={13} className="mt-0.5 shrink-0" />
-                  <span>{errorMsg}</span>
-                </div>
+              ) : (
+                <Button variant="primary" size="md" block icon={<FileCog size={14} />} disabled={!canConvert} onClick={() => void convert()}>
+                  {actionLabel}
+                </Button>
               )}
             </>
           )}
+        </div>
+      )}
 
-          {category === 'other' && errorMsg && (
-            <div className="flex items-start gap-1.5 text-xs text-amber-500">
-              <AlertTriangle size={13} className="mt-0.5 shrink-0" />
-              <span>{errorMsg}</span>
-            </div>
-          )}
+      {ready && (
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <MediaJobList
+            jobs={jobsApi.jobs}
+            emptyText="Os arquivos convertidos aparecem aqui."
+            onCancel={(id) => void jobsApi.cancel(id)}
+            onRemove={(id) => void jobsApi.remove(id)}
+            onOpen={(id, action) => void jobsApi.open(id, action)}
+            onClearFinished={() => void jobsApi.clearFinished()}
+          />
         </div>
       )}
     </div>
   );
 };
 
-// ============================================================================
-// 4. Exportação do Widget cumprindo o contrato
-// ============================================================================
-
-export const fileConverterWidget: WidgetDefinition<FileConverterConfig> = {
+export const fileConverterWidget: WidgetDefinition = {
   manifest: {
     id: 'file-converter',
     name: 'Conversor de Arquivos',
-    version: '1.0.0',
-    description: 'Converte e compacta imagens, vídeos e áudios via drag-n-drop, com metadados e download automático.',
+    version: '2.0.0',
+    description: 'Converte e compacta imagens, vídeos e áudios (ffmpeg), com fila, progresso e pasta de saída.',
     icon: 'FileCog',
-    status: 'in_development',
-    defaultSize: { w: 6, h: 6 },
-    minSize: { w: 4, h: 4 },
-    maxSize: { w: 12, h: 10 },
-    requiresAgent: true, // imagens funcionam sem Agent; vídeo/áudio dependem dele
+    author: 'Dashboard Core',
+    status: 'stable',
+    defaultSize: { w: 4, h: 7 },
+    minSize: { w: 3, h: 5 },
+    maxSize: { w: 8, h: 12 },
+    requiresAgent: true,
   },
-  component: FileConverterComponent,
+  component: FileConverterWidget,
 };

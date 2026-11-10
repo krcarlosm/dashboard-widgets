@@ -1,6 +1,9 @@
 import { expect, test } from '@playwright/test';
 import type { Page } from '@playwright/test';
+import { execFileSync } from 'child_process';
 import fs from 'fs';
+import http from 'http';
+import type { AddressInfo } from 'net';
 import path from 'path';
 
 // Cada teste roda num perfil novo do Firefox (localStorage e IndexedDB vazios),
@@ -155,4 +158,62 @@ test('card clicado fica por cima dos vizinhos', async ({ page }) => {
   await items.nth(1).click({ position: { x: 40, y: 60 } });
   await expect(items.nth(1)).toHaveCSS('z-index', '20');
   await expect(items.nth(0)).toHaveCSS('z-index', '1');
+});
+
+// ── Conversor e Downloader (Fase 7) ──────────────────────────────────────────
+
+const mediaDir = () => path.join(process.env.DASHBOARD_E2E_DIR!, 'media');
+const PNG_1PX = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==', 'base64');
+const hasFfmpeg = (() => {
+  try {
+    execFileSync('ffmpeg', ['-version'], { stdio: 'ignore' });
+    return true;
+  } catch {
+    return false;
+  }
+})();
+
+test('conversor: envia uma imagem ao agente e salva o resultado', async ({ page }) => {
+  await openApp(page);
+  await addWidget(page, 'Conversor de Arquivos');
+  await page.getByLabel('Arquivo para converter').setInputFiles({ name: 'foto.png', mimeType: 'image/png', buffer: PNG_1PX });
+  await page.getByLabel('Formato de saída').selectOption('jpg');
+  await page.getByRole('button', { name: 'Converter arquivo' }).click();
+  const job = page.getByTestId('media-job').filter({ hasText: 'foto_convertido.jpg' });
+  await expect(job).toContainText('Concluído');
+  expect(fs.readFileSync(path.join(mediaDir(), 'foto_convertido.jpg')).subarray(0, 2)).toEqual(Buffer.from([0xff, 0xd8]));
+});
+
+test('downloader: pré-visualiza e baixa o áudio de um vídeo (servidor local)', async ({ page }) => {
+  test.skip(!hasFfmpeg, 'ffmpeg não instalado');
+  test.setTimeout(120_000);
+  const siteDir = path.join(process.env.DASHBOARD_E2E_DIR!, 'site');
+  fs.mkdirSync(siteDir, { recursive: true });
+  execFileSync('ffmpeg', ['-hide_banner', '-loglevel', 'error', '-y', '-f', 'lavfi', '-i', 'testsrc=size=320x240:rate=15:duration=2', '-f', 'lavfi', '-i', 'sine=frequency=440:duration=2', '-c:v', 'libx264', '-pix_fmt', 'yuv420p', '-c:a', 'aac', '-shortest', path.join(siteDir, 'palestra.mp4')]);
+  const server = http.createServer((request, response) => {
+    const file = path.join(siteDir, path.basename(request.url ?? ''));
+    if (!fs.existsSync(file)) {
+      response.writeHead(404).end();
+      return;
+    }
+    response.writeHead(200, { 'Content-Type': 'video/mp4', 'Content-Length': fs.statSync(file).size });
+    fs.createReadStream(file).pipe(response);
+  });
+  await new Promise<void>((resolve) => server.listen(0, '127.0.0.1', resolve));
+  try {
+    const url = `http://127.0.0.1:${(server.address() as AddressInfo).port}/palestra.mp4`;
+    await openApp(page);
+    await addWidget(page, 'Downloader de Vídeos');
+    await page.getByLabel('Link do vídeo').fill(url);
+    await expect(page.getByTestId('download-preview')).toContainText('palestra', { timeout: 30_000 });
+    // No tamanho padrão os rótulos cabem: o seletor não pode cair para só ícones.
+    await expect(page.getByRole('button', { name: 'Vídeo + áudio' })).toHaveText('Vídeo + áudio');
+    await page.getByRole('button', { name: 'Só áudio' }).click();
+    await page.getByRole('button', { name: /^Baixar/ }).click();
+    const job = page.getByTestId('media-job').filter({ hasText: 'palestra.mp3' });
+    await expect(job).toContainText('Concluído', { timeout: 60_000 });
+    expect(fs.existsSync(path.join(mediaDir(), 'palestra.mp3'))).toBe(true);
+  } finally {
+    server.close();
+  }
 });

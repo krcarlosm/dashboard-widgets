@@ -31,6 +31,12 @@ export interface AgentMessage {
   payload?: any;
 }
 
+export interface UploadOptions {
+  /** Fração enviada (0–1). */
+  onProgress?: (fraction: number) => void;
+  signal?: AbortSignal;
+}
+
 export interface AgentClientProtocol {
   isConnected: boolean;
   disconnect(): void;
@@ -42,6 +48,8 @@ export interface AgentClientProtocol {
   requestJson<T = any>(path: string, options?: RequestInit): Promise<T>;
   /** Baixa um arquivo do agente (ex.: imagem); use URL.createObjectURL para exibir. */
   requestBlob(path: string): Promise<Blob>;
+  /** Envia um arquivo grande ao agente (corpo bruto, com progresso e cancelamento). */
+  upload?<T = any>(path: string, body: Blob, options?: UploadOptions): Promise<T>;
   saveBackup?(backup: unknown, kind?: 'manual' | 'auto'): Promise<{ path: string; directory: string }>;
   openBackupDirectory?(): Promise<{ directory: string }>;
 }

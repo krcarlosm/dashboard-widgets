@@ -251,8 +251,18 @@ export function SegmentedControl<T extends string>({
     if (!element || compact || !hasIcons || typeof ResizeObserver === 'undefined') return;
     const measure = () => {
       if (!autoCompact) {
+        // Largura natural de cada botão: o conteúdo inteiro (o scrollWidth do rótulo
+        // ignora as reticências) + espaçamento interno. Medir o botão em si não serve
+        // com `stretch`, porque ele já ocupa o espaço que sobrou.
         const buttons = Array.from(element.children) as HTMLElement[];
-        fullWidthRef.current = buttons.reduce((sum, button) => sum + button.scrollWidth, 0) + (buttons.length + 1) * 4;
+        fullWidthRef.current =
+          buttons.reduce((sum, button) => {
+            const parts = Array.from(button.children) as HTMLElement[];
+            const content = parts.reduce((width, part) => width + part.scrollWidth, 0) + Math.max(0, parts.length - 1) * 4;
+            return sum + content + 16;
+          }, 0) +
+          (buttons.length - 1) * 2 +
+          6;
       }
       // Largura disponível: a do próprio controle (stretch) ou a do pai.
       const available = stretch ? element.clientWidth : (element.parentElement?.clientWidth ?? element.clientWidth);

@@ -1,12 +1,13 @@
 import json
 import os
 import re
-import subprocess
 import sys
 from dataclasses import dataclass, asdict
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional
+
+from src.system.userdirs import linux_user_dir
 
 KEEP_AUTO_BACKUPS = 10
 TIMESTAMP_FORMAT = "%Y-%m-%d_%H-%M-%S"
@@ -17,34 +18,12 @@ BACKUP_NAME_PATTERN = re.compile(
 )
 
 
-def _linux_documents_dir() -> Optional[Path]:
-    try:
-        result = subprocess.run(["xdg-user-dir", "DOCUMENTS"], capture_output=True, text=True, timeout=3)
-        value = result.stdout.strip()
-        # xdg-user-dir devolve a própria home quando a pasta não está configurada.
-        if result.returncode == 0 and value and Path(value) != Path.home():
-            return Path(value)
-    except Exception:
-        pass
-
-    config = Path(os.environ.get("XDG_CONFIG_HOME", Path.home() / ".config")) / "user-dirs.dirs"
-    try:
-        for line in config.read_text(encoding="utf-8").splitlines():
-            if line.startswith("XDG_DOCUMENTS_DIR="):
-                value = line.split("=", 1)[1].strip().strip('"').replace("$HOME", str(Path.home()))
-                if value and Path(value) != Path.home():
-                    return Path(value)
-    except Exception:
-        pass
-    return None
-
-
 def resolve_backup_dir() -> Path:
     override = os.environ.get("DASHBOARD_BACKUP_DIR")
     if override:
         return Path(override)
     if sys.platform.startswith("linux"):
-        documents = _linux_documents_dir()
+        documents = linux_user_dir("DOCUMENTS")
         return (documents / "Dashboard Backups") if documents else (Path.home() / "Dashboard Backups")
     return Path.home() / "Documents" / "Dashboard Backups"
 

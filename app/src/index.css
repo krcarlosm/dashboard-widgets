@@ -58,6 +58,20 @@ select {
   animation: spin 1s linear infinite;
 }
 
+/* Barra de progresso sem estimativa (ex.: conversão sem duração conhecida). */
+@keyframes progress-indeterminate {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(250%);
+  }
+}
+
+.progress-indeterminate {
+  animation: progress-indeterminate 1.2s ease-in-out infinite;
+}
+
 /* Widget de Notas: texto de exemplo do editor Rich (não faz parte do conteúdo) e imagens. */
 .notes-rich:empty::before {
   content: attr(data-placeholder);

@@ -46,6 +46,10 @@ export default defineConfig({
         DASHBOARD_AGENT_HOME: path.join(sandbox, 'home'),
         DASHBOARD_BACKUP_DIR: path.join(sandbox, 'backups'),
         DASHBOARD_AUTOSTART_DIR: path.join(sandbox, 'startup'),
+        DASHBOARD_MEDIA_DIR: path.join(sandbox, 'media'),
+        // O teste do Downloader usa um servidor HTTP local; nunca passa por proxy.
+        NO_PROXY: '127.0.0.1,localhost',
+        no_proxy: '127.0.0.1,localhost',
         DASHBOARD_AGENT_CLIPBOARD: '0',
         ALLOWED_ORIGINS: `http://localhost:${APP_PORT},http://127.0.0.1:${APP_PORT}`,
       },

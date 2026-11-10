@@ -12,8 +12,8 @@ O projeto consiste em um dashboard customizável, onde o usuário pode adicionar
 ## 🚀 Visão Geral e Recursos Principais
 
 - **Canvas Modular Responsivo:** Layout flexível com persistência local via `IndexedDB` e `localStorage`.
-- **Coleção de Widgets Integrados:** Notas Rápidas, Pomodoro Multiferramenta, Lista de Tarefas, Gerador de Ruído, Snippets, Conversores de Unidades, Calculadora de Datas, Regra de Três, Memória Baú, Monitor de Arquivos Editados e muito mais.
-- **Agente Local em Python:** Comunicação bidirecional via WebSocket para recursos do sistema operacional (captura de tela, área de transferência, indexação de arquivos, monitoramento). O Agente Python serve apenas para os widgets (aplicativos) que dependem de recursos do sistema operacional. Caso não queira usá-los, não precisa iniciá-lo.
+- **Coleção de Widgets Integrados:** Notas Rápidas, Pomodoro Multiferramenta, Lista de Tarefas, Gerador de Ruído, Snippets, Conversores de Unidades, Calculadora de Datas, Regra de Três, Memória Baú, Top 10 Arquivos da Semana, Conversor de Arquivos, Downloader de Vídeos e muito mais.
+- **Agente Local em Python:** Comunicação bidirecional via WebSocket para recursos do sistema operacional (captura de tela, área de transferência, indexação de arquivos, conversão de mídia com ffmpeg e downloads com yt-dlp). O Agente Python serve apenas para os widgets (aplicativos) que dependem de recursos do sistema operacional. Caso não queira usá-los, não precisa iniciá-lo.
 - **Temas e Personalização:** Suporte a modo Claro/Escuro, densidade de grid (Confortável/Compacto) e cores de acento personalizadas por instância de widget - quando você usa múltiplas instâncias do widget `Lista de Tarefas`, por exemplo, você pode mudar a cor de cada lista, ou ainda, mudar o título da lista, para que assim você possa localizar facilmente lista de tarefas distintas.
 
 ## 💾 Onde as informações ficam armazenadas
@@ -45,6 +45,8 @@ Atualmente, os principais dados ficam nestas chaves:
 | Lista de Tarefas | `items`, `lastOpenedDate` | Tarefas, status, datas e controle da última abertura |
 | Kanban | `kanban_items` | Cartões, texto, status da coluna e data de criação |
 | Snippets | `snippets` | Título, conteúdo, linguagem, categoria, favoritos e data de criação |
+| Conversor de Arquivos | `options` | Modo, nível de compactação, resolução e último formato escolhido por tipo |
+| Downloader de Vídeos | `options`, `showAdvanced` | Preferências do modo simples e avançado (o trecho não é salvo) |
 
 O conteúdo desses widgets não fica dentro do manifesto do `localStorage`. Essa separação permite que o layout seja alterado sem regravar listas, notas ou históricos inteiros. Outros widgets que utilizam `context.storage` seguem o mesmo modelo de armazenamento isolado; widgets legados que usam `localStorage` diretamente podem ter uma chave própria documentada no respectivo código.
 
@@ -107,6 +109,14 @@ Se o agente não estiver disponível, o backup manual usa o download do navegado
 - **npm**: `>= 9.x`
 - **Python**: `>= 3.10`
 - **OS**: Windows 10/11 ou Linux
+- **Opcionais (Conversor e Downloader):** [ffmpeg](https://ffmpeg.org) para vídeo/áudio e um runtime JavaScript ([Deno](https://deno.com) ou Node.js) para todos os formatos do YouTube no yt-dlp.
+
+| | Windows | Linux (Debian/Ubuntu) |
+|---|---|---|
+| ffmpeg | `winget install Gyan.FFmpeg` | `sudo apt install ffmpeg` |
+| Deno | `winget install DenoLand.Deno` | `curl -fsSL https://deno.land/install.sh | sh` |
+
+O yt-dlp em si já vem no `requirements.txt` do agente. Os widgets avisam (com o comando para copiar) quando falta alguma dessas ferramentas.
 
 ---
 
@@ -173,6 +183,23 @@ Como explicado anteriormente, o Agente Python serve apenas para que os widgets q
 - Ficam de fora temporários e arquivos de bloqueio (`~$*`, `*.tmp`, `.~lock*`), pastas, pastas ocultas e de ferramentas (`.git`, `node_modules`, `*.egg-info`) e os arquivos do próprio agente (Baú e backups).
 - O histórico fica em `~/.dashboard-agent/file_activity.db` e é mantido por 30 dias. O arquivo antigo `edits_index.db` não é mais usado e pode ser apagado.
 
+### Conversor de Arquivos
+
+- Converte e compacta **imagens** (PNG, JPG, WebP, BMP, GIF, TIFF, ICO — com Pillow), **vídeos** (MP4, MKV, WebM, MOV, AVI, MPEG) e **áudios** (MP3, M4A, AAC, OGG, Opus, WAV, FLAC — com ffmpeg). De vídeo para um formato de áudio, extrai a trilha.
+- Modos **Converter**, **Compactar** (mantém o formato) e **Ambos**; níveis de compactação e resolução máxima para vídeo (nunca aumenta a resolução).
+- O arquivo vai ao agente por HTTP em pedaços (sem base64, até 20 GB), com progresso do envio e botão para cancelar. A conversão entra numa fila com progresso, tempo restante e cancelamento.
+- O resultado é salvo em `~/Downloads/Dashboard` (configurável na engrenagem do widget) como `nome_convertido.ext` ou `nome_compactado.ext`, sem sobrescrever arquivos existentes. Arquivos intermediários ficam em `~/.dashboard-agent/media-tmp` e são apagados ao terminar ou cancelar.
+- Sem o agente, imagens ainda podem ser convertidas para PNG, JPG ou WebP no próprio navegador.
+
+### Downloader de Vídeos
+
+- Cole um link (YouTube, Vimeo, Instagram e [outros sites suportados pelo yt-dlp](https://github.com/yt-dlp/yt-dlp/blob/master/supportedsites.md)): o widget mostra título, canal, duração, miniatura e as qualidades disponíveis.
+- **Modo simples:** vídeo + áudio, só áudio ou só vídeo; formato (MP4, MKV, WebM / MP3, M4A, Opus, WAV, FLAC) e qualidade.
+- **Opções avançadas:** playlist inteira, legendas (do autor ou automáticas, por idioma), miniatura e metadados no arquivo, capítulos, remoção de patrocínios (SponsorBlock), limite de velocidade, modelo de nome do arquivo e download de um trecho (início/fim).
+- Fila com progresso, velocidade, tempo restante, item da playlist e cancelamento. Destino padrão `~/Downloads/Dashboard` (`DASHBOARD_MEDIA_DIR` muda o padrão das duas pastas). O botão **Atualizar yt-dlp** atualiza o pacote no ambiente do agente; vale já no próximo download.
+- Segurança: o navegador nunca envia argumentos de linha de comando ao yt-dlp — o agente monta o comando a partir de uma lista fechada de opções, aceita apenas links `http(s)` e só abre/mostra arquivos gerados pelas próprias tarefas.
+- Uso pessoal: respeite os termos de uso de cada site e os direitos autorais do conteúdo.
+
 ### Segurança do agente
 
 O agente aceita conexões apenas de `127.0.0.1` e das origens do dashboard (`ALLOWED_ORIGINS`). Todo comando via WebSocket e toda rota HTTP de dados exigem o token local salvo em `~/.dashboard-agent/auth.token`; sem o handshake, nenhuma informação da área de transferência é enviada ao cliente.
@@ -187,7 +214,7 @@ Nenhum teste lê ou altera a área de transferência real, a pasta Inicializar o
 
 | Suíte | Comando | O que cobre |
 |---|---|---|
-| Agente (pytest) | `cd agent` → `pip install -r requirements-dev.txt` → `python -m pytest` | Segurança (token, origem, WebSocket), Baú, backups, autostart, Top 10 (Windows e Linux) |
+| Agente (pytest) | `cd agent` → `pip install -r requirements-dev.txt` → `python -m pytest` | Segurança (token, origem, WebSocket), Baú, backups, autostart, Top 10 (Windows e Linux), Conversor e Downloader (fila, cancelamento, opções validadas; download real em servidor local) |
 | App (Vitest + Testing Library) | `cd app` → `npm test` | Cada widget, store do dashboard, storage, backup e restauração |
 | E2E (Playwright) | `cd app` → `npx playwright install firefox` (uma vez) → `npm run test:e2e` | Fluxos principais no motor Firefox, com agente isolado |
 

@@ -21,6 +21,9 @@ from src.files.api import create_files_router
 from src.files.service import FileActivityService
 from src.files.store import ActivityStore
 from src.files.watcher import FolderSettings
+from src.media.api import create_media_router
+from src.media.jobs import JobManager
+from src.media.settings import MediaSettings
 from src.protocol import AgentMessage
 from src.retention.purge import PurgeService
 from src.screenshot.capture import ScreenshotCapture
@@ -94,9 +97,25 @@ file_activity = FileActivityService(
     excluded_roots=[AGENT_HOME, backup_store.directory],
 )
 
+# Conversor e Downloader: as tarefas rodam em threads próprias; os avisos de
+# progresso voltam para o event loop do servidor para seguir pelo WebSocket.
+_main_loop: asyncio.AbstractEventLoop | None = None
+
+
+def notify_media_job(job: dict) -> None:
+    loop = _main_loop
+    if loop is not None and not loop.is_closed():
+        asyncio.run_coroutine_threadsafe(broadcast({"type": "media:job", "payload": job}), loop)
+
+
+media_settings = MediaSettings(AGENT_HOME)
+media_jobs = JobManager(notify=notify_media_job)
+
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global _main_loop
+    _main_loop = asyncio.get_running_loop()
     # DASHBOARD_AGENT_CLIPBOARD=0 desliga o monitor (o Baú continua com capturas de tela).
     if os.environ.get("DASHBOARD_AGENT_CLIPBOARD", "1") != "0":
         await clipboard_monitor.start()
@@ -109,10 +128,11 @@ async def lifespan(app: FastAPI):
     await clipboard_monitor.stop()
     await purge_service.stop()
     await file_activity.stop()
+    await asyncio.to_thread(media_jobs.shutdown)
     logger.info("Agent encerrado")
 
 
-app = FastAPI(title="Dashboard Local Agent", version="0.4.0", lifespan=lifespan)
+app = FastAPI(title="Dashboard Local Agent", version="0.5.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -133,6 +153,9 @@ app.include_router(
     )
 )
 app.include_router(create_files_router(store=activity_store, service=file_activity, require_token=require_token))
+app.include_router(
+    create_media_router(jobs=media_jobs, settings=media_settings, work_root=AGENT_HOME / "media-tmp", require_token=require_token)
+)
 app.include_router(
     create_backup_router(
         store=backup_store,
