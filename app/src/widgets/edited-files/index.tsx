@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { FolderOpen, FolderPlus, RefreshCw, Settings2, X } from 'lucide-react';
 import { AgentOfflineBanner, Badge, Banner, IconButton, Input, SegmentedControl, Spacer, Toolbar } from '../../ui';
+import { SendToButton } from '../../ui/SendTo';
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Top 10 Arquivos da Semana — arquivos mais abertos e editados nos últimos 7 dias.
@@ -211,6 +212,7 @@ const TopFilesWidget: React.FC<WidgetComponentProps<TopFilesConfig>> = ({ contex
         {items.map((item, index) => (
           <div
             key={item.path}
+            data-testid="top-file"
             style={{ background: 'var(--app-surface-muted)', border: '1px solid var(--app-border)', borderRadius: '8px', padding: '6px 8px', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
             <span style={{ fontSize: '10px', fontWeight: 700, color: 'var(--widget-accent)', width: '18px', textAlign: 'right', flexShrink: 0 }}>{index + 1}</span>
@@ -239,6 +241,14 @@ const TopFilesWidget: React.FC<WidgetComponentProps<TopFilesConfig>> = ({ contex
                 {formatRelative(item.lastAccess)} · {item.total}× · {item.folder}
               </div>
             </div>
+            <SendToButton
+              actions={context.actions}
+              kinds={['file']}
+              iconOnly
+              label="Enviar arquivo para…"
+              build={() => [{ kind: 'file', path: item.path, name: item.name }]}
+              style={{ padding: '2px' }}
+            />
             <IconButton label="Mostrar na pasta" onClick={() => void handleOpen(item, 'reveal')} icon={<FolderOpen size={13} />} style={{ padding: '2px' }} />
           </div>
         ))}
@@ -251,8 +261,8 @@ export const editedFilesWidget: WidgetDefinition<TopFilesConfig> = {
   manifest: {
     id: 'edited-files',
     name: 'Top 10 Arquivos da Semana',
-    version: '1.0.0',
-    description: 'Os 10 arquivos que você mais abriu e editou nos últimos 7 dias, com link para abrir.',
+    version: '1.1.0',
+    description: 'Os 10 arquivos que você mais abriu e editou nos últimos 7 dias, com link para abrir e envio para Anotações ou Conversor.',
     icon: 'FolderOpen',
     author: 'Dashboard Core',
     status: 'stable',

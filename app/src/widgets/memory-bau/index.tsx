@@ -4,6 +4,10 @@ import {
   Camera, ImageIcon, FileText, RefreshCw, Search, Settings2, Trash2, Copy, Check, ExternalLink, ChevronDown, ChevronUp,
 } from 'lucide-react';
 import { AgentOfflineBanner, Banner, ConfirmButton, IconButton, SegmentedControl, Select, Spacer, Toolbar } from '../../ui';
+import { SendToButton } from '../../ui/SendTo';
+import type { ActionTarget, WidgetMessage } from '../../sdk/actions';
+
+const URL_PATTERN = /^https?:\/\/\S+$/i;
 
 interface BauItem {
   id: string;
@@ -184,6 +188,21 @@ const MemoryBauWidget: React.FC<WidgetComponentProps<BauConfig>> = ({ context })
     }
   };
 
+  /** Texto completo do item (a prévia pode estar cortada). */
+  const fullTextOf = async (item: BauItem): Promise<string> => {
+    if (expanded[item.id] !== undefined) return expanded[item.id];
+    if ((item.chars ?? 0) <= (item.preview?.length ?? 0)) return item.preview ?? '';
+    const data = await agentClient.requestJson<{ text: string }>(`/bau/items/${encodeURIComponent(item.id)}/content`);
+    return data.text;
+  };
+
+  const buildSend = async (item: BauItem, target: ActionTarget): Promise<WidgetMessage[]> => {
+    const text = await fullTextOf(item);
+    // Um link sozinho vai como link para quem aceita (ex.: Downloader); para os demais, como texto.
+    if (target.accepts.includes('url') && URL_PATTERN.test(text.trim())) return [{ kind: 'url', url: text.trim() }];
+    return [{ kind: 'text', text }];
+  };
+
   const handleOpenImage = async (item: BauItem) => {
     try {
       const blob = await agentClient.requestBlob(`/bau/items/${encodeURIComponent(item.id)}/content`);
@@ -317,6 +336,16 @@ const MemoryBauWidget: React.FC<WidgetComponentProps<BauConfig>> = ({ context })
                   <ExternalLink size={11} />
                 </button>
               )}
+              {item.kind === 'text' && (
+                <SendToButton
+                  actions={context.actions}
+                  kinds={URL_PATTERN.test((item.preview ?? '').trim()) ? ['text', 'url'] : ['text']}
+                  iconOnly
+                  label="Enviar texto para…"
+                  build={(target) => buildSend(item, target)}
+                  style={{ padding: '2px' }}
+                />
+              )}
               <button onClick={() => handleDelete(item)} title="Excluir do Baú" style={{ ...iconButtonStyle(), border: 'none', padding: '2px' }}>
                 <Trash2 size={11} />
               </button>
@@ -384,8 +413,8 @@ export const memoryBauWidget: WidgetDefinition<BauConfig> = {
   manifest: {
     id: 'memory-bau',
     name: 'Baú de Lembranças',
-    version: '1.0.0',
-    description: 'Histórico de textos e imagens copiados e capturas de tela, com prévia, busca e cópia com um clique.',
+    version: '1.1.0',
+    description: 'Histórico de textos e imagens copiados e capturas de tela, com prévia, busca, cópia com um clique e envio para outros widgets.',
     icon: 'Camera',
     author: 'Dashboard Core',
     status: 'stable',

@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Ban, CheckCircle2, Clock, Copy, ExternalLink, FolderOpen, Loader2, Save, TriangleAlert, X } from 'lucide-react';
 import type { AgentClientProtocol } from '../../sdk/types';
+import type { ActionTarget, WidgetMessage } from '../../sdk/actions';
 import { Badge, Banner, Button, IconButton, Input } from '../../ui';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -228,6 +229,12 @@ export function useMediaSettings(agentClient: AgentClientProtocol, ready: boolea
   return { settings, save, openDirectory };
 }
 
+/** Arquivos gerados por uma tarefa, como mensagens do "Enviar para…". O Conversor recebe um por vez (o primeiro). */
+export function outputMessages(job: MediaJob, target: ActionTarget): WidgetMessage[] {
+  const outputs = target.widgetId === 'file-converter' ? job.outputs.slice(0, 1) : job.outputs;
+  return outputs.map((output) => ({ kind: 'file', path: output.path, name: output.name }));
+}
+
 // ── Componentes ──────────────────────────────────────────────────────────────
 
 export function ProgressBar({ value, label }: { value: number | null; label: string }) {
@@ -270,6 +277,7 @@ export function MediaJobList({
   onRemove,
   onOpen,
   onClearFinished,
+  renderDoneActions,
 }: {
   jobs: MediaJob[];
   emptyText: string;
@@ -277,6 +285,8 @@ export function MediaJobList({
   onRemove: (id: string) => void;
   onOpen: (id: string, action: 'open' | 'reveal') => void;
   onClearFinished: () => void;
+  /** Ações extras de uma tarefa concluída (ex.: "Enviar para…"). */
+  renderDoneActions?: (job: MediaJob) => React.ReactNode;
 }) {
   const finished = jobs.filter((job) => !isActive(job)).length;
   return (
@@ -311,6 +321,7 @@ export function MediaJobList({
             </span>
             {job.status === 'done' && job.outputs.length > 0 && (
               <>
+                {renderDoneActions?.(job)}
                 <IconButton label="Abrir arquivo" onClick={() => onOpen(job.id, 'open')} icon={<ExternalLink size={12} />} style={{ padding: '2px' }} />
                 <IconButton label="Mostrar na pasta" onClick={() => onOpen(job.id, 'reveal')} icon={<FolderOpen size={12} />} style={{ padding: '2px' }} />
               </>

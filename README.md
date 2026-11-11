@@ -13,6 +13,7 @@ O projeto consiste em um dashboard customizável, onde o usuário pode adicionar
 
 - **Canvas Modular Responsivo:** Layout flexível com persistência local via `IndexedDB` e `localStorage`.
 - **Coleção de Widgets Integrados:** Notas Rápidas, Pomodoro Multiferramenta, Lista de Tarefas, Gerador de Ruído, Snippets, Conversores de Unidades, Calculadora de Datas, Regra de Três, Memória Baú, Top 10 Arquivos da Semana, Conversor de Arquivos, Downloader de Vídeos e muito mais.
+- **Widgets que conversam entre si ("Enviar para…"):** mande um trecho das Anotações para a Lista de Tarefas ou o Kanban, um item do Baú para Anotações, Snippets, Tarefas ou o Downloader, um arquivo do Top 10 para as Anotações, um vídeo baixado para o Conversor. Tarefas enviadas entre a Lista de Tarefas e o Kanban ficam **vinculadas** (concluir, editar ou excluir de um lado reflete no outro), e o Timer registra o tempo de foco na tarefa escolhida.
 - **Agente Local em Python:** Comunicação bidirecional via WebSocket para recursos do sistema operacional (captura de tela, área de transferência, indexação de arquivos, conversão de mídia com ffmpeg e downloads com yt-dlp). O Agente Python serve apenas para os widgets (aplicativos) que dependem de recursos do sistema operacional. Caso não queira usá-los, não precisa iniciá-lo.
 - **Temas e Personalização:** Suporte a modo Claro/Escuro, densidade de grid (Confortável/Compacto) e cores de acento personalizadas por instância de widget - quando você usa múltiplas instâncias do widget `Lista de Tarefas`, por exemplo, você pode mudar a cor de cada lista, ou ainda, mudar o título da lista, para que assim você possa localizar facilmente lista de tarefas distintas.
 
@@ -41,12 +42,17 @@ Atualmente, os principais dados ficam nestas chaves:
 
 | Widget | Chaves armazenadas | Conteúdo |
 | --- | --- | --- |
-| Notas Rápidas | `content`, `updatedAt`, `mode` | Texto da anotação, horário da última gravação e modo de edição |
-| Lista de Tarefas | `items`, `lastOpenedDate` | Tarefas, status, datas e controle da última abertura |
-| Kanban | `kanban_items` | Cartões, texto, status da coluna e data de criação |
+| Notas Rápidas | `content`, `contentFormat`, `updatedAt`, `mode` | Texto da anotação (Markdown), horário da última gravação e modo de edição |
+| Lista de Tarefas | `items`, `lastOpenedDate` | Tarefas, status, datas, vínculo com o Kanban, tempo de foco e controle da última abertura |
+| Kanban | `kanban_items` | Cartões, texto, status da coluna, data de criação, vínculo com a Lista de Tarefas e tempo de foco |
+| Timer Multiferramenta | `config`, `mode`, `phase`, `remainingSeconds`, `completedCycles`, `countdown*`, `focusTask` | Configuração, estado do timer e a tarefa em foco |
+| Gerador de Ruído | `noiseType`, `volume`, `isTimerEnabled`, `selectedMinutes`, `customMinutes` | Último ruído, volume e tempo escolhido |
+| Conversor de Unidades | `state` | Categoria, unidades e valor da última conversão |
 | Snippets | `snippets` | Título, conteúdo, linguagem, categoria, favoritos e data de criação |
 | Conversor de Arquivos | `options` | Modo, nível de compactação, resolução e último formato escolhido por tipo |
 | Downloader de Vídeos | `options`, `showAdvanced` | Preferências do modo simples e avançado (o trecho não é salvo) |
+
+Mensagens do "Enviar para…" destinadas a um widget que ainda não terminou de abrir ficam em `${instanceId}:__inbox` e são entregues (e apagadas) assim que ele abre.
 
 O conteúdo desses widgets não fica dentro do manifesto do `localStorage`. Essa separação permite que o layout seja alterado sem regravar listas, notas ou históricos inteiros. Outros widgets que utilizam `context.storage` seguem o mesmo modelo de armazenamento isolado; widgets legados que usam `localStorage` diretamente podem ter uma chave própria documentada no respectivo código.
 
@@ -72,6 +78,8 @@ A variável `DASHBOARD_BACKUP_DIR` substitui a pasta padrão. Nomes:
 - `manual-dashboard-backup-AAAA-MM-DD_HH-MM-SS.json` — manuais, nunca apagados. Arquivos antigos sem prefixo também contam como manuais.
 
 Se o agente não estiver disponível, o backup manual usa o download do navegador como fallback.
+
+**Dados de widgets removidos.** Remover um widget do canvas não apaga o que ele guardou no IndexedDB, para que um widget removido por engano possa voltar. O menu de perfil lista esses dados em **Dados de widgets removidos**: **Restaurar** devolve o widget ao canvas com os dados; **Apagar** (ou **Apagar todos**) remove de vez, com confirmação.
 
 **Restauração.** A lista **Backups salvos** mostra os arquivos da pasta; **Restaurar** grava antes um backup manual do estado atual (ponto de segurança) e então substitui o canvas e os dados. **Importar arquivo** restaura um JSON de qualquer local. Ambos pedem confirmação.
 
@@ -181,6 +189,7 @@ Como explicado anteriormente, o Agente Python serve apenas para que os widgets q
 - **Edições** são detectadas quando a data de modificação de um arquivo da lista muda. Para registrar também arquivos que você não abre pelo Explorer, adicione **pastas monitoradas** nas configurações do widget. Gravações seguidas em 5 minutos (salvamento automático) contam como uma edição.
 - Clicar no nome abre o arquivo no aplicativo padrão; o ícone de pasta o mostra no Explorer/gerenciador de arquivos. O agente só abre arquivos do próprio histórico, e scripts/executáveis (`.exe`, `.ps1`, `.bat`…) são apenas mostrados na pasta.
 - Ficam de fora temporários e arquivos de bloqueio (`~$*`, `*.tmp`, `.~lock*`), pastas, pastas ocultas e de ferramentas (`.git`, `node_modules`, `*.egg-info`) e os arquivos do próprio agente (Baú e backups).
+- Arquivos gerados pelo **Conversor** e pelo **Downloader** entram na lista como abertos assim que a tarefa termina. O ícone de envio de cada linha manda o arquivo para as Anotações (como link que abre o arquivo) ou para o Conversor.
 - O histórico fica em `~/.dashboard-agent/file_activity.db` e é mantido por 30 dias. O arquivo antigo `edits_index.db` não é mais usado e pode ser apagado.
 
 ### Conversor de Arquivos
@@ -189,6 +198,7 @@ Como explicado anteriormente, o Agente Python serve apenas para que os widgets q
 - Modos **Converter**, **Compactar** (mantém o formato) e **Ambos**; níveis de compactação e resolução máxima para vídeo (nunca aumenta a resolução).
 - O arquivo vai ao agente por HTTP em pedaços (sem base64, até 20 GB), com progresso do envio e botão para cancelar. A conversão entra numa fila com progresso, tempo restante e cancelamento.
 - O resultado é salvo em `~/Downloads/Dashboard` (configurável na engrenagem do widget) como `nome_convertido.ext` ou `nome_compactado.ext`, sem sobrescrever arquivos existentes. Arquivos intermediários ficam em `~/.dashboard-agent/media-tmp` e são apagados ao terminar ou cancelar.
+- Também converte, sem novo envio, arquivos que já estão no computador: os gerados pelo Downloader/Conversor e os que aparecem no Top 10 (pelo "Enviar para…"). Executáveis e scripts são recusados.
 - Sem o agente, imagens ainda podem ser convertidas para PNG, JPG ou WebP no próprio navegador.
 
 ### Downloader de Vídeos
@@ -215,8 +225,8 @@ Nenhum teste lê ou altera a área de transferência real, a pasta Inicializar o
 | Suíte | Comando | O que cobre |
 |---|---|---|
 | Agente (pytest) | `cd agent` → `pip install -r requirements-dev.txt` → `python -m pytest` | Segurança (token, origem, WebSocket), Baú, backups, autostart, Top 10 (Windows e Linux), Conversor e Downloader (fila, cancelamento, opções validadas; download real em servidor local) |
-| App (Vitest + Testing Library) | `cd app` → `npm test` | Cada widget, store do dashboard, storage, backup e restauração |
-| E2E (Playwright) | `cd app` → `npx playwright install firefox` (uma vez) → `npm run test:e2e` | Fluxos principais no motor Firefox, com agente isolado |
+| App (Vitest + Testing Library) | `cd app` → `npm test` | Cada widget, store do dashboard, storage, backup e restauração, barramento "Enviar para…" e fluxos entre widgets (`src/test/integration.test.tsx`) |
+| E2E (Playwright) | `cd app` → `npx playwright install firefox` (uma vez) → `npm run test:e2e` | Fluxos principais no motor Firefox, com agente isolado, incluindo tarefas vinculadas e arquivo do Conversor → Top 10 → Anotações |
 
 Em máquinas que bloqueiam os navegadores não assinados do Playwright (comum em notebooks corporativos), rode o E2E no Microsoft Edge instalado: `npm run test:e2e:edge`. O roteiro visual opcional `EXPLORE=1 npx playwright test explore` gera capturas de todos os widgets em `app/test-results/explore/`.
 
@@ -272,6 +282,7 @@ export const meuWidget: WidgetDefinition<MeuWidgetConfig> = {
     minSize: { w: 2, h: 2 },
     maxSize: { w: 12, h: 8 },
     requiresAgent: false, // Define se precisa do agente Python rodando
+    accepts: ['text'], // Opcional: tipos que o widget recebe pelo "Enviar para…"
   },
   component: MeuWidgetComponent,
 };
@@ -284,6 +295,7 @@ export const meuWidget: WidgetDefinition<MeuWidgetConfig> = {
 1. **Uso Obrigatório de `WidgetContext`**:
    - **`context.config` / `context.updateConfig`**: Utilize para estados de configuração leves mantidos no perfil.
    - **`context.storage`**: Utilize o armazenamento assíncrono isolado (`storage.get`, `storage.set`) para persitência de dados volumosos (listas, notas, histórico do widget).
+   - **`context.actions`**: integração com outros widgets. `actions.targets(kind)` lista quem recebe um tipo (`text`, `task`, `file`, `url`) e `actions.send(instanceId, mensagem)` envia; para receber, declare `manifest.accepts` e use `useActionReceiver(actions, handler, isLoaded)` de `sdk/actions.ts`. O botão pronto `SendToButton` (`app/src/ui/SendTo.tsx`) monta o menu "Enviar para…".
    - **`context.agentClient`**: Utilize para inscrever-se (`agentClient.subscribe(event, callback)`) ou enviar comandos (`agentClient.send(...)`) ao agente Python.
 2. **Dimensionamento e Layout Responsivo**:
    - Respeite os limites configurados em `minSize` e `maxSize`.

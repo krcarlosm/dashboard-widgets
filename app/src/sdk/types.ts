@@ -1,4 +1,5 @@
 import React from 'react';
+import type { ActionKind, WidgetActions } from './actions';
 
 export interface WidgetDimensions {
   w: number; // Colunas no grid (ex: 1 a 12)
@@ -17,6 +18,8 @@ export interface WidgetManifest {
   minSize: WidgetDimensions;
   maxSize: WidgetDimensions;
   requiresAgent?: boolean;
+  /** O que a instância recebe pelo "Enviar para…" (ver sdk/actions.ts). */
+  accepts?: ActionKind[];
 }
 
 export interface WidgetStorage {
@@ -61,6 +64,8 @@ export interface WidgetContext<TConfig = Record<string, any>> {
   storage: WidgetStorage;
   agentClient: AgentClientProtocol;
   dimensions: { width: number; height: number };
+  /** Integração com as outras instâncias do canvas ("Enviar para…"). */
+  actions: WidgetActions;
 }
 
 export interface WidgetLifecycle {

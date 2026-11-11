@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { WidgetDefinition, WidgetContext } from '../sdk/types';
 import { ScopedWidgetStorage } from '../sdk/storage';
 import { defaultAgentClient } from '../sdk/agentClient';
+import { actionBus } from '../sdk/actions';
 import { useDashboardStore } from '../store/dashboardStore';
 import { X, GripHorizontal, Wrench, AlertTriangle, Lock, Unlock, Palette, Pencil } from 'lucide-react';
 import { ConfirmButton } from '../ui';
@@ -63,6 +64,8 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
 
   // Armazenamento IndexedDB com escopo isolado para esta instância de widget
   const storage = useRef(new ScopedWidgetStorage(instanceId)).current;
+  // "Enviar para…": API estável por instância (os widgets a usam em dependências de efeitos).
+  const actions = useRef(actionBus.forInstance(instanceId)).current;
 
   // ── Cálculo de cores ──────────────────────────────────────────────────────
   // Resolve o preset selecionado; fallback para 'default' se chave inválida.
@@ -114,6 +117,7 @@ export const WidgetContainer: React.FC<WidgetContainerProps> = ({
     storage,
     agentClient: defaultAgentClient,
     dimensions,
+    actions,
   };
 
   // Lifecycle execution

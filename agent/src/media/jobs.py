@@ -130,8 +130,16 @@ Runner = Callable[[JobHandle], list]
 
 
 class JobManager:
-    def __init__(self, notify: Optional[Callable[[dict], None]] = None, keep_finished: int = 40):
+    def __init__(
+        self,
+        notify: Optional[Callable[[dict], None]] = None,
+        keep_finished: int = 40,
+        on_done: Optional[Callable[[dict], None]] = None,
+    ):
         self.notify = notify
+        # Chamado (na thread da fila) quando uma tarefa termina com sucesso — ex.:
+        # o main.py registra os arquivos gerados no Top 10.
+        self.on_done = on_done
         self.keep_finished = keep_finished
         self._jobs: dict[str, Job] = {}
         self._handles: dict[str, JobHandle] = {}
@@ -327,6 +335,13 @@ class JobManager:
                     logger.exception("Falha ao limpar arquivos temporários da tarefa %s", job_id)
             if result is not None:
                 self._update(job_id, result)
+                if result.get("status") == "done" and self.on_done is not None:
+                    finished = self.get(job_id)
+                    if finished is not None:
+                        try:
+                            self.on_done(finished)
+                        except Exception:
+                            logger.exception("Falha no aviso de conclusão da tarefa %s", job_id)
 
     def _run(self, job_id: str, handle: JobHandle, runner: Runner) -> dict:
         cleared = {"stage": "", "eta": None, "speed": None, "finishedAt": None}

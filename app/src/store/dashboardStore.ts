@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Layout } from 'react-grid-layout';
 import { WidgetDefinition } from '../sdk/types';
+import type { ActionTarget } from '../sdk/actions';
 import { db } from '../sdk/storage';
 import { ProfileAppearance, ProfileWidgetInstance, ProfileManifest } from '../types/profile';
 import { backgroundMap, CanvasPreset } from '../components/themeGradients';
@@ -20,6 +21,8 @@ interface DashboardState {
   saveProfile: () => void;
   addWidgetToCanvas: (widgetId: string) => void;
   removeWidgetFromCanvas: (instanceId: string) => void;
+  /** Devolve ao canvas um widget removido, reaproveitando os dados que ele deixou. */
+  restoreWidgetInstance: (instanceId: string, widgetId: string) => void;
   toggleLockWidget: (instanceId: string) => void;
   reorganizeLayouts: () => void;
   updateLayout: (layouts: Layout[]) => void;
@@ -129,6 +132,29 @@ function normalizeAppearance(value: unknown): ProfileAppearance {
   return DEFAULT_APPEARANCE;
 }
 
+/**
+ * Instâncias do canvas que recebem conteúdo pelo "Enviar para…". O nome é o título
+ * personalizado (quando há) ou o do widget; repetidos ganham número: "Anotações (2)".
+ */
+export function buildActionTargets(state: Pick<DashboardState, 'activeInstances' | 'registeredWidgets'>): ActionTarget[] {
+  const targets = state.activeInstances.flatMap((instance) => {
+    const definition = state.registeredWidgets.get(instance.widgetId);
+    const accepts = definition?.manifest.accepts;
+    if (!definition || !accepts?.length) return [];
+    const custom = typeof instance.config?.customTitle === 'string' ? instance.config.customTitle.trim() : '';
+    return [{ instanceId: instance.instanceId, widgetId: instance.widgetId, title: custom || definition.manifest.name, accepts }];
+  });
+  const totals = new Map<string, number>();
+  targets.forEach((target) => totals.set(target.title, (totals.get(target.title) ?? 0) + 1));
+  const seen = new Map<string, number>();
+  return targets.map((target) => {
+    if ((totals.get(target.title) ?? 0) < 2) return target;
+    const index = (seen.get(target.title) ?? 0) + 1;
+    seen.set(target.title, index);
+    return { ...target, title: `${target.title} (${index})` };
+  });
+}
+
 export const useDashboardStore = create<DashboardState>((set, get) => ({
   registeredWidgets: new Map(),
   activeInstances: [],
@@ -228,6 +254,19 @@ export const useDashboardStore = create<DashboardState>((set, get) => ({
       activeInstances: state.activeInstances.filter((item) => item.instanceId !== instanceId),
     }));
     get().saveProfile();
+  },
+
+  restoreWidgetInstance: (instanceId: string, widgetId: string) => {
+    const { registeredWidgets, activeInstances, saveProfile } = get();
+    const widgetDef = registeredWidgets.get(widgetId);
+    if (!widgetDef || activeInstances.some((item) => item.instanceId === instanceId)) return;
+    const { w, h } = widgetDef.manifest.defaultSize;
+    const { x, y } = findFirstAvailablePosition(activeInstances, w, h);
+    set({ activeInstances: [...activeInstances, { instanceId, widgetId, isLocked: false, layout: { i: instanceId, x, y, w, h }, config: {} }] });
+    saveProfile();
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('dashboard:focus-widget', { detail: { instanceId } }));
+    }
   },
 
   toggleLockWidget: (instanceId: string) => {

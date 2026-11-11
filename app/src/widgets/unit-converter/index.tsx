@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { Copy, Check, ArrowRightLeft } from 'lucide-react';
 import { Button, FieldLabel, IconButton, Input, SegmentedControl, Select } from '../../ui';
@@ -46,6 +46,13 @@ const CATEGORY_LABELS: Record<Category, string> = {
   pressure: '💨 Pressão',
 };
 
+interface SavedState {
+  category: Category;
+  fromUnit: string;
+  toUnit: string;
+  inputValue: string;
+}
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
 const UnitConverterWidget: React.FC<WidgetComponentProps> = ({ context }) => {
@@ -54,6 +61,25 @@ const UnitConverterWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [toUnit, setToUnit] = useState<string>('ft');
   const [inputValue, setInputValue] = useState<string>('1');
   const [copied, setCopied] = useState<boolean>(false);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  // Lembra a grandeza, as unidades e o valor depois de recarregar.
+  useEffect(() => {
+    context.storage.get<SavedState>('state').then((saved) => {
+      if (saved && saved.category in UNITS) {
+        const available = UNITS[saved.category];
+        setCategory(saved.category);
+        if (saved.fromUnit in available) setFromUnit(saved.fromUnit);
+        if (saved.toUnit in available) setToUnit(saved.toUnit);
+        if (typeof saved.inputValue === 'string') setInputValue(saved.inputValue);
+      }
+      setIsLoaded(true);
+    });
+  }, [context.storage]);
+
+  useEffect(() => {
+    if (isLoaded) void context.storage.set<SavedState>('state', { category, fromUnit, toUnit, inputValue });
+  }, [isLoaded, category, fromUnit, toUnit, inputValue, context.storage]);
 
   const units = UNITS[category];
   const unitKeys = Object.keys(units);
@@ -171,8 +197,8 @@ export const unitConverterWidget: WidgetDefinition = {
   manifest: {
     id: 'unit-converter',
     name: 'Conversor de Unidades',
-    version: '1.0.0',
-    description: 'Converte distância, temperatura e pressão com resultado em 1 clique.',
+    version: '1.1.0',
+    description: 'Converte distância, temperatura e pressão com resultado em 1 clique; lembra as últimas unidades usadas.',
     icon: 'ArrowRightLeft',
     author: 'Dashboard Core',
     status: 'stable',

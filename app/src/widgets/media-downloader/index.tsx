@@ -2,11 +2,14 @@ import React, { useEffect, useRef, useState } from 'react';
 import { ChevronDown, ChevronRight, Download, Film, FolderOpen, ListVideo, Loader2, Music, RefreshCw, Settings2, Video } from 'lucide-react';
 import type { WidgetComponentProps, WidgetDefinition } from '../../sdk/types';
 import { AgentOfflineBanner, Badge, Banner, Button, FieldLabel, IconButton, Input, SegmentedControl, Select, Spacer, Toolbar } from '../../ui';
+import { SendToButton } from '../../ui/SendTo';
+import { useActionReceiver } from '../../sdk/actions';
 import {
   CheckboxField,
   InstallHint,
   MediaJob,
   MediaJobList,
+  outputMessages,
   OutputFolderSetting,
   formatDuration,
   useAgentReady,
@@ -112,6 +115,10 @@ const MediaDownloaderWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [showAdvanced, setShowAdvanced] = useState(false);
   const [isLoaded, setIsLoaded] = useState(false);
   const [url, setUrl] = useState('');
+  // Link enviado por outro widget (ex.: copiado no Baú): preenche o campo e busca a prévia.
+  useActionReceiver(context.actions, (message) => {
+    if (message.kind === 'url') setUrl(message.url);
+  });
   const [preview, setPreview] = useState<PreviewData | null>(null);
   const [previewError, setPreviewError] = useState<string | null>(null);
   const [isPreviewing, setIsPreviewing] = useState(false);
@@ -465,6 +472,9 @@ const MediaDownloaderWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           onRemove={(id) => void jobsApi.remove(id)}
           onOpen={(id, action) => void jobsApi.open(id, action)}
           onClearFinished={() => void jobsApi.clearFinished()}
+          renderDoneActions={(job) => (
+            <SendToButton actions={context.actions} kinds={['file']} iconOnly label="Enviar arquivo para…" build={(target) => outputMessages(job, target)} style={{ padding: '2px' }} />
+          )}
         />
       </div>
     </div>
@@ -475,7 +485,7 @@ export const mediaDownloaderWidget: WidgetDefinition = {
   manifest: {
     id: 'media-downloader',
     name: 'Downloader de Vídeos',
-    version: '1.0.0',
+    version: '1.1.0',
     description: 'Baixa vídeos e áudios (YouTube e outros) com o yt-dlp: formato, qualidade, fila e opções avançadas.',
     icon: 'Download',
     author: 'Dashboard Core',
@@ -484,6 +494,7 @@ export const mediaDownloaderWidget: WidgetDefinition = {
     minSize: { w: 3, h: 4 },
     maxSize: { w: 8, h: 12 },
     requiresAgent: true,
+    accepts: ['url'],
   },
   component: MediaDownloaderWidget,
 };

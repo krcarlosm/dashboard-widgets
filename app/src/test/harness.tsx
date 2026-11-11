@@ -1,6 +1,7 @@
 import React from 'react';
 import { render } from '@testing-library/react';
 import { vi } from 'vitest';
+import { ActionBus, type ActionTarget } from '../sdk/actions';
 import type { AgentClientProtocol, AgentMessage, UploadOptions, WidgetContext, WidgetDefinition, WidgetStorage } from '../sdk/types';
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -149,6 +150,19 @@ interface RenderOptions<TConfig> {
   width?: number;
   height?: number;
   instanceId?: string;
+  /** Barramento do "Enviar para…" compartilhado entre widgets do mesmo teste. */
+  bus?: ActionBus;
+}
+
+/**
+ * Barramento de teste: `targets` são as instâncias "no canvas". Renderize vários
+ * widgets com o mesmo `bus` (e instanceIds diferentes) para testar a integração.
+ */
+export function createBus(targets: ActionTarget[] = []): ActionBus & { targetsList: ActionTarget[] } {
+  const bus = new ActionBus() as ActionBus & { targetsList: ActionTarget[] };
+  bus.targetsList = targets;
+  bus.setTargetsProvider(() => bus.targetsList);
+  return bus;
 }
 
 export function renderWidget<TConfig extends Record<string, any> = Record<string, any>>(
@@ -157,6 +171,8 @@ export function renderWidget<TConfig extends Record<string, any> = Record<string
 ) {
   const storage = options.storage ?? new MemoryStorage();
   const agent = options.agent ?? new FakeAgentClient(false);
+  const bus = options.bus ?? createBus();
+  const actions = bus.forInstance(options.instanceId ?? 'teste-1');
   let config = (options.config ?? {}) as TConfig;
   const updateConfig = vi.fn((patch: Partial<TConfig>) => {
     config = { ...config, ...patch };
@@ -171,6 +187,7 @@ export function renderWidget<TConfig extends Record<string, any> = Record<string
       storage,
       agentClient: agent,
       dimensions: { width: options.width ?? 480, height: options.height ?? 360 },
+      actions,
     };
     const Component = definition.component;
     return <Component context={context} />;
@@ -181,12 +198,13 @@ export function renderWidget<TConfig extends Record<string, any> = Record<string
     ...result,
     storage,
     agent,
+    bus,
     updateConfig,
     getConfig: () => config,
     /** Desmonta e monta de novo com o mesmo storage (simula recarregar a página). */
     reload() {
       result.unmount();
-      return renderWidget(definition, { ...options, storage, agent, config });
+      return renderWidget(definition, { ...options, storage, agent, config, bus });
     },
   };
 }

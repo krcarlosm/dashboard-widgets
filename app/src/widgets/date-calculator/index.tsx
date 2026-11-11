@@ -3,7 +3,7 @@ import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { Copy, Check, Calendar } from 'lucide-react';
 import { Button, EmptyState, FieldLabel, Input, ListItem, SegmentedControl } from '../../ui';
 
-type ResultUnit = 'days' | 'weeks' | 'months' | 'all';
+type ResultUnit = 'days' | 'weeks' | 'months' | 'years' | 'all';
 
 // Datas "AAAA-MM-DD" tratadas no fuso local. `new Date('2026-02-01')` seria meia-noite
 // UTC — no Brasil, 31/01 às 21h — e deslocaria dias e meses.
@@ -17,7 +17,26 @@ const parseLocalDate = (value: string): Date | null => {
   return isNaN(date.getTime()) ? null : date;
 };
 
-export function dateDifference(dateA: string, dateB: string): { days: number; weeks: number; months: number } | null {
+/** Soma anos mantendo o dia (29/02 vira 28/02 em anos não bissextos). */
+const addYears = (date: Date, years: number): Date => {
+  const lastDay = new Date(date.getFullYear() + years, date.getMonth() + 1, 0).getDate();
+  return new Date(date.getFullYear() + years, date.getMonth(), Math.min(date.getDate(), lastDay));
+};
+
+/**
+ * Anos completos + a fração do ano seguinte já decorrida, com no máximo 1 casa decimal
+ * (ex.: 01/01/2024 → 01/07/2025 = 1,5). Usa o calendário, então anos bissextos contam certo.
+ */
+export function yearsBetween(start: Date, end: Date): number {
+  let whole = end.getFullYear() - start.getFullYear();
+  if (addYears(start, whole) > end) whole--;
+  const anchor = addYears(start, whole);
+  const next = addYears(start, whole + 1);
+  const fraction = (end.getTime() - anchor.getTime()) / (next.getTime() - anchor.getTime());
+  return Math.round((whole + fraction) * 10) / 10;
+}
+
+export function dateDifference(dateA: string, dateB: string): { days: number; weeks: number; months: number; years: number } | null {
   const first = parseLocalDate(dateA);
   const second = parseLocalDate(dateB);
   if (!first || !second) return null;
@@ -28,7 +47,7 @@ export function dateDifference(dateA: string, dateB: string): { days: number; we
   const weeks = parseFloat((days / 7).toFixed(2));
   let months = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
   if (end.getDate() < start.getDate()) months--;
-  return { days, weeks, months };
+  return { days, weeks, months, years: yearsBetween(start, end) };
 }
 
 const DateCalcWidget: React.FC<WidgetComponentProps> = ({ context }) => {
@@ -51,6 +70,7 @@ const DateCalcWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         { key: 'days', label: 'Dias', value: result.days, unit: 'days' },
         { key: 'weeks', label: 'Semanas', value: result.weeks, unit: 'weeks' },
         { key: 'months', label: 'Meses (aprox.)', value: result.months, unit: 'months' },
+        { key: 'years', label: 'Anos', value: result.years, unit: 'years' },
       ]
     : [];
 
@@ -84,6 +104,7 @@ const DateCalcWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           { id: 'days', label: 'Dias' },
           { id: 'weeks', label: 'Sem.', title: 'Semanas' },
           { id: 'months', label: 'Meses' },
+          { id: 'years', label: 'Anos' },
         ]}
       />
 
@@ -128,8 +149,8 @@ export const dateCalculatorWidget: WidgetDefinition = {
   manifest: {
     id: 'date-calculator',
     name: 'Calculadora de Datas',
-    version: '1.0.0',
-    description: 'Calcula a diferença entre duas datas em dias, semanas e meses com click-to-copy.',
+    version: '1.1.0',
+    description: 'Calcula a diferença entre duas datas em dias, semanas, meses e anos com click-to-copy.',
     icon: 'Calendar',
     author: 'Dashboard Core',
     status: 'stable',

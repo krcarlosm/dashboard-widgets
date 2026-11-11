@@ -49,6 +49,7 @@ test('tarefas: adicionar, concluir e manter após recarregar', async ({ page }) 
   await input.fill('Enviar relatório');
   await input.press('Enter');
   await page.getByRole('checkbox', { name: 'Concluir "Revisar contrato"' }).click();
+  await expect(page.getByText('1 / 2 concluídas')).toBeVisible();
   await page.reload();
   await expect(page.getByRole('checkbox', { name: 'Reabrir "Revisar contrato"' })).toBeVisible();
   await expect(page.getByText('1 / 2 concluídas')).toBeVisible();
@@ -216,4 +217,43 @@ test('downloader: pré-visualiza e baixa o áudio de um vídeo (servidor local)'
   } finally {
     server.close();
   }
+});
+
+test('enviar para: tarefa vinculada entre Lista de Tarefas e Kanban', async ({ page }) => {
+  await openApp(page);
+  await addWidget(page, 'Lista de Tarefas');
+  await addWidget(page, 'Mini-Kanban');
+  await page.getByLabel('Nova tarefa', { exact: true }).fill('Fechar orçamento');
+  await page.getByLabel('Nova tarefa', { exact: true }).press('Enter');
+  await page.getByRole('button', { name: 'Enviar tarefa para…' }).click();
+  await page.getByRole('menuitem', { name: 'Mini-Kanban' }).click();
+  await expect(page.getByText('Enviado para Mini-Kanban.')).toBeVisible();
+
+  const card = page.getByTestId('kanban-card').filter({ hasText: 'Fechar orçamento' });
+  await card.getByRole('button', { name: 'Mudar para: Concluído' }).click();
+  await expect(page.getByRole('checkbox', { name: 'Reabrir "Fechar orçamento"' })).toHaveAttribute('aria-checked', 'true');
+
+  // O vínculo sobrevive ao recarregar: reabrir na lista tira o card do "Concluído".
+  await page.reload();
+  await page.getByRole('checkbox', { name: 'Reabrir "Fechar orçamento"' }).click();
+  await expect(page.getByTestId('kanban-card').filter({ hasText: 'Fechar orçamento' }).getByRole('button', { name: 'Mudar para: À Fazer' })).toHaveAttribute('aria-pressed', 'true');
+});
+
+test('arquivo gerado pelo Conversor entra no Top 10 e vai para as Anotações', async ({ page }) => {
+  await openApp(page);
+  await addWidget(page, 'Top 10 Arquivos da Semana');
+  await addWidget(page, 'Conversor de Arquivos');
+  await addWidget(page, 'Anotações Rápidas');
+  await page.getByLabel('Arquivo para converter').setInputFiles({ name: 'grafico.png', mimeType: 'image/png', buffer: PNG_1PX });
+  await page.getByLabel('Formato de saída').selectOption('webp');
+  await page.getByRole('button', { name: 'Converter arquivo' }).click();
+  await expect(page.getByTestId('media-job').filter({ hasText: 'grafico_convertido.webp' })).toContainText('Concluído');
+
+  // O agente avisa o Top 10 em até ~5 s.
+  const topLink = page.getByRole('link', { name: 'grafico_convertido.webp' });
+  await expect(topLink).toBeVisible({ timeout: 15_000 });
+
+  await page.getByTestId('top-file').filter({ has: topLink }).getByRole('button', { name: 'Enviar arquivo para…' }).click();
+  await page.getByRole('menuitem', { name: 'Anotações Rápidas' }).click();
+  await expect(page.getByPlaceholder('Escreva suas anotações aqui...')).toHaveValue(/\[📄 grafico_convertido\.webp\]\(<file:\/\/\/.+grafico_convertido\.webp>\)/);
 });

@@ -3,6 +3,7 @@ import { useDashboardStore } from '../store/dashboardStore';
 import { X, User, HardDrive, Cpu, ShieldCheck, MoonStar, SunMedium, Sparkles, RotateCcw } from 'lucide-react';
 import { db } from '../sdk/storage';
 import { BackupSection } from './BackupSection';
+import { OrphanDataSection } from './OrphanDataSection';
 import { defaultAgentClient } from '../sdk/agentClient';
 import { confirmAndResetDashboard } from '../sdk/safeReset';
 import { backgroundMap, CanvasPreset } from './themeGradients';
@@ -64,6 +65,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
 
   const [storageCount, setStorageCount] = useState<number>(0);
   const [estimatedSizeKb, setEstimatedSizeKb] = useState<number>(0);
+  const [statsRevision, setStatsRevision] = useState(0);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -82,7 +84,7 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
     }
 
     fetchStorageStats();
-  }, [isOpen]);
+  }, [isOpen, statsRevision]);
 
   if (!isOpen) return null;
 
@@ -305,6 +307,8 @@ export const ProfileModal: React.FC<ProfileModalProps> = ({ isOpen, onClose }) =
               </span>
             </div>
           </div>
+
+          <OrphanDataSection onChange={() => setStatsRevision((value) => value + 1)} />
 
           <div style={{ display: 'flex', justifyContent: 'space-between', gap: '8px' }}>
             <button

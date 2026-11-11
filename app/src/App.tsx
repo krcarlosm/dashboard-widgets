@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo } from 'react';
-import { useDashboardStore } from './store/dashboardStore';
+import { buildActionTargets, useDashboardStore } from './store/dashboardStore';
+import { actionBus } from './sdk/actions';
 import { helloWorldWidget } from './widgets/hello-world';
 import { notesWidget } from './widgets/notes';
 import { pomodoroWidget } from './widgets/pomodoro';
@@ -62,6 +63,9 @@ export const App: React.FC = () => {
     Object.entries(appearanceStyle).forEach(([name, value]) => root.style.setProperty(name, String(value)));
     root.style.colorScheme = theme;
   }, [appearanceStyle, theme]);
+
+  // "Enviar para…": os destinos são as instâncias atuais do canvas.
+  useEffect(() => actionBus.setTargetsProvider(() => buildActionTargets(useDashboardStore.getState())), []);
 
   // Backup automático diário (horário configurável no perfil; padrão 16:30).
   useEffect(() => startAutoBackupScheduler(defaultAgentClient), []);

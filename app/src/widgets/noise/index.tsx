@@ -3,6 +3,8 @@ import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { Volume2, VolumeX, Play, Pause, Settings, Timer, Clock, Check } from 'lucide-react';
 import { SegmentedControl } from '../../ui';
 
+const PRESET_MINUTES = [5, 15, 30, 60];
+
 type NoiseType = 'white' | 'brown' | 'pink';
 
 const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
@@ -35,6 +37,10 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       setVolume(savedVol !== undefined ? savedVol : 50);
       setIsTimerEnabled(!!savedTimerEnabled);
       setSelectedMinutes(savedMinutes || 15);
+      // O campo "Customizado" volta com o último valor digitado (ou com o tempo salvo, se não for um dos atalhos).
+      const savedCustom = await context.storage.get<number>('customMinutes');
+      const custom = savedCustom ?? (savedMinutes && !PRESET_MINUTES.includes(savedMinutes) ? savedMinutes : undefined);
+      if (custom) setCustomMinutesInput(String(custom));
     }
     loadData();
   }, [context.storage]);
@@ -249,6 +255,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     const parsed = parseInt(val, 10);
     if (!isNaN(parsed) && parsed > 0) {
       handleSelectMinutes(parsed);
+      void context.storage.set('customMinutes', parsed);
     }
   };
 
@@ -351,7 +358,7 @@ const NoiseWidget: React.FC<WidgetComponentProps> = ({ context }) => {
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', paddingTop: '4px' }}>
                 <div style={{ fontSize: '10px', color: 'var(--app-muted)' }}>Duração pré-definida:</div>
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '4px' }}>
-                  {[5, 15, 30, 60].map((mins) => (
+                  {PRESET_MINUTES.map((mins) => (
                     <button
                       key={mins}
                       onClick={() => handleSelectMinutes(mins)}
@@ -502,7 +509,7 @@ export const noiseWidget: WidgetDefinition = {
   manifest: {
     id: 'noise',
     name: 'Gerador de Ruído',
-    version: '1.3.0',
+    version: '1.3.1',
     description: 'Sintetizador procedural de ruído branco, marrom e rosa com temporizador programável.',
     icon: 'Radio',
     author: 'Dashboard Core',

@@ -2,11 +2,15 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { FileCog, FolderOpen, Layers, Minimize2, Repeat, Settings2, UploadCloud, WifiOff, X } from 'lucide-react';
 import type { WidgetComponentProps, WidgetDefinition } from '../../sdk/types';
 import { Banner, Button, FieldLabel, IconButton, SegmentedControl, Select, Spacer, Toolbar } from '../../ui';
+import { SendToButton } from '../../ui/SendTo';
+import { showToast } from '../../ui/toast';
+import { useActionReceiver } from '../../sdk/actions';
 import {
   InstallHint,
   MediaCategory,
   MediaJob,
   MediaJobList,
+  outputMessages,
   OutputFolderSetting,
   ProgressBar,
   formatBytes,
@@ -159,6 +163,8 @@ const FileConverterWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [options, setOptions] = useState<ConverterOptions>(DEFAULT_OPTIONS);
   const [isLoaded, setIsLoaded] = useState(false);
   const [file, setFile] = useState<File | null>(null);
+  // Arquivo que já está no computador, enviado por outro widget (Downloader, Top 10).
+  const [remote, setRemote] = useState<{ path: string; name: string } | null>(null);
   const [fileInfo, setFileInfo] = useState<string[]>([]);
   const [dragActive, setDragActive] = useState(false);
   const [uploadFraction, setUploadFraction] = useState<number | null>(null);
@@ -182,24 +188,40 @@ const FileConverterWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   useEffect(() => () => abortRef.current?.abort(), []);
 
   const formats = tools?.formats ?? FALLBACK_FORMATS;
-  const category = file ? categoryOf(file.name, formats) : null;
-  const browserMode = !ready && category === 'image';
+  const sourceName = file?.name ?? remote?.name ?? '';
+  const category = sourceName ? categoryOf(sourceName, formats) : null;
+  const browserMode = !ready && category === 'image' && !!file;
   const targets = category ? (browserMode ? BROWSER_TARGETS : formats[category].targets) : [];
   const savedTarget = category ? options.targets[category] : undefined;
   const target = savedTarget && targets.includes(savedTarget) ? savedTarget : targets[0] ?? '';
   const ffmpegMissing = ready && !!tools && !tools.ffmpeg.available && (category === 'video' || category === 'audio');
-  const showResolution = category === 'video' && VIDEO_TARGETS.includes(options.mode === 'compress' ? extensionOf(file!.name) : target) && !browserMode;
+  const showResolution = category === 'video' && VIDEO_TARGETS.includes(options.mode === 'compress' ? extensionOf(sourceName) : target) && !browserMode;
   const isUploading = uploadFraction !== null;
-  const canConvert = !!file && !!category && !isUploading && !ffmpegMissing && (ready || browserMode);
+  const canConvert = !!sourceName && !!category && !isUploading && !ffmpegMissing && (ready || browserMode);
 
   const update = (patch: Partial<ConverterOptions>) => setOptions((current) => ({ ...current, ...patch }));
 
   const pickFile = useCallback((next: File | null) => {
     setFile(next);
+    setRemote(null);
     setFileInfo([]);
     setError(null);
     setNotice(null);
   }, []);
+
+  // "Enviar para…": arquivo gerado pelo Downloader ou listado no Top 10.
+  useActionReceiver(context.actions, (message) => {
+    if (message.kind !== 'file') return;
+    if (uploadFraction !== null) {
+      showToast('O Conversor está enviando outro arquivo; tente de novo quando terminar.', 'danger');
+      return;
+    }
+    setFile(null);
+    setFileInfo([]);
+    setError(null);
+    setNotice(null);
+    setRemote({ path: message.path, name: message.name });
+  });
 
   useEffect(() => {
     if (!file || !category) return;
@@ -211,10 +233,28 @@ const FileConverterWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   }, [file, category]);
 
   const convert = async () => {
-    if (!file || !category) return;
+    if (!sourceName || !category) return;
     setError(null);
     setNotice(null);
-    const outputFormat = options.mode === 'compress' ? extensionOf(file.name).replace('jpeg', 'jpg') : target;
+    const outputFormat = options.mode === 'compress' ? extensionOf(sourceName).replace('jpeg', 'jpg') : target;
+
+    if (remote) {
+      try {
+        const job = await agentClient.requestJson<MediaJob>('/media/convert-file', {
+          method: 'POST',
+          body: JSON.stringify({
+            path: remote.path,
+            options: { mode: options.mode, level: options.level, resolution: showResolution ? options.resolution : 'original', ...(options.mode !== 'compress' ? { targetFormat: target } : {}) },
+          }),
+        });
+        jobsApi.add(job);
+        pickFile(null);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Não foi possível converter o arquivo.');
+      }
+      return;
+    }
+    if (!file) return;
 
     if (browserMode) {
       if (!BROWSER_TARGETS.includes(outputFormat)) {
@@ -308,7 +348,7 @@ const FileConverterWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         </Banner>
       )}
 
-      {!file ? (
+      {!sourceName ? (
         <div
           data-testid="drop-zone"
           onDragOver={(event) => {
@@ -355,18 +395,18 @@ const FileConverterWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           >
             <FileCog size={16} color="var(--widget-accent)" style={{ flexShrink: 0 }} />
             <div style={{ flex: 1, minWidth: 0 }}>
-              <div title={file.name} style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                {file.name}
+              <div title={remote?.path ?? sourceName} style={{ fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {sourceName}
               </div>
               <div style={{ fontSize: 'var(--font-xs)', color: 'var(--app-muted)' }}>
-                {[category ? CATEGORY_LABEL[category] : 'Formato desconhecido', formatBytes(file.size), ...fileInfo].filter(Boolean).join(' · ')}
+                {[category ? CATEGORY_LABEL[category] : 'Formato desconhecido', file ? formatBytes(file.size) : 'Arquivo do computador', ...fileInfo].filter(Boolean).join(' · ')}
               </div>
             </div>
             <IconButton label="Trocar arquivo" onClick={() => pickFile(null)} disabled={isUploading} icon={<X size={13} />} />
           </div>
 
           {!category ? (
-            <Banner tone="warning">Formato .{extensionOf(file.name) || '?'} não suportado. Use imagens, vídeos ou áudios.</Banner>
+            <Banner tone="warning">Formato .{extensionOf(sourceName) || '?'} não suportado. Use imagens, vídeos ou áudios.</Banner>
           ) : (
             <>
               <SegmentedControl ariaLabel="Modo" stretch compact={isCompact} value={options.mode} onChange={(mode) => update({ mode })} options={MODES} disabled={isUploading} />
@@ -455,6 +495,9 @@ const FileConverterWidget: React.FC<WidgetComponentProps> = ({ context }) => {
             onRemove={(id) => void jobsApi.remove(id)}
             onOpen={(id, action) => void jobsApi.open(id, action)}
             onClearFinished={() => void jobsApi.clearFinished()}
+            renderDoneActions={(job) => (
+              <SendToButton actions={context.actions} kinds={['file']} iconOnly label="Enviar arquivo para…" build={(target) => outputMessages(job, target)} style={{ padding: '2px' }} />
+            )}
           />
         </div>
       )}
@@ -466,7 +509,7 @@ export const fileConverterWidget: WidgetDefinition = {
   manifest: {
     id: 'file-converter',
     name: 'Conversor de Arquivos',
-    version: '2.0.0',
+    version: '2.1.0',
     description: 'Converte e compacta imagens, vídeos e áudios (ffmpeg), com fila, progresso e pasta de saída.',
     icon: 'FileCog',
     author: 'Dashboard Core',
@@ -475,6 +518,7 @@ export const fileConverterWidget: WidgetDefinition = {
     minSize: { w: 3, h: 3 },
     maxSize: { w: 8, h: 12 },
     requiresAgent: true,
+    accepts: ['file'],
   },
   component: FileConverterWidget,
 };

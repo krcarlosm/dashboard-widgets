@@ -163,11 +163,17 @@ def test_converte_video_para_audio_e_reduz_resolucao(client, auth, sample_video)
     assert video["summary"] == "WEBM · compactação alta · 360p"
 
 
-def test_converter_arquivo_gerado_so_aceita_saidas_de_tarefas(client, auth, png_bytes, tmp_path):
+def test_converter_arquivo_gerado_so_aceita_saidas_de_tarefas(client, auth, agent, png_bytes, tmp_path):
     outsider = tmp_path / "qualquer.png"
     outsider.write_bytes(png_bytes)
     response = client.post("/media/convert-file", headers=auth, json={"path": str(outsider), "options": {"targetFormat": "jpg"}})
     assert response.status_code == 403
+
+    # Arquivo que já aparece no Top 10 (o usuário abriu) pode ser enviado ao Conversor.
+    agent.activity_store.record(str(outsider), "opened")
+    response = client.post("/media/convert-file", headers=auth, json={"path": str(outsider), "options": {"targetFormat": "jpg"}})
+    assert response.status_code == 200
+    assert wait_job(client, auth, response.json()["id"])["outputs"][0]["name"] == "qualquer_convertido.jpg"
 
     first = wait_job(client, auth, client.post("/media/convert?fileName=base.png&targetFormat=webp", headers=auth, content=png_bytes).json()["id"])
     response = client.post("/media/convert-file", headers=auth, json={"path": first["outputs"][0]["path"], "options": {"targetFormat": "png"}})
@@ -175,6 +181,36 @@ def test_converter_arquivo_gerado_so_aceita_saidas_de_tarefas(client, auth, png_
     second = wait_job(client, auth, response.json()["id"])
     assert second["status"] == "done" and second["outputs"][0]["name"] == "base_convertido_convertido.png"
     assert Path(first["outputs"][0]["path"]).exists()  # a origem não é apagada
+
+    # Depois de limpar a lista (ou reiniciar o agente), o que está na pasta de saída continua aceito.
+    client.delete("/media/jobs?kind=convert", headers=auth)
+    response = client.post("/media/convert-file", headers=auth, json={"path": second["outputs"][0]["path"], "options": {"targetFormat": "jpg"}})
+    assert response.status_code == 200
+    assert wait_job(client, auth, response.json()["id"])["status"] == "done"
+
+
+def test_arquivo_gerado_conta_como_aberto_no_top10(client, auth, agent, png_bytes):
+    job = wait_job(client, auth, client.post("/media/convert?fileName=foto.png&targetFormat=webp", headers=auth, content=png_bytes).json()["id"])
+    assert job["status"] == "done"
+    output = job["outputs"][0]["path"]
+    deadline = time.time() + 5
+    while not agent.activity_store.is_indexed(output) and time.time() < deadline:
+        time.sleep(0.05)
+    top = agent.activity_store.top()
+    assert [(item["name"], item["opened"], item["edited"]) for item in top] == [("foto_convertido.webp", 1, 0)]
+    # Abrir/editar depois segue as regras normais; gerar de novo no mesmo minuto não duplica.
+    assert agent.file_activity.record_generated([output]) == 0
+
+
+def test_aviso_de_conclusao_so_para_tarefas_bem_sucedidas():
+    done = []
+    manager = JobManager(on_done=done.append)
+    ok = manager.submit("convert", "ok", lambda handle: [{"path": "/x/a.mp3", "name": "a.mp3", "size": 1}])
+    failed = manager.submit("convert", "falha", lambda handle: (_ for _ in ()).throw(JobFailed("ruim")))
+    manager.wait(ok["id"])
+    manager.wait(failed["id"])
+    assert [job["title"] for job in done] == ["ok"]
+    assert done[0]["status"] == "done" and done[0]["outputs"][0]["name"] == "a.mp3"
 
 
 # ── Fila ─────────────────────────────────────────────────────────────────────

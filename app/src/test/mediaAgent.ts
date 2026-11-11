@@ -96,6 +96,13 @@ export function mediaAgent(options: { tools?: Record<string, any>; jobs?: any[] 
       state.jobs.push(job);
       return job;
     })
+    .route('POST', '/media/convert-file', ({ body }) => {
+      const request = JSON.parse(body as string);
+      const name = String(request.path).split(/[\\/]/).pop();
+      const job = mediaJob({ kind: 'convert', title: name, summary: (request.options?.targetFormat ?? 'mesmo formato').toUpperCase() });
+      state.jobs.push(job);
+      return job;
+    })
     .route('POST', '/media/download/preview', ({ body }) => {
       const request = JSON.parse(body as string);
       if (request.url.includes('quebrado')) throw new Error('Este link não é suportado pelo yt-dlp.');

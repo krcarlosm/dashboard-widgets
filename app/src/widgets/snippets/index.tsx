@@ -1,7 +1,14 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { Plus, Copy, Check, Trash2, Code2, Tag, Search, ChevronDown, ChevronRight } from 'lucide-react';
 import { Button, ConfirmButton, EmptyState, IconButton, Input, ListItem, SegmentedControl, Select, TextArea, Toolbar } from '../../ui';
+import { newItemId, useActionReceiver } from '../../sdk/actions';
+
+/** Título de um snippet recebido: o informado ou a primeira linha (até 40 caracteres). */
+export function snippetTitleFrom(text: string, title?: string): string {
+  const base = (title || text.split(/\r?\n/).find((line) => line.trim()) || 'Sem título').trim();
+  return base.length > 40 ? `${base.slice(0, 39)}…` : base;
+}
 
 interface Snippet {
   id: string;
@@ -31,6 +38,8 @@ const CATEGORY_BY_LANGUAGE: Record<string, string> = {
 
 const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [snippets, setSnippets] = useState<Snippet[]>([]);
+  const snippetsRef = useRef<Snippet[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [search, setSearch] = useState<string>('');
   const [isAdding, setIsAdding] = useState<boolean>(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -46,12 +55,34 @@ const SnippetsWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   useEffect(() => {
     async function load() {
       const saved = await context.storage.get<Snippet[]>('snippets', []);
-      setSnippets(saved || []);
+      snippetsRef.current = saved || [];
+      setSnippets(snippetsRef.current);
+      setIsLoaded(true);
     }
     load();
   }, [context.storage]);
 
+  // Textos enviados por outros widgets (ex.: Baú) viram snippets de texto.
+  useActionReceiver(
+    context.actions,
+    async (message) => {
+      if (message.kind !== 'text' || !message.text.trim()) return;
+      const snippet: Snippet = {
+        id: newItemId('snip'),
+        title: snippetTitleFrom(message.text, message.title),
+        content: message.text.replace(/^([ \t]*\r?\n)+/, '').trimEnd(),
+        language: 'text',
+        category: CATEGORY_BY_LANGUAGE.text,
+        favorite: false,
+        createdAt: Date.now(),
+      };
+      await saveSnippets([snippet, ...snippetsRef.current]);
+    },
+    isLoaded,
+  );
+
   const saveSnippets = async (list: Snippet[]) => {
+    snippetsRef.current = list;
     setSnippets(list);
     await context.storage.set('snippets', list);
   };
@@ -283,7 +314,7 @@ export const snippetsWidget: WidgetDefinition = {
   manifest: {
     id: 'snippets',
     name: 'Gerenciador de Snippets',
-    version: '1.0.0',
+    version: '1.1.0',
     description: 'Salve e acesse rapidamente trechos de código ou comandos com 1-clique para copiar.',
     icon: 'Code2',
     author: 'Dashboard Core',
@@ -292,6 +323,7 @@ export const snippetsWidget: WidgetDefinition = {
     minSize: { w: 3, h: 4 },
     maxSize: { w: 8, h: 10 },
     requiresAgent: false,
+    accepts: ['text'],
   },
   component: SnippetsWidget,
 };

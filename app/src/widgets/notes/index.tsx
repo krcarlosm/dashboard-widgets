@@ -2,14 +2,38 @@ import React, { useEffect, useState, useRef } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
 import { FileText, Save, Clock, Copy, Check, Type, PenTool, BookOpen, X } from 'lucide-react';
 import { Button, SegmentedControl } from '../../ui';
+import { SendToButton } from '../../ui/SendTo';
+import { showToast } from '../../ui/toast';
+import { useActionReceiver } from '../../sdk/actions';
 import ReactMarkdown, { defaultUrlTransform } from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { escapeHtml, htmlToMarkdown, markdownToHtml, migrateLegacyContent, sanitizeHtml } from './markdown';
 
 type NotesMode = 'plain' | 'rich' | 'markdown';
 
-// Permite exibir no modo Markdown as imagens coladas no modo Rich (data URLs).
-const allowInlineImages = (url: string) => (url.startsWith('data:image/') ? url : defaultUrlTransform(url));
+// Permite exibir no modo Markdown as imagens coladas no modo Rich (data URLs) e os
+// links de arquivo enviados pelo Top 10 / Downloader (abertos pelo agente).
+const allowInlineImages = (url: string) => (url.startsWith('data:image/') || url.startsWith('file:') ? url : defaultUrlTransform(url));
+
+/** Link Markdown para um arquivo local: `[📄 nome](<file:///C:/pasta/nome.ext>)`. */
+export function fileLinkMarkdown(path: string, name: string): string {
+  const url = `file:///${path.replace(/\\/g, '/').replace(/^\/+/, '')}`;
+  return `[📄 ${name.replace(/([\[\]])/g, '\\$1')}](<${url}>)`;
+}
+
+/** Caminho do arquivo a partir do link (`file:///C:/x` → `C:/x`; `file:///home/x` → `/home/x`). */
+export function pathFromFileUrl(href: string): string {
+  let path = href.replace(/^file:\/\//i, '');
+  try {
+    path = decodeURI(path);
+  } catch {
+    // Mantém como está se não for uma URL codificada válida.
+  }
+  return /^\/[A-Za-z]:[\\/]/.test(path) ? path.slice(1) : path;
+}
+
+/** Junta um bloco ao fim da anotação, separado por uma linha em branco. */
+export const appendBlock = (content: string, block: string) => (content.trim() ? `${content.replace(/\s+$/, '')}\n\n${block}` : block);
 
 const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   // `content` é sempre Markdown, independentemente do modo de edição.
@@ -27,6 +51,11 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const pendingSaveRef = useRef<(() => void) | null>(null);
   const confirmTimeoutRef = useRef<any>(null);
   const richRef = useRef<HTMLDivElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const markdownRef = useRef<HTMLDivElement>(null);
+  // Conteúdo mais recente (inclusive antes do próximo render), usado ao receber envios.
+  const contentRef = useRef('');
+  const selectionRef = useRef('');
 
   // Load saved notes on mount
   useEffect(() => {
@@ -47,6 +76,7 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       }
 
       setContent(savedContent);
+      contentRef.current = savedContent;
       if (savedMode) {
         setMode(savedMode);
       }
@@ -100,6 +130,7 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       cancelPendingSave();
       const value = produceValue();
       setContent(value);
+      contentRef.current = value;
       void persist(value);
     };
 
@@ -110,6 +141,7 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const handlePlainChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const val = e.target.value;
     setContent(val);
+    contentRef.current = val;
     scheduleSave(() => val);
   };
 
@@ -186,8 +218,49 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     setConfirmClear(false);
     cancelPendingSave();
     setContent('');
+    contentRef.current = '';
     setExternalRevision((value) => value + 1);
     await persist('');
+  };
+
+  // ── Integração: textos do Baú/Todo e links de arquivo do Top 10/Downloader ──
+  useActionReceiver(
+    context.actions,
+    async (message) => {
+      let block = '';
+      if (message.kind === 'text') block = message.title ? `**${message.title}**\n\n${message.text}` : message.text;
+      if (message.kind === 'file') block = fileLinkMarkdown(message.path, message.name);
+      if (!block.trim()) return;
+      // Grava antes o que está sendo digitado, para não perder nada.
+      pendingSaveRef.current?.();
+      const next = appendBlock(contentRef.current, block);
+      contentRef.current = next;
+      setContent(next);
+      setExternalRevision((value) => value + 1);
+      setIsSaving(true);
+      await persist(next);
+    },
+    isLoaded,
+  );
+
+  /** Guarda o trecho selecionado no modo atual (chamado antes de o clique tirar o foco). */
+  const captureSelection = () => {
+    if (mode === 'plain') {
+      const area = textareaRef.current;
+      selectionRef.current = area ? area.value.slice(area.selectionStart, area.selectionEnd) : '';
+      return;
+    }
+    const container = mode === 'rich' ? richRef.current : markdownRef.current;
+    const selection = window.getSelection();
+    selectionRef.current = selection && container && selection.anchorNode && container.contains(selection.anchorNode) ? selection.toString() : '';
+  };
+
+  const openFileLink = async (href: string) => {
+    try {
+      await context.agentClient.requestJson('/files/open', { method: 'POST', body: JSON.stringify({ path: pathFromFileUrl(href) }) });
+    } catch (err) {
+      showToast(context.agentClient.isConnected && err instanceof Error ? err.message : 'Inicie o agente para abrir arquivos.', 'danger');
+    }
   };
 
   // Em widgets estreitos o rodapé mostra só ícones (o texto fica no tooltip).
@@ -232,9 +305,34 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
 
       <div style={{ flex: 1, position: 'relative', overflow: 'hidden' }}>
         {mode === 'markdown' ? (
-          <div className="notes-markdown" onDoubleClick={() => handleModeChange('plain')} style={editorBoxStyle}>
+          <div ref={markdownRef} className="notes-markdown" onDoubleClick={() => handleModeChange('plain')} style={editorBoxStyle}>
             {content ? (
-              <ReactMarkdown remarkPlugins={[remarkGfm]} urlTransform={allowInlineImages}>{content}</ReactMarkdown>
+              <ReactMarkdown
+                remarkPlugins={[remarkGfm]}
+                urlTransform={allowInlineImages}
+                components={{
+                  a: ({ href, children, node: _node, ...rest }) =>
+                    href?.startsWith('file:') ? (
+                      <a
+                        {...rest}
+                        href={href}
+                        title={`Abrir ${pathFromFileUrl(href)}`}
+                        onClick={(event) => {
+                          event.preventDefault();
+                          void openFileLink(href);
+                        }}
+                      >
+                        {children}
+                      </a>
+                    ) : (
+                      <a {...rest} href={href} target="_blank" rel="noopener noreferrer">
+                        {children}
+                      </a>
+                    ),
+                }}
+              >
+                {content}
+              </ReactMarkdown>
             ) : (
               <span style={{ color: 'var(--app-muted)', fontStyle: 'italic', fontSize: '11px' }}>Dê duplo clique para editar o texto, ou alterne para o modo "Texto" acima. Suporta marcação Markdown.</span>
             )}
@@ -253,6 +351,8 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           />
         ) : (
           <textarea
+            ref={textareaRef}
+            aria-label="Texto da anotação"
             value={content}
             onChange={handlePlainChange}
             onBlur={() => pendingSaveRef.current?.()}
@@ -299,8 +399,21 @@ const NotesWidget: React.FC<WidgetComponentProps> = ({ context }) => {
           )}
         </div>
 
-        {/* Right: clear + copy buttons */}
+        {/* Right: send + clear + copy buttons */}
         <div style={{ display: 'flex', alignItems: 'center', gap: '6px', flexShrink: 0 }}>
+          <SendToButton
+            actions={context.actions}
+            kinds={['text']}
+            label="Enviar seleção para…"
+            iconOnly
+            disabled={!content}
+            onPrepare={captureSelection}
+            build={() => {
+              const text = selectionRef.current.trim();
+              if (!text) throw new Error('Selecione um trecho da anotação para enviar.');
+              return [{ kind: 'text', text }];
+            }}
+          />
           <Button
             variant={confirmClear ? 'danger' : 'ghost'}
             onClick={handleClear}
@@ -330,8 +443,8 @@ export const notesWidget: WidgetDefinition = {
   manifest: {
     id: 'notes',
     name: 'Anotações Rápidas',
-    version: '1.2.0',
-    description: 'Bloco de notas em Markdown com modos Texto, Rich e visualização, e salvamento automático local.',
+    version: '1.3.0',
+    description: 'Bloco de notas em Markdown com modos Texto, Rich e visualização; recebe textos e links de arquivos e envia trechos para tarefas.',
     icon: 'FileText',
     author: 'Dashboard Core',
     status: 'stable',
@@ -339,6 +452,7 @@ export const notesWidget: WidgetDefinition = {
     minSize: { w: 3, h: 3 },
     maxSize: { w: 8, h: 8 },
     requiresAgent: false,
+    accepts: ['text', 'file'],
   },
   component: NotesWidget,
 };

@@ -1,8 +1,20 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { Plus, Trash2, CheckCircle2, Clock, CircleDot } from 'lucide-react';
-import { Button, ConfirmButton, Input, Toolbar } from '../../ui';
+import { Plus, Trash2, CheckCircle2, Clock, CircleDot, Link2, Pencil, Timer } from 'lucide-react';
+import { Button, ConfirmButton, IconButton, Input, Toolbar } from '../../ui';
+import { SendToButton } from '../../ui/SendTo';
 import { alpha } from '../../theme/tokens';
+import {
+  formatFocus,
+  newItemId,
+  textToTasks,
+  useActionReceiver,
+  useActionResponder,
+  type ActionTarget,
+  type SharedTask,
+  type TaskLink,
+  type WidgetMessage,
+} from '../../sdk/actions';
 
 export type KanbanStatus = 'todo' | 'in_progress' | 'done';
 
@@ -11,14 +23,23 @@ export interface KanbanItem {
   text: string;
   status: KanbanStatus;
   createdAt: number;
+  /** Tarefa vinculada em outro widget (Todo/Kanban): concluir em um conclui no outro. */
+  link?: TaskLink;
+  /** Tempo de foco registrado pelo Pomodoro. */
+  focusSeconds?: number;
 }
 
 const MAX_CHAR_COUNT = 50;
+// Textos recebidos ou editados podem ser maiores que os digitados no campo rápido.
+const MAX_EDIT_CHARS = 200;
 
 const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [items, setItems] = useState<KanbanItem[]>([]);
+  const itemsRef = useRef<KanbanItem[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [newTaskText, setNewTaskText] = useState<string>('');
   const [draggedItemId, setDraggedItemId] = useState<string | null>(null);
+  const [editing, setEditing] = useState<{ id: string; text: string } | null>(null);
 
   // Load items from storage
   useEffect(() => {
@@ -28,14 +49,92 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         { id: '2', text: '⚡ Desenvolver protótipo', status: 'in_progress', createdAt: Date.now() - 1000 },
         { id: '3', text: '✅ Finalizar documentação', status: 'done', createdAt: Date.now() - 2000 },
       ]);
-      setItems(saved || []);
+      itemsRef.current = saved || [];
+      setItems(itemsRef.current);
+      setIsLoaded(true);
     }
     loadData();
   }, [context.storage]);
 
   const saveItems = async (newList: KanbanItem[]) => {
+    itemsRef.current = newList;
     setItems(newList);
     await context.storage.set('kanban_items', newList);
+  };
+
+  const notifyLinked = (item: KanbanItem, message: WidgetMessage) => {
+    if (item.link) void context.actions.send(item.link.instanceId, message).catch(() => {});
+  };
+
+  const createItem = (text: string, extra: Partial<KanbanItem> = {}): KanbanItem => ({
+    id: newItemId('kanban'),
+    text: text.slice(0, MAX_EDIT_CHARS),
+    status: 'todo',
+    createdAt: Date.now(),
+    ...extra,
+  });
+
+  // ── Integração ("Enviar para…", tarefas vinculadas, Pomodoro) ─────────────
+  useActionReceiver(
+    context.actions,
+    async (message) => {
+      const current = itemsRef.current;
+      switch (message.kind) {
+        case 'text': {
+          const created = textToTasks(message.text).map((text) => createItem(text));
+          if (created.length) await saveItems([...created, ...current]);
+          break;
+        }
+        case 'task':
+          if (current.some((item) => item.id === message.id)) break;
+          await saveItems([createItem(message.text, { id: message.id, status: message.done ? 'done' : 'todo', link: message.link }), ...current]);
+          break;
+        case 'task:update':
+          await saveItems(
+            current.map((item) => {
+              if (item.id !== message.itemId) return item;
+              // Reaberta no outro widget: sai de "Concluído"; o "Em andamento" é preservado.
+              const status: KanbanStatus = message.done === true ? 'done' : message.done === false && item.status === 'done' ? 'todo' : item.status;
+              return { ...item, status, ...(message.text ? { text: message.text.slice(0, MAX_EDIT_CHARS) } : {}) };
+            }),
+          );
+          break;
+        case 'task:unlink':
+          await saveItems(current.map((item) => (item.id === message.itemId ? { ...item, link: undefined } : item)));
+          break;
+        case 'task:time':
+          await saveItems(current.map((item) => (item.id === message.itemId ? { ...item, focusSeconds: (item.focusSeconds ?? 0) + message.seconds } : item)));
+          break;
+      }
+    },
+    isLoaded,
+  );
+
+  useActionResponder(
+    context.actions,
+    (query) =>
+      query.type === 'tasks:list'
+        ? itemsRef.current.map<SharedTask>((item) => ({ id: item.id, text: item.text, done: item.status === 'done', focusSeconds: item.focusSeconds }))
+        : null,
+    isLoaded,
+  );
+
+  const buildSend = async (item: KanbanItem, target: ActionTarget): Promise<WidgetMessage[]> => {
+    const current = itemsRef.current.find((entry) => entry.id === item.id) ?? item;
+    if (!target.accepts.includes('task') || current.link) return [{ kind: 'text', text: current.text }];
+    const remoteId = newItemId(target.widgetId);
+    await saveItems(itemsRef.current.map((entry) => (entry.id === item.id ? { ...entry, link: { instanceId: target.instanceId, itemId: remoteId } } : entry)));
+    return [{ kind: 'task', text: current.text, id: remoteId, done: current.status === 'done', link: { instanceId: context.instanceId, itemId: item.id } }];
+  };
+
+  const saveEdit = async () => {
+    if (!editing) return;
+    const text = editing.text.trim().slice(0, MAX_EDIT_CHARS);
+    const original = items.find((item) => item.id === editing.id);
+    setEditing(null);
+    if (!text || !original || text === original.text) return;
+    await saveItems(items.map((item) => (item.id === original.id ? { ...item, text } : item)));
+    notifyLinked(original, { kind: 'task:update', itemId: original.link?.itemId ?? '', text });
   };
 
   const addItem = async () => {
@@ -54,14 +153,21 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   };
 
   const removeItem = async (id: string) => {
+    const removed = items.find((item) => item.id === id);
     await saveItems(items.filter((item) => item.id !== id));
+    if (removed?.link) notifyLinked(removed, { kind: 'task:unlink', itemId: removed.link.itemId });
   };
 
   const setItemStatus = async (id: string, newStatus: KanbanStatus) => {
+    const original = items.find((item) => item.id === id);
     const updated = items.map((item) =>
       item.id === id ? { ...item, status: newStatus } : item
     );
     await saveItems(updated);
+    // Só entrar ou sair de "Concluído" importa para a tarefa vinculada.
+    if (original?.link && (original.status === 'done') !== (newStatus === 'done')) {
+      notifyLinked(original, { kind: 'task:update', itemId: original.link.itemId, done: newStatus === 'done' });
+    }
   };
 
   // Drag & Drop handlers
@@ -214,7 +320,8 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                   colItems.map((item) => (
                     <div
                       key={item.id}
-                      draggable
+                      data-testid="kanban-card"
+                      draggable={editing?.id !== item.id}
                       onDragStart={(e) => handleDragStart(e, item.id)}
                       style={{
                         background: 'var(--app-surface-elevated)',
@@ -229,18 +336,50 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                         boxShadow: '0 2px 4px rgba(0,0,0,0.2)',
                       }}
                     >
-                      {/* Card Text */}
-                      <span
-                        style={{
-                          fontSize: '11px',
-                          color: item.status === 'done' ? 'var(--app-muted)' : 'var(--app-text)',
-                          textDecoration: item.status === 'done' ? 'line-through' : 'none',
-                          wordBreak: 'break-word',
-                          lineHeight: '1.4',
-                        }}
-                      >
-                        {item.text}
-                      </span>
+                      {/* Card Text (duplo clique edita) */}
+                      {editing?.id === item.id ? (
+                        <input
+                          autoFocus
+                          aria-label="Editar texto do card"
+                          value={editing.text}
+                          maxLength={MAX_EDIT_CHARS}
+                          onChange={(event) => setEditing({ id: item.id, text: event.target.value })}
+                          onBlur={() => void saveEdit()}
+                          onKeyDown={(event) => {
+                            if (event.key === 'Enter') void saveEdit();
+                            if (event.key === 'Escape') setEditing(null);
+                          }}
+                          style={{ width: '100%', boxSizing: 'border-box', background: 'var(--app-input)', border: '1px solid var(--app-border)', borderRadius: '4px', padding: '3px 5px', color: 'var(--app-text)', fontSize: '11px', outline: 'none' }}
+                        />
+                      ) : (
+                        <span
+                          onDoubleClick={() => setEditing({ id: item.id, text: item.text })}
+                          title="Duplo clique para editar"
+                          style={{
+                            fontSize: '11px',
+                            color: item.status === 'done' ? 'var(--app-muted)' : 'var(--app-text)',
+                            textDecoration: item.status === 'done' ? 'line-through' : 'none',
+                            wordBreak: 'break-word',
+                            lineHeight: '1.4',
+                          }}
+                        >
+                          {item.text}
+                        </span>
+                      )}
+                      {(item.link || item.focusSeconds) && (
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '10px' }}>
+                          {item.link && (
+                            <span title="Vinculada a uma lista de tarefas: concluir em um conclui no outro" aria-label="Tarefa vinculada" style={{ display: 'inline-flex', color: 'var(--widget-accent)' }}>
+                              <Link2 size={10} />
+                            </span>
+                          )}
+                          {item.focusSeconds ? (
+                            <span title={`Tempo de foco no Pomodoro: ${formatFocus(item.focusSeconds)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', color: 'var(--app-danger)' }}>
+                              <Timer size={10} /> {formatFocus(item.focusSeconds)}
+                            </span>
+                          ) : null}
+                        </div>
+                      )}
 
                       {/* Card Actions Footer */}
                       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: '2px' }}>
@@ -268,8 +407,12 @@ const KanbanWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                           ))}
                         </div>
 
-                        {/* Excluir: pede confirmação no segundo clique */}
-                        <ConfirmButton label="Excluir card" confirmLabel="Excluir?" icon={<Trash2 size={11} />} iconOnly onConfirm={() => removeItem(item.id)} />
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <SendToButton actions={context.actions} kinds={['task', 'text']} iconOnly label="Enviar card para…" build={(target) => buildSend(item, target)} style={{ padding: '1px 3px' }} />
+                          <IconButton label="Editar card" icon={<Pencil size={11} />} onClick={() => setEditing({ id: item.id, text: item.text })} style={{ padding: '1px 3px' }} />
+                          {/* Excluir: pede confirmação no segundo clique */}
+                          <ConfirmButton label="Excluir card" confirmLabel="Excluir?" icon={<Trash2 size={11} />} iconOnly onConfirm={() => removeItem(item.id)} />
+                        </div>
                       </div>
                     </div>
                   ))
@@ -287,8 +430,8 @@ export const kanbanWidget: WidgetDefinition = {
   manifest: {
     id: 'kanban',
     name: 'Mini-Kanban',
-    version: '1.0.0',
-    description: 'Kanban ágil de tarefas simples com movimentação por cliques 🌑🌓🌕 ou arrastar.',
+    version: '1.1.0',
+    description: 'Kanban ágil com movimentação por cliques 🌑🌓🌕 ou arrastar, edição de texto e cards vinculados à Lista de Tarefas.',
     icon: 'Kanban',
     author: 'Dashboard Core',
     status: 'stable',
@@ -296,6 +439,7 @@ export const kanbanWidget: WidgetDefinition = {
     minSize: { w: 3, h: 3 },
     maxSize: { w: 12, h: 8 },
     requiresAgent: false,
+    accepts: ['text', 'task'],
   },
   component: KanbanWidget,
 };

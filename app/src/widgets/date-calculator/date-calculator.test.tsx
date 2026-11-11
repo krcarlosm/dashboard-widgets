@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { dateCalculatorWidget, dateDifference } from './index';
+import { dateCalculatorWidget, dateDifference, yearsBetween } from './index';
 import { renderWidget } from '../../test/harness';
 
 const dateInputs = () => Array.from(document.querySelectorAll('input[type="date"]')) as HTMLInputElement[];
@@ -12,13 +12,25 @@ describe('Calculadora de Datas — cálculo', () => {
   });
 
   it.each([
-    ['2026-01-01', '2026-01-31', { days: 30, weeks: 4.29, months: 0 }],
-    ['2026-02-01', '2026-03-01', { days: 28, weeks: 4, months: 1 }], // falhava em UTC−3
-    ['2026-01-31', '2026-02-28', { days: 28, weeks: 4, months: 0 }],
-    ['2026-03-31', '2026-01-15', { days: 75, weeks: 10.71, months: 2 }], // ordem invertida
-    ['2024-02-29', '2025-02-28', { days: 365, weeks: 52.14, months: 11 }],
+    ['2026-01-01', '2026-01-31', { days: 30, weeks: 4.29, months: 0, years: 0.1 }],
+    ['2026-02-01', '2026-03-01', { days: 28, weeks: 4, months: 1, years: 0.1 }], // falhava em UTC−3
+    ['2026-01-31', '2026-02-28', { days: 28, weeks: 4, months: 0, years: 0.1 }],
+    ['2026-03-31', '2026-01-15', { days: 75, weeks: 10.71, months: 2, years: 0.2 }], // ordem invertida
+    ['2024-02-29', '2025-02-28', { days: 365, weeks: 52.14, months: 11, years: 1 }], // 29/02 + 1 ano = 28/02
   ])('%s → %s', (a, b, expected) => {
     expect(dateDifference(a, b)).toEqual(expected);
+  });
+
+  it.each([
+    ['mesmo dia', [2026, 4, 10], [2026, 4, 10], 0],
+    ['meio ano', [2024, 0, 1], [2025, 6, 2], 1.5],
+    ['anos completos', [2020, 0, 1], [2026, 0, 1], 6],
+    ['um dia antes do aniversário', [2020, 5, 15], [2026, 5, 14], 6],
+    ['um dia depois', [2020, 5, 15], [2026, 5, 16], 6],
+    ['quase dois anos', [2024, 0, 1], [2025, 11, 1], 1.9],
+    ['ano bissexto inteiro', [2024, 0, 1], [2025, 0, 1], 1],
+  ])('anos: %s', (_label, a, b, expected) => {
+    expect(yearsBetween(new Date(a[0], a[1], a[2]), new Date(b[0], b[1], b[2]))).toBe(expected);
   });
 
   it('datas inválidas não geram resultado', () => {
@@ -48,6 +60,18 @@ describe('Calculadora de Datas — widget', () => {
     await user.click(screen.getByRole('button', { name: 'Sem.' }));
     expect(screen.queryByText('Dias', { selector: 'div' })).not.toBeInTheDocument();
     expect(screen.getByText('4')).toBeInTheDocument();
+  });
+
+  it('mostra anos com no máximo uma casa decimal', async () => {
+    const user = userEvent.setup();
+    renderWidget(dateCalculatorWidget);
+    const [start, end] = dateInputs();
+    fireEvent.change(start, { target: { value: '2024-01-01' } });
+    fireEvent.change(end, { target: { value: '2025-07-02' } });
+    expect(screen.getByText('Anos', { selector: 'div' }).nextSibling).toHaveTextContent('1.5');
+    await user.click(screen.getByRole('button', { name: 'Anos' }));
+    expect(screen.queryByText('Meses (aprox.)')).not.toBeInTheDocument();
+    expect(screen.getByText('1.5')).toBeInTheDocument();
   });
 
   it('copia um valor', async () => {

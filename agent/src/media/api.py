@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field
 from starlette.requests import ClientDisconnect
 
 from src.files import opener
-from src.files.filters import is_executable
+from src.files.filters import is_executable, is_under
 from src.media.converter import (
     ConvertOptions,
     Level,
@@ -53,7 +53,15 @@ class ConvertFilePayload(BaseModel):
     options: ConvertOptions = ConvertOptions()
 
 
-def create_media_router(*, jobs: JobManager, settings: MediaSettings, work_root: Path, require_token: Callable) -> APIRouter:
+def create_media_router(
+    *,
+    jobs: JobManager,
+    settings: MediaSettings,
+    work_root: Path,
+    require_token: Callable,
+    is_known_file: Optional[Callable[[str], bool]] = None,
+) -> APIRouter:
+    """`is_known_file`: arquivos que o usuário já abriu (histórico do Top 10) também podem ser convertidos."""
     router = APIRouter(prefix="/media", dependencies=[Depends(require_token)])
     # Sobras de uma execução anterior (agente encerrado no meio de uma tarefa).
     shutil.rmtree(work_root, ignore_errors=True)
@@ -192,9 +200,19 @@ def create_media_router(*, jobs: JobManager, settings: MediaSettings, work_root:
 
     @router.post("/convert-file")
     async def convert_existing(payload: ConvertFilePayload):
-        """Converte um arquivo já gerado pelo Downloader/Conversor (base do "Enviar para…")."""
-        if not jobs.is_output(payload.path) or not os.path.isfile(payload.path):
-            raise HTTPException(status_code=403, detail="Só é possível converter arquivos gerados pelo Downloader ou pelo Conversor.")
+        """Converte um arquivo já gerado pelo Downloader/Conversor (base do "Enviar para…").
+
+        Vale para saídas de tarefas da lista, arquivos nas pastas de saída configuradas
+        (a lista se perde quando o agente reinicia; as pastas, não) e arquivos do
+        histórico do Top 10 (o usuário já os abriu).
+        """
+        allowed = (
+            jobs.is_output(payload.path)
+            or is_under(payload.path, [settings.download_dir, settings.convert_dir])
+            or (is_known_file is not None and is_known_file(payload.path))
+        )
+        if not allowed or not os.path.isfile(payload.path) or is_executable(payload.path):
+            raise HTTPException(status_code=403, detail="Só é possível converter arquivos gerados pelo Downloader/Conversor ou que aparecem no Top 10.")
         name = Path(payload.path).name
         try:
             plan = plan_conversion(name, payload.options)

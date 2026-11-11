@@ -58,6 +58,25 @@ class FileActivityService:
             pass
         self._dirty = True
 
+    def record_generated(self, paths: Iterable[str], ts: Optional[float] = None) -> int:
+        """Arquivos criados pelo próprio Dashboard (Conversor, Downloader) contam como abertos.
+
+        A data de modificação atual vira a referência: só gravações posteriores contam como edição.
+        """
+        ts = ts if ts is not None else time.time()
+        added = 0
+        for path in paths:
+            if not self.accepts(path):
+                continue
+            added += self.store.record(path, "opened", ts)
+            try:
+                self.store.set_known_mtime(path, os.path.getmtime(path))
+            except OSError:
+                pass
+        if added:
+            self._dirty = True
+        return added
+
     def scan_once(self) -> int:
         """Varredura síncrona (rodar em thread). Devolve quantos eventos novos entraram."""
         added = 0

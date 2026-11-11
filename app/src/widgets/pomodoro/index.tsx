@@ -1,8 +1,24 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useCallback, useEffect, useState, useRef } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { Play, Pause, RotateCcw, SkipForward, Settings, Bell, CheckCircle, AlarmClock, Hourglass, Edit2 } from 'lucide-react';
-import { SegmentedControl } from '../../ui';
+import { Play, Pause, RotateCcw, SkipForward, Settings, Bell, CheckCircle, AlarmClock, Hourglass, Edit2, Target, X } from 'lucide-react';
+import { IconButton, SegmentedControl } from '../../ui';
+import { MenuItem, MenuNote, MenuPopover } from '../../ui/MenuPopover';
+import { showToast } from '../../ui/toast';
 import { alpha } from '../../theme/tokens';
+import { formatFocus, type SharedTask } from '../../sdk/actions';
+
+/** Tarefa do Todo/Kanban que recebe o tempo de cada ciclo de foco. */
+export interface FocusTask {
+  instanceId: string;
+  itemId: string;
+  text: string;
+}
+
+interface TaskGroup {
+  instanceId: string;
+  title: string;
+  tasks: SharedTask[];
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -58,6 +74,13 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
 
   const workerRef = useRef<Worker | null>(null);
 
+  // Tarefa em foco (Lista de Tarefas / Kanban)
+  const [focusTask, setFocusTask] = useState<FocusTask | null>(null);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [taskGroups, setTaskGroups] = useState<TaskGroup[] | null>(null);
+  const pickerButtonRef = useRef<HTMLButtonElement>(null);
+  const closePicker = useCallback(() => setPickerOpen(false), []);
+
   // ── Load saved state ──
   useEffect(() => {
     async function loadData() {
@@ -68,6 +91,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       const savedSecs = await context.storage.get<number>('remainingSeconds', (savedConfig?.focusMinutes || 25) * 60);
       const savedCdInitial = await context.storage.get<number>('countdownInitialSecs', 600);
       const savedCdRemaining = await context.storage.get<number>('countdownRemaining', 600);
+      const savedFocusTask = await context.storage.get<FocusTask | null>('focusTask', null);
 
       setMode(savedMode || 'pomodoro');
       setConfig(savedConfig || DEFAULT_CONFIG);
@@ -78,6 +102,7 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       setCountdownRemaining(savedCdRemaining !== undefined ? savedCdRemaining : 600);
       setCountdownMinutes(Math.floor((savedCdInitial || 600) / 60));
       setCountdownSeconds((savedCdInitial || 600) % 60);
+      setFocusTask(savedFocusTask ?? null);
       setIsLoaded(true);
     }
     loadData();
@@ -187,12 +212,47 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     return cfg.longBreakMinutes * 60;
   };
 
+  const chooseFocusTask = async (task: FocusTask | null) => {
+    setPickerOpen(false);
+    setFocusTask(task);
+    await context.storage.set('focusTask', task);
+  };
+
+  const openPicker = async () => {
+    if (pickerOpen) {
+      setPickerOpen(false);
+      return;
+    }
+    setTaskGroups(null);
+    setPickerOpen(true);
+    const sources = context.actions.targets(['task']);
+    const groups = await Promise.all(
+      sources.map(async (source) => ({
+        instanceId: source.instanceId,
+        title: source.title,
+        tasks: ((await context.actions.request<SharedTask[]>(source.instanceId, { type: 'tasks:list' })) ?? []).filter((task) => !task.done),
+      })),
+    );
+    setTaskGroups(groups);
+  };
+
+  /** Ao fim de um ciclo de foco, o tempo vai para a tarefa escolhida. */
+  const recordFocusTime = (seconds: number) => {
+    if (!focusTask) return;
+    const task = focusTask;
+    context.actions
+      .send(task.instanceId, { kind: 'task:time', itemId: task.itemId, seconds })
+      .then(() => showToast(`${formatFocus(seconds)} registrados em "${task.text}".`))
+      .catch(() => showToast('Não foi possível registrar o tempo na tarefa.', 'danger'));
+  };
+
   const handlePomodoroPhaseComplete = () => {
     setIsRunning(false);
     workerRef.current?.postMessage('stop');
     const displayTitle = config.customTitle || 'Pomodoro';
 
     if (phase === 'focus') {
+      recordFocusTime(config.focusMinutes * 60);
       const nextCycles = completedCycles + 1;
       setCompletedCycles(nextCycles);
       if (nextCycles % config.cyclesUntilLongBreak === 0) {
@@ -554,9 +614,49 @@ const TimerWidget: React.FC<WidgetComponentProps> = ({ context }) => {
 
           {/* Footer */}
           {mode === 'pomodoro' && (
-            <div style={{ fontSize: '11px', color: 'var(--app-muted-strong)', display: 'flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
-              <CheckCircle size={12} color="var(--app-success)" />
-              <span>Ciclos: <strong style={{ color: 'var(--app-text)' }}>{completedCycles}</strong></span>
+            <div style={{ width: '100%', fontSize: '11px', color: 'var(--app-muted-strong)', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '8px', flexShrink: 0, minWidth: 0 }}>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', flexShrink: 0 }}>
+                <CheckCircle size={12} color="var(--app-success)" />
+                <span>Ciclos: <strong style={{ color: 'var(--app-text)' }}>{completedCycles}</strong></span>
+              </span>
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', minWidth: 0 }}>
+                <button
+                  ref={pickerButtonRef}
+                  type="button"
+                  onClick={() => void openPicker()}
+                  aria-haspopup="menu"
+                  aria-expanded={pickerOpen}
+                  title={focusTask ? `Em foco: ${focusTask.text} (clique para trocar)` : 'Escolher a tarefa em foco (Lista de Tarefas ou Kanban)'}
+                  style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', minWidth: 0, background: 'transparent', border: 'none', padding: '1px 2px', cursor: 'pointer', color: focusTask ? 'var(--app-text)' : 'var(--widget-accent)', fontSize: '11px' }}
+                >
+                  <Target size={12} style={{ flexShrink: 0 }} />
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{focusTask ? focusTask.text : 'Tarefa em foco'}</span>
+                </button>
+                {focusTask && <IconButton label="Tirar tarefa do foco" icon={<X size={11} />} onClick={() => void chooseFocusTask(null)} style={{ padding: 0 }} />}
+              </span>
+              <MenuPopover anchorRef={pickerButtonRef} open={pickerOpen} onClose={closePicker} label="Tarefa em foco" width={240}>
+                {taskGroups === null ? (
+                  <MenuNote>Buscando tarefas…</MenuNote>
+                ) : taskGroups.length === 0 ? (
+                  <MenuNote>Adicione uma Lista de Tarefas ou um Kanban ao canvas para escolher a tarefa em foco.</MenuNote>
+                ) : taskGroups.every((group) => group.tasks.length === 0) ? (
+                  <MenuNote>Nenhuma tarefa pendente.</MenuNote>
+                ) : (
+                  taskGroups.map((group) =>
+                    group.tasks.length === 0 ? null : (
+                      <React.Fragment key={group.instanceId}>
+                        {taskGroups.length > 1 && <MenuNote>{group.title}</MenuNote>}
+                        {group.tasks.map((task) => (
+                          <MenuItem key={task.id} title={task.text} onSelect={() => void chooseFocusTask({ instanceId: group.instanceId, itemId: task.id, text: task.text })}>
+                            {task.text}
+                            {task.focusSeconds ? ` · ${formatFocus(task.focusSeconds)}` : ''}
+                          </MenuItem>
+                        ))}
+                      </React.Fragment>
+                    ),
+                  )
+                )}
+              </MenuPopover>
             </div>
           )}
         </>
@@ -569,8 +669,8 @@ export const pomodoroWidget: WidgetDefinition = {
   manifest: {
     id: 'pomodoro',
     name: 'Timer Multiferramenta',
-    version: '2.0.0',
-    description: 'Pomodoro, contagem regressiva e cronômetro em um só widget, com nome/título customizável e notificações.',
+    version: '2.1.0',
+    description: 'Pomodoro, contagem regressiva e cronômetro em um só widget, com tarefa em foco (registra o tempo no Todo/Kanban) e notificações.',
     icon: 'Timer',
     author: 'Dashboard Core',
     status: 'stable',

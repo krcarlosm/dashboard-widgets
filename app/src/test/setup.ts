@@ -3,9 +3,11 @@ import 'fake-indexeddb/auto';
 import '@testing-library/jest-dom/vitest';
 import { afterEach, vi } from 'vitest';
 import { cleanup } from '@testing-library/react';
+import { clearToasts } from '../ui/toast';
 
 afterEach(() => {
   cleanup();
+  clearToasts();
   localStorage.clear();
   vi.useRealTimers();
 });

@@ -1,7 +1,19 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { WidgetDefinition, WidgetComponentProps } from '../../sdk/types';
-import { Plus, Check, Trash2, CheckSquare, Pencil, GripVertical } from 'lucide-react';
+import { Plus, Check, Trash2, CheckSquare, Pencil, GripVertical, Link2, Timer } from 'lucide-react';
 import { Banner, Button, ConfirmButton, EmptyState, IconButton, Input, SegmentedControl, Spacer, Toolbar } from '../../ui';
+import { SendToButton } from '../../ui/SendTo';
+import {
+  formatFocus,
+  newItemId,
+  textToTasks,
+  useActionReceiver,
+  useActionResponder,
+  type ActionTarget,
+  type SharedTask,
+  type TaskLink,
+  type WidgetMessage,
+} from '../../sdk/actions';
 
 interface TodoItem {
   id: string;
@@ -9,6 +21,10 @@ interface TodoItem {
   done: boolean;
   date: string; // YYYY-MM-DD
   createdAt: number;
+  /** Tarefa vinculada em outro widget (Kanban/Todo): concluir em um conclui no outro. */
+  link?: TaskLink;
+  /** Tempo de foco registrado pelo Pomodoro. */
+  focusSeconds?: number;
 }
 
 interface EditingState {
@@ -36,6 +52,10 @@ const getTodayString = (): string => {
 
 const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
   const [items, setItems] = useState<TodoItem[]>([]);
+  // Cópia síncrona da lista: mensagens de outros widgets podem chegar em sequência,
+  // antes de o React renderizar de novo.
+  const itemsRef = useRef<TodoItem[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
   const [viewMode, setViewMode] = useState<'today' | 'week'>('today');
   const [newText, setNewText] = useState<string>('');
   const [pendingRollover, setPendingRollover] = useState<TodoItem[]>([]);
@@ -67,31 +87,94 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
         }
       }
 
-      setItems(orderItems(loaded));
+      itemsRef.current = orderItems(loaded);
+      setItems(itemsRef.current);
       context.storage.set('lastOpenedDate', today);
+      setIsLoaded(true);
     }
     loadData();
   }, [context.storage]);
 
   const saveItems = async (updated: TodoItem[]) => {
     const ordered = orderItems(updated);
+    itemsRef.current = ordered;
     setItems(ordered);
     await context.storage.set('items', ordered);
+  };
+
+  const createItem = (text: string, extra: Partial<TodoItem> = {}): TodoItem => ({
+    id: newItemId('todo'),
+    text,
+    done: false,
+    date: getTodayString(),
+    createdAt: Date.now(),
+    ...extra,
+  });
+
+  /** Avisa a tarefa vinculada (se houver) de uma mudança feita aqui. */
+  const notifyLinked = (item: TodoItem, message: WidgetMessage) => {
+    if (item.link) void context.actions.send(item.link.instanceId, message).catch(() => {});
+  };
+
+  // ── Integração ("Enviar para…", tarefas vinculadas, Pomodoro) ─────────────
+  useActionReceiver(
+    context.actions,
+    async (message) => {
+      const current = itemsRef.current;
+      switch (message.kind) {
+        case 'text': {
+          const created = textToTasks(message.text).map((text) => createItem(text));
+          if (created.length) await saveItems([...current, ...created]);
+          break;
+        }
+        case 'task': {
+          if (current.some((item) => item.id === message.id)) break;
+          await saveItems([...current, createItem(message.text, { id: message.id, done: message.done, link: message.link })]);
+          break;
+        }
+        case 'task:update': {
+          const target = current.find((item) => item.id === message.itemId);
+          if (!target) break;
+          const changed = { ...target, ...(message.done !== undefined ? { done: message.done } : {}), ...(message.text ? { text: message.text } : {}) };
+          // Mudou de grupo (concluída/pendente): vai para o fim do novo grupo, como no clique.
+          const next = changed.done !== target.done ? [...current.filter((item) => item.id !== target.id), changed] : current.map((item) => (item.id === target.id ? changed : item));
+          await saveItems(next);
+          break;
+        }
+        case 'task:unlink':
+          await saveItems(current.map((item) => (item.id === message.itemId ? { ...item, link: undefined } : item)));
+          break;
+        case 'task:time':
+          await saveItems(current.map((item) => (item.id === message.itemId ? { ...item, focusSeconds: (item.focusSeconds ?? 0) + message.seconds } : item)));
+          break;
+      }
+    },
+    isLoaded,
+  );
+
+  useActionResponder(
+    context.actions,
+    (query) => {
+      if (query.type !== 'tasks:list') return null;
+      return itemsRef.current.map<SharedTask>((item) => ({ id: item.id, text: item.text, done: item.done, focusSeconds: item.focusSeconds }));
+    },
+    isLoaded,
+  );
+
+  /** Para Kanban/outra lista: tarefa vinculada (se ainda não tiver vínculo); para os demais: o texto. */
+  const buildSend = async (item: TodoItem, target: ActionTarget): Promise<WidgetMessage[]> => {
+    const current = itemsRef.current.find((entry) => entry.id === item.id) ?? item;
+    if (!target.accepts.includes('task') || current.link) return [{ kind: 'text', text: current.text }];
+    const remoteId = newItemId(target.widgetId);
+    await saveItems(itemsRef.current.map((entry) => (entry.id === item.id ? { ...entry, link: { instanceId: target.instanceId, itemId: remoteId } } : entry)));
+    return [{ kind: 'task', text: current.text, id: remoteId, done: current.done, link: { instanceId: context.instanceId, itemId: item.id } }];
   };
 
   const handleAddItem = (e?: React.FormEvent) => {
     if (e) e.preventDefault();
     if (!newText.trim()) return;
 
-    const newItem: TodoItem = {
-      id: `todo-${Date.now()}-${Math.random().toString(36).substr(2, 4)}`,
-      text: newText.trim(),
-      done: false,
-      date: getTodayString(),
-      createdAt: Date.now(),
-    };
-
-    saveItems([...items, newItem]);
+    saveItems([...items, createItem(newText.trim())]);
     setNewText('');
   };
 
@@ -101,6 +184,7 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
     if (!target) return;
     const toggled = { ...target, done: !target.done };
     saveItems([...items.filter((item) => item.id !== id), toggled]);
+    if (target.link) notifyLinked(target, { kind: 'task:update', itemId: target.link.itemId, done: toggled.done });
   };
 
   const handleDragStart = (event: React.DragEvent<HTMLDivElement>, id: string) => {
@@ -167,16 +251,21 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
       return;
     }
 
+    const original = items.find((item) => item.id === editingState.id);
     const updated = items.map((item) =>
       item.id === editingState.id ? { ...item, text: trimmed } : item
     );
     saveItems(updated);
+    if (original?.link && original.text !== trimmed) notifyLinked(original, { kind: 'task:update', itemId: original.link.itemId, text: trimmed });
     setEditingState(null);
   };
 
   const handleDelete = (id: string) => {
+    const removed = items.find((item) => item.id === id);
     const updated = items.filter((item) => item.id !== id);
     saveItems(updated);
+    // A tarefa vinculada continua no outro widget, só sem o vínculo.
+    if (removed?.link) notifyLinked(removed, { kind: 'task:unlink', itemId: removed.link.itemId });
   };
 
   const handleMoveRolloverToToday = () => {
@@ -367,9 +456,20 @@ const TodoWidget: React.FC<WidgetComponentProps> = ({ context }) => {
                     {item.text}
                   </span>
                 )}
+                {item.focusSeconds ? (
+                  <span title={`Tempo de foco no Pomodoro: ${formatFocus(item.focusSeconds)}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '2px', fontSize: '10px', color: 'var(--app-danger)', flexShrink: 0, whiteSpace: 'nowrap' }}>
+                    <Timer size={10} /> {formatFocus(item.focusSeconds)}
+                  </span>
+                ) : null}
+                {item.link && (
+                  <span title={`Vinculada a ${context.actions.targets(['task']).find((target) => target.instanceId === item.link!.instanceId)?.title ?? 'outro widget'}: concluir em um conclui no outro`} aria-label="Tarefa vinculada" style={{ display: 'inline-flex', color: 'var(--widget-accent)', flexShrink: 0 }}>
+                    <Link2 size={11} />
+                  </span>
+                )}
               </div>
 
               <div style={{ display: 'flex', alignItems: 'center', gap: '2px' }} onClick={(e) => e.stopPropagation()}>
+                <SendToButton actions={context.actions} kinds={['task', 'text']} iconOnly label="Enviar tarefa para…" build={(target) => buildSend(item, target)} />
                 <IconButton label="Editar tarefa" icon={<Pencil size={13} />} onClick={() => startEditing(item)} style={{ color: 'var(--widget-accent)' }} />
                 <ConfirmButton label="Excluir tarefa" confirmLabel="Excluir?" icon={<Trash2 size={13} />} iconOnly onConfirm={() => handleDelete(item.id)} />
               </div>
@@ -385,8 +485,8 @@ export const todoWidget: WidgetDefinition = {
   manifest: {
     id: 'todo',
     name: 'Lista de Tarefas',
-    version: '1.1.0',
-    description: 'To-do List com visualização por dia/semana, reordenação por arraste e rotativo de tarefas pendentes.',
+    version: '1.2.0',
+    description: 'To-do List com visualização por dia/semana, reordenação por arraste, tarefas vinculadas ao Kanban e tempo de foco do Pomodoro.',
     icon: 'CheckSquare',
     author: 'Dashboard Core',
     status: 'stable',
@@ -394,6 +494,7 @@ export const todoWidget: WidgetDefinition = {
     minSize: { w: 2, h: 4 },
     maxSize: { w: 8, h: 8 },
     requiresAgent: false,
+    accepts: ['text', 'task'],
   },
   component: TodoWidget,
 };

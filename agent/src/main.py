@@ -109,7 +109,11 @@ def notify_media_job(job: dict) -> None:
 
 
 media_settings = MediaSettings(AGENT_HOME)
-media_jobs = JobManager(notify=notify_media_job)
+media_jobs = JobManager(
+    notify=notify_media_job,
+    # Arquivo gerado pelo Conversor/Downloader conta como aberto no Top 10 da semana.
+    on_done=lambda job: file_activity.record_generated(output["path"] for output in job["outputs"]),
+)
 
 
 @asynccontextmanager
@@ -132,7 +136,7 @@ async def lifespan(app: FastAPI):
     logger.info("Agent encerrado")
 
 
-app = FastAPI(title="Dashboard Local Agent", version="0.5.0", lifespan=lifespan)
+app = FastAPI(title="Dashboard Local Agent", version="0.6.0", lifespan=lifespan)
 
 app.add_middleware(
     CORSMiddleware,
@@ -154,7 +158,13 @@ app.include_router(
 )
 app.include_router(create_files_router(store=activity_store, service=file_activity, require_token=require_token))
 app.include_router(
-    create_media_router(jobs=media_jobs, settings=media_settings, work_root=AGENT_HOME / "media-tmp", require_token=require_token)
+    create_media_router(
+        jobs=media_jobs,
+        settings=media_settings,
+        work_root=AGENT_HOME / "media-tmp",
+        require_token=require_token,
+        is_known_file=activity_store.is_indexed,
+    )
 )
 app.include_router(
     create_backup_router(
