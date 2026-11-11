@@ -472,7 +472,7 @@ export const fileConverterWidget: WidgetDefinition = {
     author: 'Dashboard Core',
     status: 'stable',
     defaultSize: { w: 4, h: 7 },
-    minSize: { w: 3, h: 5 },
+    minSize: { w: 3, h: 3 },
     maxSize: { w: 8, h: 12 },
     requiresAgent: true,
   },

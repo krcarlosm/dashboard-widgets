@@ -390,7 +390,7 @@ export const memoryBauWidget: WidgetDefinition<BauConfig> = {
     author: 'Dashboard Core',
     status: 'stable',
     defaultSize: { w: 4, h: 5 },
-    minSize: { w: 3, h: 4 },
+    minSize: { w: 2, h: 4 },
     maxSize: { w: 8, h: 8 },
     requiresAgent: true,
   },
